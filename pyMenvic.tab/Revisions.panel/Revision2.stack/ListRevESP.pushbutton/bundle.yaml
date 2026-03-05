@@ -1,0 +1,11 @@
+title:
+  en_us: Sheet List (Spanish)
+  fr_fr: Liste des feuilles (Espagnol)
+  es_es: Listado de hojas (Español)
+
+tooltip:
+  en_us: List sheets containing revision clouds and show the Spanish Sheet parameter
+  fr_fr: Liste les feuilles contenant des nuages de révision et affiche le paramètre Spanish Sheet
+  es_es: Lista las hojas que contienen nubes de revisión y muestra el parámetro Spanish Sheet
+
+# highlight: new

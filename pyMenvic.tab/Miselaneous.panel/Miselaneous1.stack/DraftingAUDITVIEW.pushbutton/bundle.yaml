@@ -1,0 +1,10 @@
+title:
+  en_us: Drafting Audit View
+  fr_fr: Audit de dessin
+  es_es: Auditoria de Dibujo
+
+tooltip:
+  en_us: Create Drafting Audit View if it doesn't exist and then open it.
+  fr_fr: Créer une vue d'audit de dessin si elle n'existe pas et l'ouvrir.
+  es_es: Crear una vista de auditoría de dibujo si no existe y abrirla.
+# highlight: new

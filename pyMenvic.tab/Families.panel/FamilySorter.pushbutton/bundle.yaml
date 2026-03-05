@@ -1,0 +1,13 @@
+title:
+  en_us: Family Sorter
+  es_es: Clasificador de familias
+  fr_fr: Trieur de familles
+
+tooltip:
+  en_us: Sort families into folders by category
+  es_es: Clasifica familias en carpetas por categoría
+  fr_fr: Trie les familles en dossiers par catégorie
+
+#highlight: new
+
+author: Ricardo J. Mendieta | Menvic ARQ
