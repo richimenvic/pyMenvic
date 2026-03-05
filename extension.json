@@ -7,7 +7,7 @@
     "description": "Ayudas para MENVIC ARQ",
     "author": "Ricardo J. Mendieta",
     "author_profile": "https://www.linkedin.com/in/ricardojmendieta/",
-    "url": "https://github.com/richimenvic/pyMenvic.extension",
+    "url": "https://github.com/richimenvic/pyMenvic",
     "website": "https://www.menvic.com",
     "image": "",
     "templates": {
@@ -16,3 +16,4 @@
     },
     "dependencies": []
 }
+
