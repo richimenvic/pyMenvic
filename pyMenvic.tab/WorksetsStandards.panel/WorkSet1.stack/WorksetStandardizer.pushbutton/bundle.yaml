@@ -1,0 +1,54 @@
+title:
+  en_us: Workset Standardizer
+  es_es: Estandarizador de Worksets
+
+tooltip:
+  en_us: |
+    Analyze existing worksets, review editable discipline-based suggestions,
+    and safely consolidate them into pyMENVIC standard worksets through an interactive manager.
+    __________________________________________________________
+    Workset Standardizer is an advanced pyMENVIC tool designed to help clean,
+    standardize, rename, and consolidate existing user worksets in Revit models.
+
+    It detects the most likely discipline of the model, loads only the selected
+    discipline profile, proposes editable standard target worksets, and lets the
+    user review and apply the changes before modifying the model.
+
+    The tool can also create missing target worksets automatically and optionally
+    delete empty leftover worksets after reassignment.
+
+    This tool is ideal for model cleanup, discipline-specific normalization,
+    and controlled enforcement of internal BIM workset standards.
+  es_es: |
+    Analiza worksets existentes, revisa sugerencias editables por disciplina
+    y consolídalos de forma segura en worksets estándar de pyMENVIC mediante una interfaz interactiva.
+    __________________________________________________________
+    Workset Standardizer es una herramienta avanzada de pyMENVIC diseñada para
+    limpiar, estandarizar, renombrar y consolidar worksets de usuario existentes
+    en modelos de Revit.
+
+    Detecta la disciplina más probable del modelo, carga solo el perfil de la
+    disciplina seleccionada, propone worksets estándar de destino editables y
+    permite revisar y aplicar los cambios antes de modificar el modelo.
+
+    La herramienta también puede crear automáticamente los worksets destino que
+    falten y, de forma opcional, eliminar worksets vacíos sobrantes después de la reasignación.
+
+    Es ideal para limpieza de modelos, normalización por disciplina y aplicación
+    controlada de estándares internos BIM de worksets.
+
+author: Ricardo J. Mendieta | pyMENVIC
+version: 1.0.0
+highlight: UPDATE
+
+help_url: https://www.menvic.com
+
+min_revit_version: 2020
+max_revit_version: 2026
+
+context: doc-project
+
+engine:
+  clean: true
+  fullframe: false
+  persistent: false

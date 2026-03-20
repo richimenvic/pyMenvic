@@ -1,0 +1,14 @@
+title:
+  en_us: List Line Styles (Family)
+  fr_fr: Liste des styles de lignes (Famille)
+  es_es: Listar estilos de líneas (Familia)
+
+tooltip:
+  en_us: Lists all Line Styles and draws a sample Detail Line for each one in the active family view.
+  fr_fr: Liste tous les styles de ligne et trace une ligne de détail pour chacun dans la vue active de la famille.
+  es_es: Lista todos los estilos de línea y dibuja una línea de detalle de muestra para cada uno en la vista activa de la familia.
+
+author: MENVIC ARQ
+version: 1.0.0
+
+# highlight: new

@@ -1,0 +1,10 @@
+title:
+  en_us: Revision
+  es: Revisiones
+  fr_fr: Modifier
+  de_de: Ändern
+  ru: Изменить
+layout:
+  - Revision1
+  - Revision2
+  - RevisionSheetSet

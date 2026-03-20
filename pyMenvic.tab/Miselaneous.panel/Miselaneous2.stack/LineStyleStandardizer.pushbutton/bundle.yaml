@@ -1,0 +1,13 @@
+title:
+  en_us: Line Style Standardizer
+  fr_fr: Standardisation des styles de lignes
+  es_es: Estandarizador de Estilos de Líneas
+
+tooltip:
+  en_us: Standardizes line styles by weight, color and pattern.
+  fr_fr: Standardise les styles de lignes par poids, couleur et motif.
+  es_es: Estandariza estilos de líneas por peso, color y patrón.
+
+author: Ricardo J. Mendieta
+version: '1.0'
+highlight: new

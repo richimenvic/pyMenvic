@@ -1,0 +1,47 @@
+title:
+  en_us: View Type Manager
+  es_es: Gestor de Tipos de Vista
+
+tooltip:
+  en_us: |
+    Analyze existing View Types, review editable discipline-based naming rules,
+    and safely rename them through an interactive pyMENVIC manager.
+    ______________________________________________________________
+    View Type Standardizer is an advanced pyMENVIC tool designed to help clean,
+    standardize, rename, and organize View Types in Revit projects.
+
+    The tool reads discipline standards, separates View Types by View Family,
+    proposes editable target names, and lets the user review all changes
+    before applying them to the model.
+
+    It is ideal for project cleanup, documentation consistency,
+    discipline-based naming control, and internal BIM standard enforcement.
+  es_es: |
+    Analiza los tipos de vista existentes, revisa reglas editables de nombres
+    por disciplina y los renombra de forma segura mediante un gestor interactivo pyMENVIC.
+    ______________________________________________________________
+    View Type Standardizer es una herramienta avanzada de pyMENVIC diseñada para
+    limpiar, estandarizar, renombrar y organizar tipos de vista en proyectos Revit.
+
+    La herramienta lee estandares por disciplina, separa los tipos de vista por
+    View Family, propone nombres destino editables y permite revisar todos los
+    cambios antes de aplicarlos al modelo.
+
+    Es ideal para limpieza de proyectos, consistencia documental,
+    control de nomenclatura por disciplina y aplicacion de estandares BIM internos.
+
+author: Ricardo J. Mendieta | pyMENVIC
+version: 1.0.0
+highlight: NEW
+
+help_url: https://www.menvic.com
+
+min_revit_version: 2020
+max_revit_version: 2026
+
+context: doc-project
+
+engine:
+  clean: true
+  fullframe: false
+  persistent: false

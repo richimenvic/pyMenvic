@@ -1,0 +1,45 @@
+title:
+  en_us: Workset Mapping Manager
+  es_es: Gestor de Mapeo de Worksets
+
+tooltip:
+  en_us: Analyze non-standard worksets, review suggested mappings, and safely reassign elements to pyMENVIC standard worksets through an interactive manager.
+  es_es: Analiza worksets no estándar, revisa sugerencias de mapeo y reasigna elementos de forma segura a los worksets estándar de pyMENVIC mediante una interfaz interactiva.
+
+description:
+  en_us: >
+    Workset Mapping Manager is an advanced pyMENVIC tool designed to help clean,
+    standardize, and reorganize worksets in Revit models.
+    
+    It detects non-standard worksets, classifies them, proposes target worksets
+    based on naming logic, and allows users to manually review and apply mappings
+    before making changes.
+
+    This tool is ideal for model cleanup, coordination workflows, and enforcing
+    internal BIM standards.
+
+  es_es: >
+    Workset Mapping Manager es una herramienta avanzada de pyMENVIC diseñada para
+    limpiar, estandarizar y reorganizar worksets en modelos de Revit.
+    
+    Detecta worksets no estándar, los clasifica, propone destinos según reglas de
+    nomenclatura y permite revisar y aplicar los cambios de forma controlada antes
+    de modificar el modelo.
+
+    Es ideal para limpieza de modelos, coordinación y aplicación de estándares BIM.
+
+author: Ricardo J. Mendieta | pyMENVIC
+version: 1.0.0
+highlight: new
+
+help_url: https://www.menvic.com
+
+min_revit_version: 2020
+max_revit_version: 2026
+
+context: doc-project
+
+engine:
+  clean: true
+  fullframe: false
+  persistent: false

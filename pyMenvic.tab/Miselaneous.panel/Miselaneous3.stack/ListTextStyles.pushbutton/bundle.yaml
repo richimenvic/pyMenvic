@@ -1,0 +1,10 @@
+title:
+  en_us: List text styles
+  fr_fr: Lister les styles de texte
+  es_es: Listar estilos de texto
+
+tooltip:
+  en_us: Find Text in project and show how many times it is used
+  fr_fr: Trouver Texte dans le projet et afficher combien de fois il est utilisé
+  es_es: Buscar Texto en el proyecto y mostrar cuantas veces se utiliza
+# highlight: new

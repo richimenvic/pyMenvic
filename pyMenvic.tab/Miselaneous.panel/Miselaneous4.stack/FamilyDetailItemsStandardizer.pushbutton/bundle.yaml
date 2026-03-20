@@ -1,0 +1,13 @@
+title:
+  en_us: Family Detail Items Standardizer
+  fr_fr: Standardisation des sous-catégories Detail Items (Famille)
+  es_es: Estandarizador de Detail Items en Familias
+
+tooltip:
+  en_us: Standardizes Detail Items subcategories in Family Editor (weights 1–8, black, solid).
+  fr_fr: Standardise les sous-catégories Detail Items dans l’éditeur de familles (poids 1–8, noir, ligne continue).
+  es_es: Estandariza las subcategorías de Detail Items en el Editor de Familias (pesos 1–8, negro, línea continua).
+
+# highlight: new
+
+panel: Miscelaneous4

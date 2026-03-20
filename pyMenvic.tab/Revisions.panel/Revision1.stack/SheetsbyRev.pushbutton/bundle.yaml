@@ -1,0 +1,11 @@
+title:
+  en_us: Sheets by Rev
+  fr_fr: Recherche des nuages de révision
+  es_es: Buscador de nubes de revisión
+
+tooltip:
+  en_us: Find all revision clouds belonging to a selected revision
+  fr_fr: Trouve tous les nuages de révision appartenant à la révision sélectionnée
+  es_es: Encuentra todas las nubes de revisión que pertenecen a una revisión seleccionada
+
+# highlight: new

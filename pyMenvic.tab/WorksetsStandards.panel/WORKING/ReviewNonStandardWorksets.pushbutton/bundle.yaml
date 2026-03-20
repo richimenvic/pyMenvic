@@ -1,0 +1,11 @@
+title:
+  en_us: Review Non-Standard Worksets
+  es_es: Revisar Worksets No Estándar
+
+tooltip:
+  en_us: Reviews non-standard user worksets in the model and classifies them for manual cleanup.
+  es_es: Revisa los worksets de usuario no estándar del modelo y los clasifica para su limpieza manual.
+
+author: Ricardo J. Mendieta | pyMENVIC
+version: 1.0.0
+highlight: new

@@ -1,0 +1,11 @@
+title:
+  en_us: Audit Link Worksets
+  es_es: Auditar Worksets de Links
+
+tooltip:
+  en_us: Audits worksets in the host model and compares them with worksets detected in loaded Revit links.
+  es_es: Analiza los worksets del modelo host y los compara con los worksets detectados en los modelos vinculados.
+
+author: Ricardo J. Mendieta | pyMENVIC
+version: 1.0.0
+highlight: new

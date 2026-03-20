@@ -1,0 +1,11 @@
+title:
+  en_us: Sheet List
+  fr_fr: Liste des feuilles
+  es_es: Listado de hojas
+
+tooltip:
+  en_us: List sheets containing revision clouds
+  fr_fr: Liste les feuilles contenant des nuages de révision
+  es_es: Lista las hojas que contienen nubes de revisión
+
+# highlight: new

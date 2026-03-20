@@ -1,0 +1,9 @@
+title:
+  en_us: Sync Link Worksets
+  es_es: Sincronizar Worksets de Links
+
+tooltip:
+  es_es: Escanea todos los RVT vinculados cargados...
+author: Ricardo Mendieta - pyMENVIC
+version: 1.0.0
+highlight: new

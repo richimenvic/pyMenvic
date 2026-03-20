@@ -1,0 +1,12 @@
+title:
+  en_us: Text Style Standardizer
+  fr_fr: Normalisateur des styles de texte
+  es_es: Estandarizador de estilos de texto
+
+tooltip:
+  en_us: Standardize text styles (fonts, sizes in mm + inch, arrows, duplicates)
+  fr_fr: Standardiser les styles de texte (polices, tailles mm + pouces, flèches, doublons)
+  es_es: Estandariza estilos de texto (fuentes, tamaños mm + pulgadas, flechas, duplicados)
+
+author: Ricardo J. Mendieta
+version: 2.0

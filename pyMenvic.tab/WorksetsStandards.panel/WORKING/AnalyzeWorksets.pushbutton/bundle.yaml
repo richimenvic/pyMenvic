@@ -1,0 +1,11 @@
+title:
+  en_us: Analyze Worksets
+  es_es: Analizar Worksets
+
+tooltip:
+  en_us: Analyzes model worksets against the pyMENVIC standard, classifies non-standard worksets, and suggests possible mappings.
+  es_es: Analiza los worksets del modelo frente al estándar pyMENVIC, clasifica los worksets no estándar y sugiere posibles mapeos.
+
+author: Ricardo J. Mendieta | pyMENVIC
+version: 2.0.0
+#highlight: updated

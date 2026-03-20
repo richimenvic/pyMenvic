@@ -1,0 +1,11 @@
+title:
+  en_us: Create Standard Worksets
+  es_es: Crear Worksets Estándar
+
+tooltip:
+  en_us: Creates the standard pyMENVIC worksets if they do not already exist in the model.
+  es_es: Crea los worksets estándar de pyMENVIC si aún no existen en el modelo.
+
+author: Ricardo J. Mendieta | pyMENVIC
+version: 1.0.0
+#highlight: new

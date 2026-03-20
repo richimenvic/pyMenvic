@@ -1,0 +1,11 @@
+title:
+  en_us: Revision Sheet Set
+  fr_fr: Jeu de feuilles par révision
+  es_es: Conjunto de planos por revisión
+
+tooltip:
+  en_us: Create a sheet set containing all sheets with the selected revision
+  fr_fr: Crée un jeu de feuilles contenant toutes les feuilles avec la révision sélectionnée
+  es_es: Crea un conjunto de planos con todas las hojas que contienen la revisión seleccionada
+
+# highlight: new
