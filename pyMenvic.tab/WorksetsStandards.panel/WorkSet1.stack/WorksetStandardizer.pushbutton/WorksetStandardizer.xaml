@@ -450,10 +450,10 @@
                                   Style="{StaticResource DefaultComboBoxStyle}"
                                   ItemContainerStyle="{StaticResource DarkComboBoxItemStyle}">
                             <ComboBoxItem Content="ALL"/>
-                            <ComboBoxItem Content="NO ACTION"/>
-                            <ComboBoxItem Content="ASSIGN TO TARGET"/>
+                            <ComboBoxItem Content="IGNORE"/>
+                            <ComboBoxItem Content="ASSIGN"/>
                             <ComboBoxItem Content="REVIEW"/>
-                            <ComboBoxItem Content="KEEP BY USER"/>
+                            <ComboBoxItem Content="KEEP"/>
                         </ComboBox>
                     </Grid>
 
@@ -624,7 +624,7 @@
                                     <DataTrigger Binding="{Binding Status}" Value="NEEDS REVIEW">
                                         <Setter TargetName="StatusBadge" Property="Background" Value="{StaticResource StatusReviewBgBrush}"/>
                                     </DataTrigger>
-                                    <DataTrigger Binding="{Binding Action}" Value="KEEP BY USER">
+                                    <DataTrigger Binding="{Binding Action}" Value="KEEP">
                                         <Setter TargetName="StatusBadge" Property="Background" Value="{StaticResource StatusKeepBgBrush}"/>
                                     </DataTrigger>
                                 </DataTemplate.Triggers>

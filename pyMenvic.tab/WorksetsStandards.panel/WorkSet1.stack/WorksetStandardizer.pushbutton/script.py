@@ -168,12 +168,12 @@ STATUS_ASSIGNABLE = "ASSIGNABLE"
 STATUS_REVIEW = "NEEDS REVIEW"
 STATUS_KEEP_BY_USER = "KEEP BY USER"
 
-ACTION_NO = "NO ACTION"
-ACTION_ASSIGN = "ASSIGN TO TARGET"
+ACTION_NO = "IGNORE"
+ACTION_ASSIGN = "ASSIGN"
 ACTION_REVIEW = "REVIEW"
-ACTION_KEEP = "KEEP BY USER"
+ACTION_KEEP = "KEEP"
 
-ACTION_VALUES = [ACTION_NO, ACTION_ASSIGN, ACTION_REVIEW, ACTION_KEEP]
+ACTION_VALUES = [ACTION_ASSIGN, ACTION_KEEP, ACTION_NO, ACTION_REVIEW]
 
 DISCIPLINE_KEYWORDS = {
     "ARCHITECTURE": ["ARC", "ARCH", "ARCHITECT", "WALL", "DOOR", "ROOM", "CEILING", "FINISH", "MURO", "PISO"],
@@ -1018,9 +1018,9 @@ class WorksetStandardizerWindow(forms.WPFWindow):
 
             if action != ACTION_ASSIGN:
                 if action == ACTION_KEEP:
-                    row.Result = "Keep by user"
+                    row.Result = "Keep"
                 elif action == ACTION_NO:
-                    row.Result = "No action"
+                    row.Result = "Ignore"
                 else:
                     row.Result = "Review"
                 continue
@@ -1090,7 +1090,7 @@ class WorksetStandardizerWindow(forms.WPFWindow):
         self.refresh_grid_ui()
 
         if invalid:
-            forms.alert("There are ASSIGN TO TARGET rows without Final Target. Please review them first.", title="Preview")
+            forms.alert("There are ASSIGN rows without Final Target. Please review them first.", title="Preview")
             self.update_status("Preview found rows without target.")
             return
 
@@ -1227,13 +1227,13 @@ class WorksetStandardizerWindow(forms.WPFWindow):
         self.refresh_grid_ui()
 
         if invalid:
-            forms.alert("Some rows are marked as ASSIGN TO TARGET but have no Final Target.", title="Apply")
+            forms.alert("Some rows are marked as ASSIGN but have no Final Target.", title="Apply")
             self.update_status("Apply canceled. Missing target detected.")
             return
 
         actionable = [(row, mode) for row, mode in plan if mode in ["RENAME", "CONSOLIDATE", "CONFLICT"]]
         if not actionable:
-            forms.alert("No ASSIGN TO TARGET rows to process.", title="Apply")
+            forms.alert("No ASSIGN rows to process.", title="Apply")
             self.update_status("Nothing to apply.")
             return
 

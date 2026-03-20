@@ -128,10 +128,16 @@ PROFILE_STANDARDS = {
     "PLUMBING": [
         "PLM_LEVELS_GRIDS",
         "PLM_MODEL",
+        "PLM_MODEL_GENERAL",
+        "PLM_MODEL_PLUVIAL",
+        "PLM_MODEL_COLD_WATER",
+        "PLM_MODEL_HOT_WATER",
+        "PLM_MODEL_HOT_WATER_RETURN",
         "PLM_MODEL_SANITARY",
-        "PLM_MODEL_WATER",
-        "PLM_MODEL_DRAINAGE"
-    ],
+        "PLM_MODEL_FIRE_PROTECTION",
+        "PLM_MODEL_TANKS",
+        "PLM_MODEL_VENT"
+    ],  
     "SITE": [
         "SITE_LEVELS_GRIDS",
         "SITE_MODEL",
@@ -692,10 +698,22 @@ def classify_and_suggest(name, discipline, include_links):
     if discipline == "PLUMBING":
         if contains_any(text, ["SANIT", "SEWER"]):
             return STATUS_ASSIGNABLE, "PLM_MODEL_SANITARY", ACTION_ASSIGN, "Sanitary related."
-        if contains_any(text, ["WATER", "CW", "HW"]):
-            return STATUS_ASSIGNABLE, "PLM_MODEL_WATER", ACTION_ASSIGN, "Water related."
-        if contains_any(text, ["DRAIN", "RAIN"]):
-            return STATUS_ASSIGNABLE, "PLM_MODEL_DRAINAGE", ACTION_ASSIGN, "Drainage related."
+        if contains_any(text, ["PLUVIAL", "PLUBIAL", "RAIN", "STORM"]):
+            return STATUS_ASSIGNABLE, "PLM_MODEL_PLUVIAL", ACTION_ASSIGN, "Pluvial related."
+        if contains_any(text, ["HOT_WATER_RETURN", "RETURN", "HWR"]):
+            return STATUS_ASSIGNABLE, "PLM_MODEL_HOT_WATER_RETURN", ACTION_ASSIGN, "Hot water return related."
+        if contains_any(text, ["HOT", "HW", "AGUA_CALIENTE"]):
+            return STATUS_ASSIGNABLE, "PLM_MODEL_HOT_WATER", ACTION_ASSIGN, "Hot water related."
+        if contains_any(text, ["COLD", "CW", "AGUA_FRIA"]):
+            return STATUS_ASSIGNABLE, "PLM_MODEL_COLD_WATER", ACTION_ASSIGN, "Cold water related."
+        if contains_any(text, ["FIRE", "CONTRAINCENDIOS", "PROTECCION_FUEGO"]):
+            return STATUS_ASSIGNABLE, "PLM_MODEL_FIRE_PROTECTION", ACTION_ASSIGN, "Fire protection related."
+        if contains_any(text, ["TANK", "TANQUE", "TANQUES"]):
+            return STATUS_ASSIGNABLE, "PLM_MODEL_TANKS", ACTION_ASSIGN, "Tanks related."
+        if contains_any(text, ["VENT", "VENTILACION"]):
+            return STATUS_ASSIGNABLE, "PLM_MODEL_VENT", ACTION_ASSIGN, "Vent related."
+        if contains_any(text, ["WATER", "PLUMB", "PLUMMING", "PIPE", "PIPING"]):
+            return STATUS_ASSIGNABLE, "PLM_MODEL_GENERAL", ACTION_ASSIGN, "General plumbing related."
         return STATUS_REVIEW, "PLM_MODEL", ACTION_REVIEW, "General plumbing guess."
 
     if discipline == "SITE":
@@ -1032,7 +1050,7 @@ class WorksetStandardizerWindow(forms.WPFWindow):
         return plan, invalid, rename_duplicates, delete_empty
 
     def print_preview_output(self, plan, rename_duplicates, delete_empty):
-        output.print_md("# MENVIC | WORKSET STANDARDIZER — PREVIEW")
+        output.print_md("# pyMENVIC | WORKSET STANDARDIZER — PREVIEW")
         output.print_md("")
         output.print_md("## Summary")
         output.print_md("")
@@ -1137,7 +1155,7 @@ class WorksetStandardizerWindow(forms.WPFWindow):
         self.update_active_targets_panel()
         self.reload_rows()
 
-        output.print_md("# MENVIC | WORKSET STANDARDIZER — CREATE SELECTED STANDARDS")
+        output.print_md("# pyMENVIC | WORKSET STANDARDIZER — CREATE SELECTED STANDARDS")
         output.print_md("")
         output.print_md("- **Created:** {}".format(len(created)))
         output.print_md("- **Skipped / already existed:** {}".format(len(skipped)))
@@ -1350,7 +1368,7 @@ class WorksetStandardizerWindow(forms.WPFWindow):
         self.update_active_targets_panel()
         self.reload_rows()
 
-        output.print_md("# MENVIC | WORKSET STANDARDIZER — APPLY SUMMARY")
+        output.print_md("# pyMENVIC | WORKSET STANDARDIZER — APPLY SUMMARY")
         output.print_md("")
         output.print_md("## Summary")
         output.print_md("")
