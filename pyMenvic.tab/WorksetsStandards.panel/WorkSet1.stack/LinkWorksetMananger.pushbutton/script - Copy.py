@@ -33,12 +33,11 @@ from System.ComponentModel import INotifyPropertyChanged, PropertyChangedEventAr
 doc = revit.doc
 
 DEFAULT_LINK_WORKSETS = [
-    "LINK_ARCH",
+    "LINK_ARC",
     "LINK_STR",
     "LINK_MECH",
     "LINK_ELE",
     "LINK_PLM",
-    "LINK_CIVIL",
     "LINK_SITE",
     "LINK_CAD",
     "LINK_REF"
@@ -251,7 +250,7 @@ def infer_link_workset(name):
             return "LINK_PLM", "PLM", False
 
         if any(t in tokens for t in ["ARC", "AR", "ARCH", "ARCHITECTURE"]):
-            return "LINK_ARCH", "ARCH", False
+            return "LINK_ARC", "ARC", False
 
         if any(t in tokens for t in ["SITE", "TOPO", "LAND", "CIVIL"]):
             return "LINK_SITE", "SITE", False
@@ -271,16 +270,16 @@ def infer_link_workset(name):
             if t0.startswith("P"):
                 return "LINK_PLM", "PLM", False
             if t0.startswith("A"):
-                return "LINK_ARCH", "ARCH", False
+                return "LINK_ARC", "ARC", False
             if t0.startswith("C"):
                 return "LINK_CAD", "CAD", False
             if t0.startswith("L") or t0.startswith("T"):
                 return "LINK_SITE", "SITE", False
 
-        return "LINK_REF", "RVT", True
+        return "LINK_REF", "REF", True
 
     except Exception:
-        return "LINK_REF", "RVT", True
+        return "LINK_REF", "REF", True
 
 
 def normalize_target_workset_name(name):
@@ -541,7 +540,7 @@ class LinkWorksetManagerWindow(forms.WPFWindow):
         if not self.worksets:
             forms.alert("No user worksets were found in the host model.", exitscript=True)
 
-        workset_names = sorted(set(list(self.workset_by_name.keys()) + [normalize_target_workset_name(x) for x in DEFAULT_LINK_WORKSETS]))
+        workset_names = sorted(self.workset_by_name.keys())
 
         raw_rows = get_loaded_link_instances()
         if not raw_rows:
@@ -577,7 +576,7 @@ class LinkWorksetManagerWindow(forms.WPFWindow):
             ws_name = normalize_target_workset_name(ws.Name)
             self.workset_by_name[ws_name] = ws
 
-        available_names = sorted(set(list(self.workset_by_name.keys()) + [normalize_target_workset_name(x) for x in DEFAULT_LINK_WORKSETS]))
+        available_names = sorted(self.workset_by_name.keys())
 
         for row in self.rows_all:
             try:
