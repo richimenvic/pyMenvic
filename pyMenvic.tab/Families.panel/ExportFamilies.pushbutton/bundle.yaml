@@ -1,13 +1,68 @@
 title:
-  en_us: Export Families
-  fr_fr: Exporter les familles
-  es_es: Exportar familias
+  en_us: Export Selected Families
+  fr_fr: Exporter les familles sélectionnées
+  es_es: Exportar familias seleccionadas
 
 tooltip:
-  en_us: Export selected families into folders organized by category
-  fr_fr: Exporte les familles sélectionnées dans des dossiers organisés par catégorie
-  es_es: Exporta las familias seleccionadas en carpetas organizadas por categoría
+  en_us: |
+    Export selected families into folders organized by category using a hierarchical tree selector and automated versioning.
+    Export Selected Families is a high-efficiency pyMENVIC tool designed to 
+    organize and back up project content.
+    _______________________________________________________________
+    Key features:
+    - Tree Selection: Browse and select families via a Category/Family tree.
+    - Automated Sync: Detects and exports only new or updated family versions.
+    - Version Suffix: Automatically appends the Revit version (e.g., _R24) to file names.
+    - Category Audit: Reports discovered categories that fall outside the base list.
 
-# highlight: new
+    Ideal for maintaining office libraries and performing clean model exports.
+  fr_fr: |
+    Exporte les familles sélectionnées dans des dossiers organisés par catégorie à l'aide d'un sélecteur hiérarchique et d'un versionnage automatique.
+    _______________________________________________________________
+    Fonctionnalités clés :
+    - Sélection en arborescence : Parcourez et sélectionnez les familles par catégorie.
+    - Synchronisation automatique : Détecte et exporte uniquement les versions nouvelles ou mises à jour.
+    - Suffixe de version : Ajoute automatiquement la version de Revit (ex: _R24) aux fichiers.
+    - Audit de catégories : Signale les catégories détectées hors de la liste de base.
 
-author: Ricardo J. Mendieta | Menvic ARQ
+    Idéal pour gérer les bibliothèques d'agence et effectuer des exports propres.
+  es_es: |
+    Exporta las familias seleccionadas en carpetas organizadas por categoría mediante un selector de árbol jerárquico y versionado automático.
+    _______________________________________________________________
+    Características clave:
+    - Selección en árbol: Navega y selecciona familias por Categoría/Familia.
+    - Sincronización automática: Detecta y exporta solo versiones nuevas o actualizadas.
+    - Sufijo de versión: Añade automáticamente la versión de Revit (ej. _R24) al nombre.
+    - Auditoría de categorías: Reporta categorías detectadas fuera de la lista base.
+
+    Ideal para mantener librerías de oficina y realizar exportaciones de contenido limpias.
+
+description:
+  en_us: >
+    Export Selected Families provides a centralized interface to batch-export 
+    RFA files. It builds a visual tree of all loaded families, allowing 
+    granular selection. The tool ensures library integrity by organizing 
+    files into category-named folders and using a version-based naming 
+    convention to prevent overwriting older files without cause.
+  es_es: >
+    Export Selected Families ofrece una interfaz centralizada para la exportación 
+    masiva de archivos RFA. Crea un árbol visual de todas las familias cargadas, 
+    permitiendo una selección granular. La herramienta asegura la integridad de 
+    la librería organizando los archivos en carpetas por categoría y usando una 
+    convención de nombres basada en la versión de Revit.
+
+author: Ricardo J. Mendieta | pyMENVIC
+version: 1.0.0
+# highlight: NEW
+
+help_url: https://www.menvic.com
+
+min_revit_version: 2020
+max_revit_version: 2026
+
+context: doc-project
+
+engine:
+  clean: true
+  fullframe: false
+  persistent: false

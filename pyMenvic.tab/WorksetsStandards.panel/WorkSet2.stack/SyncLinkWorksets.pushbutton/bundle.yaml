@@ -3,7 +3,65 @@ title:
   es_es: Sincronizar Worksets de Links
 
 tooltip:
-  es_es: Escanea todos los RVT vinculados cargados...
-author: Ricardo Mendieta - pyMENVIC
+  en_us: |
+    Synchronizes host worksets with worksets detected in loaded Revit links,
+    allowing for automated creation and auditing of project structures.
+    Sync Link Worksets is a pyMENVIC utility designed to ensure the host model 
+    contains all necessary worksets found within its linked files.
+    _______________________________________________________________
+    The tool offers four operational modes:
+    - Probe Links: Lists all worksets detected in links and their current status.
+    - Create Missing: Select and generate link-detected worksets in the host.
+    - Probe Unused: Audits and lists existing user worksets in the host model.
+    - Delete Unused: Reserved for future cleanup of redundant worksets.
+
+    Ideal for maintaining coordination standards and avoiding manual naming errors.
+  es_es: |
+    Sincroniza los worksets del host con los detectados en los vínculos de Revit cargados,
+    permitiendo la creación y auditoría automatizada de estructuras de proyecto.
+    _______________________________________________________________
+    Sync Link Worksets es una utilidad de pyMENVIC diseñada para asegurar que el
+    modelo host contenga todos los worksets necesarios encontrados en sus links.
+
+    La herramienta ofrece cuatro modos operativos:
+    - Probe Links: Lista los worksets detectados en links y su estado actual.
+    - Create Missing: Selecciona y genera en el host los worksets del link.
+    - Probe Unused: Audita y lista los worksets de usuario existentes en el host.
+    - Delete Unused: Reservado para limpieza futura de worksets redundantes.
+
+    Ideal para mantener estándares de coordinación y evitar errores manuales.
+
+description:
+  en_us: >
+    Sync Link Worksets is a pyMENVIC utility designed to ensure the host model 
+    contains all necessary worksets found within its linked files.
+    
+    The tool allows users to scan loaded links, identify missing worksets in the 
+    host, and create them through an interactive selection menu. It also includes 
+    diagnostic modes to list current host worksets and identify potential 
+    redundancies, ensuring a clean and synchronized project environment.
+  es_es: >
+    Sync Link Worksets es una utilidad de pyMENVIC diseñada para asegurar que el
+    modelo host contenga todos los worksets necesarios encontrados en sus links.
+
+    La herramienta permite escanear vínculos cargados, identificar worksets 
+    faltantes en el host y crearlos mediante un menú de selección interactivo. 
+    También incluye modos de diagnóstico para listar los worksets actuales del 
+    host e identificar posibles redundancias, asegurando un entorno de proyecto 
+    limpio y sincronizado.
+
+author: Ricardo J. Mendieta | pyMENVIC
 version: 1.0.0
-highlight: new
+# highlight: NEW
+
+help_url: https://www.menvic.com
+
+min_revit_version: 2020
+max_revit_version: 2026
+
+context: doc-project
+
+engine:
+  clean: true
+  fullframe: false
+  persistent: false

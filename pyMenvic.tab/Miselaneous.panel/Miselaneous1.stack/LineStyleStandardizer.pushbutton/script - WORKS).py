@@ -322,54 +322,23 @@ def color_obj_from_key(color_key, fallback_color):
 # ----------------------------------------------------------
 # SEED / STANDARD LINES
 # ----------------------------------------------------------
-def spec_key_from_values(weight, color_obj, pattern_label):
-    cname, is_named = color_name_or_rgb(color_obj)
-    if is_named:
-        color_key = ("NAMED", cname)
-    else:
-        color_key = ("RGB", rgb_tuple(color_obj))
-    return (safe_int(weight, 1), color_key, pattern_label)
-
-
-def build_seed_specs(mode="full"):
+def build_seed_specs():
     hidden_id, hidden_name = find_hidden_pattern_id()
     specs = []
-
-    if mode == "reduced":
-        variants_by_weight = {
-            1: [("BLACK", DB.Color(0, 0, 0), None, DB.ElementId.InvalidElementId)],
-            2: [
-                ("BLACK", DB.Color(0, 0, 0), None, DB.ElementId.InvalidElementId),
-                ("BLACK", DB.Color(0, 0, 0), "Hidden", hidden_id),
-            ],
-            3: [
-                ("BLACK", DB.Color(0, 0, 0), None, DB.ElementId.InvalidElementId),
-                ("BLACK", DB.Color(0, 0, 0), "Hidden", hidden_id),
-            ],
-            4: [("BLACK", DB.Color(0, 0, 0), None, DB.ElementId.InvalidElementId)],
-            5: [("BLACK", DB.Color(0, 0, 0), None, DB.ElementId.InvalidElementId)],
-            6: [("BLACK", DB.Color(0, 0, 0), None, DB.ElementId.InvalidElementId)],
-            7: [("BLACK", DB.Color(0, 0, 0), None, DB.ElementId.InvalidElementId)],
-            8: [("BLACK", DB.Color(0, 0, 0), None, DB.ElementId.InvalidElementId)],
-        }
-    else:
-        base_variants = [
-            ("BLACK", DB.Color(0, 0, 0), None, DB.ElementId.InvalidElementId),
-            ("RED", DB.Color(255, 0, 0), None, DB.ElementId.InvalidElementId),
-            ("BLUE", DB.Color(0, 0, 255), None, DB.ElementId.InvalidElementId),
-            ("BLACK", DB.Color(0, 0, 0), "Hidden", hidden_id),
-        ]
-        variants_by_weight = dict((w, list(base_variants)) for w in sorted(WEIGHT_LABELS.keys()))
-
-    for w in sorted(variants_by_weight.keys()):
-        for color_label, color_obj, pattern_label, pattern_id in variants_by_weight[w]:
+    variants = [
+        ("BLACK", DB.Color(0, 0, 0), None, DB.ElementId.InvalidElementId),
+        ("RED", DB.Color(255, 0, 0), None, DB.ElementId.InvalidElementId),
+        ("BLUE", DB.Color(0, 0, 255), None, DB.ElementId.InvalidElementId),
+        ("BLACK", DB.Color(0, 0, 0), "Hidden", hidden_id),
+    ]
+    for w in sorted(WEIGHT_LABELS.keys()):
+        for color_label, color_obj, pattern_label, pattern_id in variants:
             specs.append({
                 "name": canonical_name(w, color_label, pattern_label),
                 "weight": w,
                 "color": color_obj,
                 "pattern_label": pattern_label,
                 "pattern_id": pattern_id,
-                "key": spec_key_from_values(w, color_obj, pattern_label),
             })
     return specs, hidden_name
 
@@ -405,50 +374,58 @@ def ensure_seed(line_cat, spec):
     return True, ("CREATED" if created_now else "UPDATED"), ""
 
 
-def seed_canonical_standards(line_cat, gtype, seed_names, specs, create_only_missing=False):
+def seed_canonical_standards(line_cat, gtype, seed_names):
+    hidden_id, _hidden_name = find_hidden_pattern_id()
+    seeds = [
+        ("BLACK", DB.Color(0, 0, 0), None, DB.ElementId.InvalidElementId),
+        ("RED", DB.Color(255, 0, 0), None, DB.ElementId.InvalidElementId),
+        ("BLUE", DB.Color(0, 0, 255), None, DB.ElementId.InvalidElementId),
+        ("BLACK", DB.Color(0, 0, 0), "Hidden", hidden_id),
+    ]
+
     created_local = 0
     updated_local = 0
 
-    for spec in specs:
-        canon_name = spec["name"]
-        seed_names.add(canon_name)
+    for w in sorted(WEIGHT_LABELS.keys()):
+        for color_label, color_obj, pattern_label, pattern_id in seeds:
+            canon_name = canonical_name(w, color_label, pattern_label)
+            seed_names.add(canon_name)
 
-        canon_sub = None
-        try:
-            if line_cat.SubCategories.Contains(canon_name):
-                canon_sub = line_cat.SubCategories.get_Item(canon_name)
-        except Exception:
             canon_sub = None
-
-        if not canon_sub:
-            canon_sub = find_best_subcat_by_root(list(line_cat.SubCategories), canon_name)
-
-        existed = True if canon_sub else False
-
-        if not canon_sub:
-            canon_name_to_create = get_unique_subcat_name(line_cat, canon_name)
-            canon_sub = ensure_subcategory(line_cat, canon_name_to_create)
-
-        if canon_sub:
             try:
-                seed_names.add(canon_sub.Name)
+                if line_cat.SubCategories.Contains(canon_name):
+                    canon_sub = line_cat.SubCategories.get_Item(canon_name)
             except Exception:
-                pass
-        if not canon_sub:
-            continue
+                canon_sub = None
 
-        if (not create_only_missing) or (not existed):
-            apply_props(canon_sub, spec["weight"], spec["color"], spec["pattern_id"], gtype)
+            if not canon_sub:
+                canon_sub = find_best_subcat_by_root(list(line_cat.SubCategories), canon_name)
 
-        if existed:
-            updated_local += 1
-        else:
-            created_local += 1
+            existed = True if canon_sub else False
+
+            if not canon_sub:
+                canon_name_to_create = get_unique_subcat_name(line_cat, canon_name)
+                canon_sub = ensure_subcategory(line_cat, canon_name_to_create)
+
+            if canon_sub:
+                try:
+                    seed_names.add(canon_sub.Name)
+                except Exception:
+                    pass
+            if not canon_sub:
+                continue
+
+            apply_props(canon_sub, w, color_obj, pattern_id, gtype)
+
+            if existed:
+                updated_local += 1
+            else:
+                created_local += 1
 
     return created_local, updated_local
 
 
-def run_add_standard_lines(mode="full"):
+def run_add_standard_lines():
     output.print_md("# MENVIC | LINE MASTER | ADD STANDARD LINES")
     output.print_md("\nSEED MODE (CREATE/UPDATE CANONICAL STANDARDS ONLY)\n")
 
@@ -457,7 +434,7 @@ def run_add_standard_lines(mode="full"):
         output.print_md("**ERROR:** Could not access OST_Lines category.")
         script.exit()
 
-    specs, hidden_pattern_name = build_seed_specs(mode)
+    specs, hidden_pattern_name = build_seed_specs()
     created = 0
     updated = 0
     failed = []
@@ -525,7 +502,7 @@ def run_add_standard_lines(mode="full"):
 # ----------------------------------------------------------
 # CLEAN AND STANDARDIZE
 # ----------------------------------------------------------
-def run_clean_and_standardize(mode="full"):
+def run_clean_and_standardize():
     line_cat = get_lines_category()
     gtype = GTYPE
     if not line_cat:
@@ -534,9 +511,8 @@ def run_clean_and_standardize(mode="full"):
 
     usage_before = count_curve_usage()
 
-    mode_label = "REDUCED STANDARD" if mode == "reduced" else "FULL STANDARD"
     output.print_md("# MENVIC | LINE MASTER")
-    output.print_md("## CLEAN AND STANDARDIZE | {0}".format(mode_label))
+    output.print_md("## CLEAN AND STANDARDIZE")
     output.print_md("---")
 
     old_gsid_to_new_gs = {}
@@ -552,10 +528,7 @@ def run_clean_and_standardize(mode="full"):
     with DB.Transaction(doc, "MENVIC: Line Master (Property Based)") as t:
         t.Start()
 
-        specs, _hidden_pattern_name = build_seed_specs(mode)
-        allowed_keys = set([spec["key"] for spec in specs])
-        create_only_missing = False
-        c0, u0 = seed_canonical_standards(line_cat, gtype, seed_names, specs, create_only_missing=create_only_missing)
+        c0, u0 = seed_canonical_standards(line_cat, gtype, seed_names)
         created += c0
         forced += u0
         protected_names |= set(seed_names)
@@ -579,9 +552,6 @@ def run_clean_and_standardize(mode="full"):
 
         for k, subs in groups.items():
             w, color_key, pattern_key = k
-
-            if mode == "reduced" and k not in allowed_keys:
-                continue
 
             group_has_use = False
             for s in subs:
@@ -761,32 +731,12 @@ def show_main_menu():
     try:
         return forms.CommandSwitchWindow.show(
             options,
-            message="pyMenvic | Line Style Standardizer (v2.4.9)",
+            message="pyMenvic | Text Style Standardizer (v2.4.9)",
         )
     except Exception:
         return forms.SelectFromList.show(
             options,
-            title="pyMenvic | Line Style Standardizer (v2.4.9)",
-            multiselect=False,
-            button_name="Run",
-        )
-
-
-def show_mode_menu(action_label):
-    options = [
-        "FULL STANDARD",
-        "REDUCED STANDARD",
-        "CANCEL",
-    ]
-    try:
-        return forms.CommandSwitchWindow.show(
-            options,
-            message="{0} | Choose standard set".format(action_label),
-        )
-    except Exception:
-        return forms.SelectFromList.show(
-            options,
-            title="{0} | Choose standard set".format(action_label),
+            title="pyMenvic | Text Style Standardizer (v2.4.9)",
             multiselect=False,
             button_name="Run",
         )
@@ -794,19 +744,13 @@ def show_mode_menu(action_label):
 
 def main():
     selection = show_main_menu()
-    if not selection or selection == "CANCEL":
+    if not selection:
         script.exit()
-
-    mode_selection = show_mode_menu(selection)
-    if not mode_selection or mode_selection == "CANCEL":
-        script.exit()
-
-    mode = "reduced" if mode_selection == "REDUCED STANDARD" else "full"
 
     if selection == "RUN: CLEAN AND STANDARDIZE":
-        run_clean_and_standardize(mode)
+        run_clean_and_standardize()
     elif selection == "ADD STANDARD LINES":
-        run_add_standard_lines(mode)
+        run_add_standard_lines()
 
 
 if __name__ == "__main__":

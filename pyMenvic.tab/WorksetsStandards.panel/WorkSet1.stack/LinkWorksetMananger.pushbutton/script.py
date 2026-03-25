@@ -33,7 +33,7 @@ from System.ComponentModel import INotifyPropertyChanged, PropertyChangedEventAr
 doc = revit.doc
 
 DEFAULT_LINK_WORKSETS = [
-    "LINK_ARCH",
+    "LINK_ARC",
     "LINK_STR",
     "LINK_MECH",
     "LINK_ELE",
@@ -251,7 +251,7 @@ def infer_link_workset(name):
             return "LINK_PLM", "PLM", False
 
         if any(t in tokens for t in ["ARC", "AR", "ARCH", "ARCHITECTURE"]):
-            return "LINK_ARCH", "ARCH", False
+            return "LINK_ARC", "ARC", False
 
         if any(t in tokens for t in ["SITE", "TOPO", "LAND", "CIVIL"]):
             return "LINK_SITE", "SITE", False
@@ -271,7 +271,7 @@ def infer_link_workset(name):
             if t0.startswith("P"):
                 return "LINK_PLM", "PLM", False
             if t0.startswith("A"):
-                return "LINK_ARCH", "ARCH", False
+                return "LINK_ARC", "ARC", False
             if t0.startswith("C"):
                 return "LINK_CAD", "CAD", False
             if t0.startswith("L") or t0.startswith("T"):

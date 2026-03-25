@@ -4,10 +4,71 @@ title:
   es_es: Estandarizador de Estilos de Líneas
 
 tooltip:
-  en_us: Standardizes line styles by weight, color and pattern.
-  fr_fr: Standardise les styles de lignes par poids, couleur et motif.
-  es_es: Estandariza estilos de líneas por peso, color y patrón.
+  en_us: |
+    Standardizes project line styles by mapping weights, colors, and patterns to pyMENVIC standards through automated analysis.
+    Line Style Standardizer is a precision pyMENVIC tool designed to unify 
+    the graphic appearance of line subcategories in Revit.
+    _______________________________________________________________
+    Key features:
+    - Smart Color Mapping: Translates RGB values to standard names (e.g., BLACK, RED, CYAN).
+    - Weight Labeling: Automatically identifies line weights using semantic labels (e.g., Extra Fine, Ultra Heavy).
+    - Subcategory Audit: Scans and reports the usage count of each line style before and after processing.
+    - Style Creation: Ensures all standard pyMENVIC line styles exist in the project.
 
-author: Ricardo J. Mendieta
-version: '1.0'
-highlight: new
+    Ideal for cleaning exploded CAD imports and enforcing office-wide graphic standards.
+  fr_fr: |
+    Standardise les styles de lignes du projet en mappant les épaisseurs, les couleurs et les motifs selon les standards pyMENVIC.
+    _______________________________________________________________
+    Fonctionnalités clés :
+    - Mapping de couleurs intelligent : Traduit les valeurs RGB en noms standards (ex: BLACK, RED, CYAN).
+    - Étiquetage d'épaisseur : Identifie automatiquement les poids de ligne via des labels sémantiques.
+    - Audit de sous-catégories : Scans et rapporte l'utilisation de chaque style de ligne.
+    - Création de styles : Assure que tous les styles standards pyMENVIC existent dans le projet.
+
+    Idéal pour nettoyer les imports CAD et appliquer des standards graphiques d'agence.
+  es_es: |
+    Estandariza los estilos de línea del proyecto mapeando grosores, colores y patrones a los estándares de pyMENVIC mediante análisis automatizado.
+    _______________________________________________________________
+    Line Style Standardizer es una herramienta de precisión de pyMENVIC diseñada
+    para unificar la apariencia gráfica de las subcategorías de línea en Revit.
+
+    Características clave:
+    - Mapeo de color inteligente: Traduce valores RGB a nombres estándar (ej. BLACK, RED, CYAN).
+    - Etiquetado de grosores: Identifica pesos de línea mediante etiquetas semánticas (ej. Extra Fine, Ultra Heavy).
+    - Auditoría de estilos: Escanea y reporta el conteo de uso de cada estilo de línea antes y después.
+    - Creación de estilos: Asegura que todos los estilos estándar pyMENVIC existan en el proyecto.
+
+    Ideal para limpiar importaciones de CAD y aplicar estándares gráficos de oficina.
+
+description:
+  en_us: >
+    Line Style Standardizer automates the process of auditing and correcting 
+    line styles within a Revit project. It features a sophisticated color 
+    recognition system, a weight labeling logic (1-16), and the ability to 
+    reassign existing styles to pyMENVIC's standardized subcategories. 
+    The tool provides a detailed summary of usage counts, ensuring 
+    that no graphic information is lost during the standardization process.
+  es_es: >
+    Line Style Standardizer automatiza el proceso de auditoría y corrección de 
+    estilos de línea en Revit. Cuenta con un sistema sofisticado de 
+    reconocimiento de colores, lógica de etiquetado de grosores (1-16) y la 
+    capacidad de reasignar estilos existentes a las subcategorías 
+    estandarizadas de pyMENVIC. La herramienta proporciona un resumen 
+    detallado de conteos de uso, asegurando que no se pierda información 
+    gráfica durante el proceso de estandarización.
+
+author: Ricardo J. Mendieta | pyMENVIC
+version: 1.0.0
+# highlight: NEW
+
+help_url: https://www.menvic.com
+
+min_revit_version: 2020
+max_revit_version: 2026
+
+context: doc-project
+
+engine:
+  clean: true
+  fullframe: false
+  persistent: false

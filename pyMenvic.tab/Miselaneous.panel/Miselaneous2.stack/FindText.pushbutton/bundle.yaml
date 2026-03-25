@@ -1,10 +1,81 @@
 title:
   en_us: Find Text
-  fr_fr: Trouver Texte
-  es_es: Buscar Texto
+  fr_fr: Localisateur de Texte
+  es_es: Localizador de Texto
 
 tooltip:
-  en_us: Find Text in project and show how many times it is used
-  fr_fr: Trouver Texte dans le projet et afficher combien de fois il est utilisé
-  es_es: Buscar Texto en el proyecto y mostrar cuantas veces se utiliza
-# highlight: new
+  en_us: |
+    Locates and analyzes the usage of text styles (TextNoteTypes) across the project, providing a detailed location report and direct selection.
+    Find Text is a pyMENVIC auditing tool designed to identify where 
+    specific text annotations are placed.
+    _______________________________________________________________
+    Key features:
+    - Style Audit: Lists all TextNoteTypes and their current usage count.
+    - Detailed Mapping: Reports the specific View and Sheet for every note.
+    - Interactive Links: Use "Click to Focus" to jump directly to any text note.
+    - Batch Selection: Option to physically select all found notes in Revit.
+
+    Ideal for BIM auditing and cleaning up redundant text styles.
+  fr_fr: |
+    Localise et analyse l'utilisation des styles de texte (TextNoteTypes) dans le projet, avec un rapport de localisation détaillé et une sélection directe.
+    _______________________________________________________________
+    Localisateur de Texte est un outil d'audit pyMENVIC conçu pour identifier 
+    l'emplacement précis des annotations textuelles.
+
+    Fonctionnalités clés :
+    - Audit de Style : Liste tous les TextNoteTypes et leur nombre d'utilisations.
+    - Cartographie détaillée : Indique la Vue et la Feuille (Sheet) pour chaque note.
+    - Liens Interactifs : Utilisez "Clic pour Zoomer" pour accéder directement à une note.
+    - Sélection Groupée : Option pour sélectionner physiquement toutes les notes trouvées.
+
+    Idéal pour l'audit BIM et le nettoyage des styles de texte redondants.
+  es_es: |
+    Localiza y analiza el uso de estilos de texto (TextNoteTypes) en el proyecto, proporcionando un reporte de ubicación detallado y selección directa.
+    _______________________________________________________________
+    Localizador de Texto es una herramienta de auditoría de pyMENVIC diseñada
+    para identificar dónde se encuentran las anotaciones de texto.
+
+    Características clave:
+    - Auditoría de Estilo: Lista todos los TextNoteTypes y su conteo de uso actual.
+    - Mapeo Detallado: Informa la Vista y el Plano (Sheet) de cada nota.
+    - Enlaces Interactivos: Usa "Clic para Enfocar" para ir directo a cualquier nota.
+    - Selección Masiva: Opción para seleccionar físicamente todas las notas encontradas.
+
+    Ideal para auditoría BIM y limpieza de estilos de texto redundantes.
+
+description:
+  en_us: >
+    Find Text provides a comprehensive audit of text annotations within the 
+    Revit model. It identifies all text notes, categorizes them by style, 
+    and generates an interactive report in the output window. Users can 
+    instantly locate notes on sheets or views through clickable ID links 
+    and perform mass selections for quick editing or deletion.
+  fr_fr: >
+    Localisateur de Texte offre un audit complet des annotations textuelles 
+    dans le modèle Revit. Il identifie toutes les notes de texte, les 
+    classe par style et génère un rapport interactif. Les utilisateurs 
+    peuvent localiser instantanément les notes sur les feuilles ou les 
+    vues grâce à des liens cliquables et effectuer des sélections de masse 
+    pour une édition ou une suppression rapide.
+  es_es: >
+    Localizador de Texto ofrece una auditoría completa de las anotaciones 
+    de texto en el modelo. Identifica todas las notas de texto, las 
+    clasifica por estilo y genera un reporte interactivo. Los usuarios 
+    pueden localizar notas al instante en planos o vistas mediante enlaces 
+    clicables y realizar selecciones masivas para edición o borrado rápido.
+
+author: Ricardo J. Mendieta | pyMENVIC
+version: 1.0.0
+# highlight: NEW
+
+help_url: https://www.menvic.com
+
+min_revit_version: 2020
+max_revit_version: 2026
+
+context: doc-project
+
+engine:
+  clean: true
+  fullframe: false
+  persistent: false

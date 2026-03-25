@@ -4,9 +4,80 @@ title:
   es_es: Estandarizador de estilos de texto
 
 tooltip:
-  en_us: Standardize text styles (fonts, sizes in mm + inch, arrows, duplicates)
-  fr_fr: Standardiser les styles de texte (polices, tailles mm + pouces, flèches, doublons)
-  es_es: Estandariza estilos de texto (fuentes, tamaños mm + pulgadas, flechas, duplicados)
+  en_us: |
+    Standardizes text styles by normalizing fonts, sizes, and backgrounds, while merging duplicates and purging unused types according to office standards.
+    Text Style Standardizer is an advanced pyMENVIC tool designed to 
+    cleanse the project's annotation database.
+    _______________________________________________________________
+    Key features:
+    - Font & Size Alignment: Forces Arial and snaps sizes to standard mm increments (1.8 to 8.0mm).
+    - Transparency Logic: Detects and renames styles based on background (Opaque vs Transparent).
+    - Smart Merging: Identifies identical styles with different names and merges them.
+    - Automated Cleanup: Purges unused non-standard types and creates missing office standards.
 
-author: Ricardo J. Mendieta
-version: 2.0
+    Perfect for enforcing graphic consistency and reducing style bloat in complex models.
+  fr_fr: |
+    Standardise les styles de texte en normalisant les polices, les tailles et les arrière-plans, tout en fusionnant les doublons et purgeant les types inutilisés.
+    _______________________________________________________________
+    Le Normalisateur des styles de texte est un outil pyMENVIC avancé conçu 
+    pour assainir la base de données d'annotations du projet.
+
+    Fonctionnalités clés :
+    - Alignement Police/Taille : Impose Arial et ajuste les tailles aux standards (1.8 à 8.0mm).
+    - Logique de Transparence : Détecte et renomme les styles selon l'arrière-plan (Opaque vs Transparent).
+    - Fusion Intelligente : Identifie les styles identiques sous des noms différents et les fusionne.
+    - Nettoyage Automatique : Purge les types inutilisés et crée les standards d'agence manquants.
+
+    Idéal pour garantir la cohérence graphique et réduire l'accumulation de styles inutiles.
+  es_es: |
+    Estandariza los estilos de texto normalizando fuentes, tamaños y fondos, fusionando duplicados y eliminando tipos no utilizados según los estándares de oficina.
+    _______________________________________________________________
+    Text Style Standardizer es una herramienta avanzada de pyMENVIC diseñada
+    para sanear la base de datos de anotaciones del proyecto.
+
+    Características clave:
+    - Alineación de Fuente/Tamaño: Fuerza el uso de Arial y ajusta tamaños a incrementos estándar (1.8 a 8.0mm).
+    - Lógica de Transparencia: Detecta y renombra estilos según su fondo (Opaco vs Transparente).
+    - Fusión Inteligente: Identifica estilos idénticos con nombres distintos y los fusiona.
+    - Limpieza Automática: Elimina tipos no usados y crea los estándares de oficina faltantes.
+
+    Ideal para garantizar la consistencia gráfica y reducir el exceso de estilos en modelos complejos.
+
+description:
+  en_us: >
+    Text Style Standardizer automates the complex task of auditing and 
+    fixing TextNoteTypes. It evaluates fonts, background transparency, 
+    width scales, and arrowheads against a predefined standard. The tool 
+    can rename existing types to reflect their actual properties, merge 
+    redundant types to simplify the project, and generate a detailed 
+    report of all fonts fixed, types purged, and standards created.
+  fr_fr: >
+    Le Normalisateur des styles de texte automatise l'audit et la correction 
+    des TextNoteTypes. Il évalue les polices, la transparence, les échelles 
+    de largeur et les pointes de flèche par rapport à un standard défini. 
+    L'outil peut renommer les types existants, fusionner les types 
+    redondants pour simplifier le projet et générer un rapport détaillé 
+    des polices corrigées, des types purgés et des standards créés.
+  es_es: >
+    Text Style Standardizer automatiza la tarea de auditar y corregir los 
+    TextNoteTypes. Evalúa fuentes, transparencia, escalas de ancho y flechas 
+    frente a un estándar definido. La herramienta puede renombrar tipos 
+    existentes, fusionar tipos redundantes para simplificar el proyecto y 
+    generar un reporte detallado de todas las fuentes corregidas, tipos 
+    eliminados y estándares creados.
+
+author: Ricardo J. Mendieta | pyMENVIC
+version: 2.0.0
+# highlight: UPDATE
+
+help_url: https://www.menvic.com
+
+min_revit_version: 2020
+max_revit_version: 2026
+
+context: doc-project
+
+engine:
+  clean: true
+  fullframe: false
+  persistent: false

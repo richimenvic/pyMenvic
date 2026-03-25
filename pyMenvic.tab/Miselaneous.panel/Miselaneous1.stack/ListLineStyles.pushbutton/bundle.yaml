@@ -2,8 +2,73 @@ title:
   en_us: List Line Styles
   fr_fr: Liste des styles de lignes
   es_es: Listar estilos de líneas
+
 tooltip:
-  en_us: List Line Styles in a drafting view.
-  fr_fr: Liste les styles de lignes dans une vue de dessin.
-  es_es: Listar estilos de líneas en una vista de dibujo.
-# highlight: new
+  en_us: |
+    Generates a visual catalog of all project line styles, including usage counts and graphic samples.
+    List Line Styles is a pyMENVIC diagnostic tool that creates a physical 
+    legend of lines directly in your active view.
+    _______________________________________________________________
+    Key features:
+    - Visual Samples: Creates a detail line for every style to preview weight, color, and pattern.
+    - Usage Audit: Calculates and displays the number of times each style is used in the project.
+    - Smart Labeling: Automatically detects or prompts for standard text styles (e.g., Arial 2.5mm).
+    - Dynamic Scaling: Adjusts line lengths and text offsets based on the current view scale.
+
+    Perfect for auditing line style bloat and identifying unused or non-standard styles.
+  fr_fr: |
+    Génère un catalogue visuel de tous les styles de lignes du projet, incluant le comptage d'utilisation et des échantillons graphiques.
+    _______________________________________________________________
+    Liste des styles de lignes est un outil de diagnostic pyMENVIC qui crée 
+    une légende physique des lignes directement dans votre vue active.
+
+    Fonctionnalités clés :
+    - Échantillons Visuels : Crée une ligne de détail pour chaque style afin de prévisualiser l'épaisseur, la couleur et le motif.
+    - Audit d'Utilisation : Calcule et affiche le nombre de fois que chaque style est utilisé dans le projet.
+    - Étiquetage Intelligent : Détecte automatiquement ou demande les styles de texte standards (ex : Arial 2.5mm).
+    - Mise à l'Échelle Dynamique : Ajuste la longueur des lignes et le décalage du texte selon l'échelle de la vue.
+
+    Idéal pour auditer l'encombrement des styles de lignes et identifier les styles inutilisés ou non-standards.
+  es_es: |
+    Genera un catálogo visual de todos los estilos de línea del proyecto, incluyendo conteo de uso y muestras gráficas.
+    _______________________________________________________________
+    Listar estilos de líneas es una herramienta de diagnóstico de pyMENVIC que 
+    crea una leyenda física de líneas directamente en la vista activa.
+
+    Características clave:
+    - Muestras Visuales: Crea una línea de detalle por cada estilo para previsualizar grosor, color y patrón.
+    - Auditoría de Uso: Calcula y muestra cuántas veces se usa cada estilo en el proyecto.
+    - Etiquetado Inteligente: Detecta automáticamente o solicita estilos de texto estándar (ej. Arial 2.5mm).
+    - Escalado Dinámico: Ajusta la longitud de línea y desfases de texto según la escala de la vista.
+
+    Ideal para auditar el exceso de estilos de línea e identificar estilos no utilizados o no estándar.
+
+description:
+  en_us: >
+    List Line Styles provides a graphical audit of the project's line 
+    subcategories. By placing physical samples and usage labels (e.g., 
+    StyleName (count)) in a drafting or floor plan view, it allows BIM 
+    Managers to quickly assess the health of the model's graphic standards 
+    and identify redundant styles that should be consolidated.
+  es_es: >
+    Listar estilos de líneas proporciona una auditoría gráfica de las 
+    subcategorías de línea del proyecto. Al colocar muestras físicas y 
+    etiquetas de uso (ej. NombreEstilo (conteo)) en una vista de dibujo o 
+    planta, permite a los BIM Managers evaluar rápidamente la salud de los 
+    estándares gráficos e identificar estilos redundantes.
+
+author: Ricardo J. Mendieta | pyMENVIC
+version: 1.0.0
+# highlight: NEW
+
+help_url: https://www.menvic.com
+
+min_revit_version: 2020
+max_revit_version: 2026
+
+context: doc-project
+
+engine:
+  clean: true
+  fullframe: false
+  persistent: false

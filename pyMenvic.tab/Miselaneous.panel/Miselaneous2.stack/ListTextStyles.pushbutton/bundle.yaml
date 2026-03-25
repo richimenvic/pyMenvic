@@ -1,10 +1,81 @@
 title:
-  en_us: List text styles
+  en_us: List Text Styles
   fr_fr: Lister les styles de texte
   es_es: Listar estilos de texto
 
 tooltip:
-  en_us: Find Text in project and show how many times it is used
-  fr_fr: Trouver Texte dans le projet et afficher combien de fois il est utilisé
-  es_es: Buscar Texto en el proyecto y mostrar cuantas veces se utiliza
-# highlight: new
+  en_us: |
+    Generates a physical legend in the active view listing all text styles and their total usage count in the project.
+    List Text Styles is a pyMENVIC diagnostic tool designed for annotation 
+    auditing and model health checks.
+    _______________________________________________________________
+    Key features:
+    - Usage Counter: Scans all TextNotes to calculate the frequency of each style.
+    - Automated Legend: Places a text note for every style at a user-picked point.
+    - Alphabetical Sorting: Organizes styles by name for quick review.
+    - Dynamic Layout: Automatically adjusts vertical spacing based on view scale.
+
+    Ideal for identifying redundant or non-standard styles during BIM coordination.
+  fr_fr: |
+    Génère une légende physique dans la vue active listant tous les styles de texte et leur nombre total d'utilisations dans le projet.
+    _______________________________________________________________
+    Lister les styles de texte est un outil de diagnostic pyMENVIC conçu pour 
+    l'audit des annotations et le contrôle de la qualité du modèle.
+
+    Fonctionnalités clés :
+    - Compteur d'Utilisation : Scanne toutes les notes pour calculer la fréquence de chaque style.
+    - Légende Automatisée : Place une note pour chaque style à un point choisi par l'utilisateur.
+    - Tri Alphabétique : Organise les styles par nom pour une révision rapide.
+    - Disposition Dynamique : Ajuste automatiquement l'espacement vertical selon l'échelle de la vue.
+
+    Idéal pour identifier les styles redondants ou non-standards lors de la coordination BIM.
+  es_es: |
+    Genera una leyenda física en la vista activa listando todos los estilos de texto y su conteo total de uso en el proyecto.
+    _______________________________________________________________
+    Listar estilos de texto es una herramienta de diagnóstico de pyMENVIC diseñada
+    para la auditoría de anotaciones y el control de calidad del modelo.
+
+    Características clave:
+    - Contador de Uso: Escanea todas las notas para calcular la frecuencia de cada estilo.
+    - Leyenda Automatizada: Coloca una nota por cada estilo en un punto seleccionado.
+    - Orden Alfabético: Organiza los estilos por nombre para una revisión rápida.
+    - Diseño Dinámico: Ajusta automáticamente el espacemento vertical según la escala de la vista.
+
+    Ideal para identificar estilos redundantes o no estándar durante la coordinación BIM.
+
+description:
+  en_us: >
+    List Text Styles provides a visual audit of the model's annotation 
+    standards. It iterates through every text note in the document, 
+    tallies usage by TextNoteType, and creates a formatted list directly 
+    in the active view. This allows BIM Managers to instantly see which 
+    styles are overused or should be purged, maintaining a clean 
+    project environment.
+  fr_fr: >
+    Lister les styles de texte fournit un audit visuel des standards d'annotation 
+    du modèle. L'outil parcourt chaque note de texte du document, comptabilise 
+    l'usage par TextNoteType et crée une liste formatée directement dans la 
+    vue active. Cela permet aux BIM Managers de voir instantanément quels 
+    styles sont en surplus ou doivent être purgés.
+  es_es: >
+    Listar estilos de texto proporciona una auditoría visual de los estándares 
+    de anotación del modelo. La herramienta recorre cada nota de texto, 
+    contabiliza el uso por TextNoteType y crea una lista con formato directamente 
+    en la vista activa. Esto permite a los BIM Managers identificar al instante 
+    qué estilos sobran o deben ser eliminados.
+
+author: Ricardo J. Mendieta | pyMENVIC
+version: 1.0.0
+# highlight: NEW
+
+help_url: https://www.menvic.com
+
+min_revit_version: 2020
+max_revit_version: 2026
+
+context: doc-project
+
+engine:
+  clean: true
+  fullframe: false
+  persistent: false

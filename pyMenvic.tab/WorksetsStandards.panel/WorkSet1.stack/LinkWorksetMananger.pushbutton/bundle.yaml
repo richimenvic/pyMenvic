@@ -1,4 +1,68 @@
-title: Link Workset Manager
-tooltip: Manage Revit link instance and type worksets in a single table.
-author: Ricardo J. Mendieta
-version: 1.0  
+title:
+  en_us: Link Workset Manager
+  es_es: Gestor de Worksets de Vínculos
+
+tooltip:
+  en_us: |
+    Manage Revit link instance and type worksets through an interactive table, ensuring all linked models are correctly assigned to their designated worksets.
+    Link Workset Manager is an essential pyMENVIC tool for bulk-editing and auditing 
+    the workset assignments of all links in your project.
+    _______________________________________________________________
+    Key features:
+    - Unified view: Control RevitLinkInstance and RevitLinkType in one place.
+    - Smart assignment: Use dropdowns with standard pyMENVIC worksets.
+    - Auto-creation: Automatically generates missing target worksets on apply.
+    - Safety checks: Validates that instances of the same type share the same workset.
+
+    Perfect for BIM coordinators who need to maintain strict control over 
+    link organization and visibility sets.
+  es_es: |
+    Gestiona los worksets de ejemplar y de tipo de los vínculos de Revit mediante una tabla interactiva, asegurando que todos los modelos vinculados estén asignados correctamente.
+    _______________________________________________________________
+    Link Workset Manager es una herramienta esencial de pyMENVIC para la edición 
+    masiva y auditoría de la asignación de worksets de todos los vínculos.
+
+    Características clave:
+    - Vista unificada: Controla RevitLinkInstance y RevitLinkType en un solo lugar.
+    - Asignación inteligente: Uso de desplegables con worksets estándar de pyMENVIC.
+    - Creación automática: Genera worksets de destino faltantes al aplicar cambios.
+    - Validación de seguridad: Asegura que ejemplares del mismo tipo compartan el mismo workset.
+
+    Ideal para coordinadores BIM que requieren un control estricto sobre la 
+    organización y visibilidad de los vínculos.
+
+description:
+  en_us: >
+    Link Workset Manager provides a centralized interface to audit and modify 
+    workset assignments for all Revit links. 
+    
+    It lists link instances and their respective types, allowing users to 
+    reassign them to standard worksets (ARC, STR, MECH, etc.) or custom ones 
+    through an interactive grid. The tool includes built-in logic to handle 
+    Type/Instance consistency and can automatically create necessary host 
+    worksets during the process.
+  es_es: >
+    Link Workset Manager proporciona una interfaz centralizada para auditar y 
+    modificar la asignación de worksets de todos los vínculos de Revit.
+
+    Lista los ejemplares de vínculo y sus respectivos tipos, permitiendo al 
+    usuario reasignarlos a worksets estándar (ARC, STR, MECH, etc.) o 
+    personalizados mediante una tabla interactiva. La herramienta incluye 
+    lógica integrada para manejar la consistencia entre Tipo/Ejemplar y puede 
+    crear automáticamente los worksets necesarios en el host durante el proceso.
+
+author: Ricardo J. Mendieta | pyMENVIC
+version: 1.0.0
+# highlight: NEW
+
+help_url: https://www.menvic.com
+
+min_revit_version: 2020
+max_revit_version: 2026
+
+context: doc-project
+
+engine:
+  clean: true
+  fullframe: false
+  persistent: false

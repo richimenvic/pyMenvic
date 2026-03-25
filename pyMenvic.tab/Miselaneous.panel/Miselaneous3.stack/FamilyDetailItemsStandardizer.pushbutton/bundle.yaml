@@ -1,13 +1,85 @@
 title:
   en_us: Family Detail Items Standardizer
-  fr_fr: Standardisation des sous-catégories Detail Items (Famille)
+  fr_fr: Normalisateur de Composants de Détail
   es_es: Estandarizador de Detail Items en Familias
 
 tooltip:
-  en_us: Standardizes Detail Items subcategories in Family Editor (weights 1–8, black, solid).
-  fr_fr: Standardise les sous-catégories Detail Items dans l’éditeur de familles (poids 1–8, noir, ligne continue).
-  es_es: Estandariza las subcategorías de Detail Items en el Editor de Familias (pesos 1–8, negro, línea continua).
+  en_us: |
+    Standardizes Detail Items subcategories in the Family Editor by creating 8 canonical styles and reassigning existing curves to match office standards.
+    Family Detail Items Standardizer is a pyMENVIC utility for maintaining 
+    graphic consistency within your RFA library.
+    _______________________________________________________________
+    Key features:
+    - Canonical Styles: Creates or updates 8 standard subcategories (1-8) with forced BLACK color and SOLID pattern.
+    - Smart Reassignment: Automatically moves existing curves from non-standard subcategories to the matching canonical weight.
+    - Automatic Purge: Deletes old, non-canonical subcategories once they are emptied.
+    - Protected Styles: Safely ignores system subcategories (e.g., those enclosed in < >).
 
-# highlight: new
+    Ideal for cleaning up downloaded families or legacy content to match agency graphic standards.
+  fr_fr: |
+    Standardise les sous-catégories de composants de détail dans l'éditeur de familles en créant 8 styles canoniques et en réassignant les courbes existantes.
+    _______________________________________________________________
+    Le Normalisateur de Composants de Détail est un outil pyMENVIC pour maintenir 
+    la cohérence graphique au sein de votre bibliothèque RFA.
+
+    Fonctionnalités clés :
+    - Styles Canoniques : Crée ou met à jour 8 sous-catégories standards (1 à 8) avec couleur NOIRE et motif CONTINU forcés.
+    - Réassignation Intelligente : Déplace automatiquement les courbes des styles non-standards vers le poids canonique correspondant.
+    - Purge Automatique : Supprime les anciennes sous-catégories une fois qu'elles sont vides.
+    - Styles Protégés : Ignore les sous-catégories système (ex: celles entre < >).
+
+    Idéal pour nettoyer les familles téléchargées ou les anciens contenus selon les standards d'agence.
+  es_es: |
+    Estandariza las subcategorías de Componentes de Detalle en el Editor de Familias creando 8 estilos canónicos y reasignando las curvas existentes.
+    _______________________________________________________________
+    Estandarizador de Detail Items es una utilidad de pyMENVIC para mantener 
+    la consistencia gráfica en tu librería de familias (RFA).
+
+    Características clave:
+    - Estilos Canónicos: Crea o actualiza 8 subcategorías estándar (1-8) con color NEGRO y patrón SÓLIDO forzados.
+    - Reasignación Inteligente: Mueve automáticamente curvas de estilos no estándar al peso canónico correspondiente.
+    - Purga Automática: Elimina las subcategorías antiguas una vez que se han vaciado.
+    - Estilos Protegidos: Ignora de forma segura las subcategorías de sistema (ej. las encerradas en < >).
+
+    Ideal para limpiar familias descargadas o contenido antiguo según los estándares gráficos de la oficina.
+
+description:
+  en_us: >
+    This tool standardizes the Object Styles of the Detail Items category 
+    within the Family Editor. It establishes a "Seed Standard" of 8 
+    subcategories (1 to 8). Beyond creation, it audits all CurveElements, 
+    maps them to the new canonical styles based on their current 
+    projection weight, and purges the redundant non-standard subcategories 
+    to ensure a lean and professional family file.
+  fr_fr: >
+    Cet outil standardise les styles d'objets de la catégorie Composants de 
+    Détail dans l'éditeur de familles. Il établit un standard de 8 
+    sous-catégories (1 à 8). Au-delà de la création, il audite tous les 
+    éléments de courbe, les mappe vers les nouveaux styles canoniques en 
+    fonction de leur poids de projection, et purge les sous-catégories 
+    redondantes pour garantir un fichier de famille léger et professionnel.
+  es_es: >
+    Esta herramienta estandariza los Estilos de Objeto de la categoría 
+    Componentes de Detalle en el Editor de Familias. Establece un estándar 
+    de 8 subcategorías (1 a 8). Además de crearlas, audita todos los 
+    elementos de curva, los mapea a los nuevos estilos canónicos según su 
+    grosor de proyección actual y purga las subcategorías redundantes para 
+    asegurar un archivo de familia limpio y profesional.
+
+author: Ricardo J. Mendieta | pyMENVIC
+version: 1.0.0
+# highlight: NEW
 
 panel: Miscelaneous4
+
+help_url: https://www.menvic.com
+
+min_revit_version: 2020
+max_revit_version: 2026
+
+context: doc-family
+
+engine:
+  clean: true
+  fullframe: false
+  persistent: false

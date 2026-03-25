@@ -3,9 +3,67 @@ title:
   es_es: Auditar Worksets de Links
 
 tooltip:
-  en_us: Audits worksets in the host model and compares them with worksets detected in loaded Revit links.
-  es_es: Analiza los worksets del modelo host y los compara con los worksets detectados en los modelos vinculados.
+  en_us: |
+    Audits host worksets against loaded Revit links to ensure naming consistency and coordination through a detailed diagnostic report.
+    Audit Link Worksets is a pyMENVIC read-only tool designed to verify that 
+    the workset structure in the main model aligns with its linked files.
+    _______________________________________________________________
+    The tool generates a comprehensive report including:
+    - Global summary of unique worksets and scanned links.
+    - Detailed table of all detected worksets and their source.
+    - Identification of worksets present only in the host or only in links.
+    - Scan error log for missing or unloaded documents.
+
+    This tool is essential for BIM auditing and maintaining high standards 
+    in complex multi-model projects without modifying the model.
+  es_es: |
+    Audita los worksets del host contra los vínculos de Revit cargados para asegurar la consistencia y coordinación mediante un reporte de diagnóstico detallado.
+    _______________________________________________________________
+    Audit Link Worksets es una herramienta de solo lectura de pyMENVIC diseñada
+    para verificar que la estructura de worksets en el modelo principal esté
+    alineada con sus archivos vinculados.
+
+    La herramienta genera un reporte exhaustivo que incluye:
+    - Resumen global de worksets únicos y links escaneados.
+    - Tabla detallada de todos los worksets detectados y su origen.
+    - Identificación de worksets presentes solo en el host o solo en links.
+    - Registro de errores de escaneo para documentos faltantes o no cargados.
+
+    Es esencial para auditoría BIM y para mantener altos estándares en
+    proyectos complejos sin realizar modificaciones al modelo.
+
+description:
+  en_us: >
+    Audit Link Worksets is a pyMENVIC read-only diagnostic tool designed to 
+    verify that the workset structure in the main model aligns with its 
+    linked files.
+
+    It scans all loaded links and generates a detailed report in the output 
+    window, highlighting discrepancies between host and linked worksets, 
+    identifying redundancies, and providing a unified view of the project's 
+    workset organization.
+  es_es: >
+    Audit Link Worksets es una herramienta de diagnóstico de solo lectura de 
+    pyMENVIC diseñada para verificar que la estructura de worksets en el 
+    modelo principal esté alineada con sus archivos vinculados.
+
+    Escanea todos los links cargados y genera un reporte detallado en la 
+    ventana de resultados, resaltando discrepancias entre los worksets del 
+    host y los vínculos, identificando redundancias y proporcionando una 
+    vista unificada de la organización de worksets del proyecto.
 
 author: Ricardo J. Mendieta | pyMENVIC
 version: 1.0.0
-highlight: new
+# highlight: NEW
+
+help_url: https://www.menvic.com
+
+min_revit_version: 2020
+max_revit_version: 2026
+
+context: doc-project
+
+engine:
+  clean: true
+  fullframe: false
+  persistent: false

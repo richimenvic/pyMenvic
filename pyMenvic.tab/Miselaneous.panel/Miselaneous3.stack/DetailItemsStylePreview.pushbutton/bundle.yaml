@@ -1,14 +1,74 @@
 title:
-  en_us: List Line Styles (Family)
-  fr_fr: Liste des styles de lignes (Famille)
-  es_es: Listar estilos de líneas (Familia)
+  en_us: Detail Items Style Preview
+  fr_fr: Aperçu des styles d'éléments de détail
+  es_es: Previsualización de Estilos de Detalle
 
 tooltip:
-  en_us: Lists all Line Styles and draws a sample Detail Line for each one in the active family view.
-  fr_fr: Liste tous les styles de ligne et trace une ligne de détail pour chacun dans la vue active de la famille.
-  es_es: Lista todos los estilos de línea y dibuja una línea de detalle de muestra para cada uno en la vista activa de la familia.
+  en_us: |
+    Generates a visual catalog of Detail Item subcategories (OST_DetailComponents) using graphic overrides to preview weight, color, and pattern.
+    Detail Items Style Preview is a pyMENVIC utility designed for 
+    high-precision graphic auditing.
+    _______________________________________________________________
+    Key features:
+    - Accurate Overrides: Replicates subcategory properties (Weight, Color, Pattern) using view-specific overrides.
+    - Context Versatile: Operates seamlessly in both Revit Projects and the Family Editor.
+    - Automated Labeling: Pairs each graphic sample with its subcategory name.
+    - Standard Verification: Ideal for checking BIM template consistency and Detail Item styles.
 
-author: MENVIC ARQ
+    Perfect for auditing "OST_DetailComponents" and ensuring office-wide graphic standards.
+  fr_fr: |
+    Génère un catalogue visuel des sous-catégories d'éléments de détail (OST_DetailComponents) en utilisant des remplacements graphiques.
+    _______________________________________________________________
+    Fonctionnalités clés :
+    - Remplacements Précis : Réplique les propriétés (Poids, Couleur, Motif) via des remplacements de vue.
+    - Polyvalence : Fonctionne aussi bien dans les projets que dans l'éditeur de familles.
+    - Étiquetage Automatique : Associe chaque échantillon à son nom de sous-catégorie.
+    - Vérification des Standards : Idéal pour contrôler la cohérence des gabarits BIM.
+
+    Parfait pour auditer les "OST_DetailComponents" et garantir les standards graphiques d'agence.
+  es_es: |
+    Genera un catálogo visual de las subcategorías de Componentes de Detalle (OST_DetailComponents) usando overrides gráficos para previsualizar grosor, color y patrón.
+    _______________________________________________________________
+    Detail Items Style Preview es una utilidad de pyMENVIC diseñada para 
+    auditoría gráfica de alta precisión.
+
+    Características clave:
+    - Overrides Precisos: Replica propiedades de subcategoría (Grosor, Color, Patrón) mediante modificaciones gráficas de vista.
+    - Versatilidad de Contexto: Funciona tanto en Proyectos como en el Editor de Familias.
+    - Etiquetado Automático: Empareja cada muestra gráfica con su nombre de subcategoría.
+    - Verificación de Estándares: Ideal para comprobar la consistencia de plantillas BIM y estilos de detalle.
+
+    Perfecto para auditar "OST_DetailComponents" y asegurar estándares gráficos de oficina.
+
+description:
+  en_us: >
+    Detail Items Style Preview provides a specialized graphical audit for 
+    the OST_DetailComponents category. By iterating through all 
+    subcategories and applying their specific Line Weight, Color, and 
+    Pattern as view overrides on Detail Lines, it creates an exact 
+    visual reference. This tool is essential for managing complex 
+    detail libraries and maintaining graphic integrity across different 
+    Revit environments.
+  es_es: >
+    Detail Items Style Preview proporciona una auditoría gráfica especializada 
+    para la categoría OST_DetailComponents. Al recorrer todas las 
+    subcategorías y aplicar su Grosor, Color y Patrón específicos como 
+    overrides de vista en Detail Lines, crea una referencia visual exacta. 
+    Esta herramienta es esencial para gestionar librerías de detalles 
+    complejas y mantener la integridad gráfica en diferentes entornos de Revit.
+
+author: Ricardo J. Mendieta | pyMENVIC
 version: 1.0.0
+# highlight: NEW
 
-# highlight: new
+help_url: https://www.menvic.com
+
+min_revit_version: 2020
+max_revit_version: 2026
+
+context: doc-project
+
+engine:
+  clean: true
+  fullframe: false
+  persistent: false

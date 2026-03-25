@@ -1,13 +1,73 @@
 title:
-  en_us: Family Sorter
-  es_es: Clasificador de familias
-  fr_fr: Trieur de familles
+  en_us: Family Library Sorter
+  es_es: Clasificador de Librerías de Familias
+  fr_fr: Trieur de Bibliothèques de Familles
 
 tooltip:
-  en_us: Sort families into folders by category
-  es_es: Clasifica familias en carpetas por categoría
-  fr_fr: Trie les familles en dossiers par catégorie
+  en_us: |
+    Organize external RFA libraries into category-based folders with automated renaming and metadata auditing.
+    Family Library Sorter is a powerful pyMENVIC utility for batch-processing 
+    family files stored on your local or network drives.
+    _______________________________________________________________
+    Key features:
+    - Metadata-driven: Uses Revit BasicFileInfo to detect the true category and version of files.
+    - Related Files: Automatically moves and renames associated files (.txt, .xml, .jpg, .png).
+    - Smart Renaming: Cleans file names and ensures consistency across the library.
+    - Audit Reports: Generates detailed CSV and TXT logs of changes and duplicates found.
 
-#highlight: new
+    Perfect for BIM Managers reorganizing messy office libraries or standardizing downloaded content.
+  es_es: |
+    Organiza librerías externas de RFA en carpetas por categoría con renombrado automático y auditoría de metadatos.
+    _______________________________________________________________
+    Family Library Sorter es una potente utilidad de pyMENVIC para procesar 
+    masivamente archivos de familia en discos locales o de red.
 
-author: Ricardo J. Mendieta | Menvic ARQ
+    Características clave:
+    - Basado en metadatos: Usa BasicFileInfo de Revit para detectar la categoría real y versión.
+    - Archivos relacionados: Mueve y renombra archivos asociados automáticamente (.txt, .xml, .jpg, .png).
+    - Renombrado inteligente: Limpia nombres de archivo y asegura consistencia en la librería.
+    - Reportes de auditoría: Genera logs detallados en CSV y TXT de cambios y duplicados.
+
+    Ideal para BIM Managers que reorganizan librerías desordenadas o estandarizan contenido descargado.
+  fr_fr: |
+    Organise les bibliothèques RFA externes dans des dossiers par catégorie avec renommage automatique et audit des métadonnées.
+    _______________________________________________________________
+    Fonctionnalités clés :
+    - Basé sur les métadonnées : Utilise BasicFileInfo pour détecter la catégorie et la version réelles.
+    - Fichiers associés : Déplace et renomme les fichiers liés (.txt, .xml, .jpg, .png) automatiquement.
+    - Renommage intelligent : Nettoie les noms de fichiers pour assurer la cohérence.
+    - Rapports d'audit : Génère des journaux CSV et TXT détaillés des changements et doublons.
+
+    Parfait pour les BIM Managers réorganisant des bibliothèques ou standardisant du contenu téléchargé.
+
+description:
+  en_us: >
+    Family Library Sorter is an advanced file management tool that scans a 
+    base folder for RFA files, extracts their internal Revit metadata, and 
+    physically reorganizes them into a standardized category-based folder 
+    structure. It handles complex tasks like renaming related type catalogs 
+    and images, detecting duplicates, and producing comprehensive CSV 
+    reports for library maintenance.
+  es_es: >
+    Family Library Sorter es una herramienta avanzada de gestión de archivos 
+    que escanea carpetas en busca de archivos RFA, extrae sus metadatos 
+    internos de Revit y los reorganiza físicamente en una estructura de 
+    carpetas estandarizada por categoría. Maneja tareas complejas como el 
+    renombrado de catálogos de tipos (.txt) e imágenes relacionadas, detección 
+    de duplicados y generación de reportes CSV exhaustivos.
+
+author: Ricardo J. Mendieta | pyMENVIC
+version: 1.0.0
+# highlight: NEW
+
+help_url: https://www.menvic.com
+
+min_revit_version: 2020
+max_revit_version: 2026
+
+context: doc-project
+
+engine:
+  clean: true
+  fullframe: false
+  persistent: false
