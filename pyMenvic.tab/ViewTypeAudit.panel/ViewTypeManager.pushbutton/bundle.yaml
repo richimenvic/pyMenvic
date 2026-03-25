@@ -4,35 +4,50 @@ title:
 
 tooltip:
   en_us: |
-    Analyze existing View Types, review editable discipline-based naming rules,
-    and safely rename them through an interactive pyMENVIC manager.
-    ______________________________________________________________
-    View Type Standardizer is an advanced pyMENVIC tool designed to help clean,
-    standardize, rename, and organize View Types in Revit projects.
+    Analyzes existing View Types and enforces discipline-based naming standards through an interactive management interface.
+    View Type Manager is an advanced pyMENVIC tool designed to unify and 
+    organize the project's view hierarchy.
+    _______________________________________________________________
+    Key features:
+    - Discipline Logic: Loads naming standards from external configuration files (view_type_standards.txt).
+    - Smart Grouping: Automatically separates View Types by Family (Floor Plans, Elevations, 3D Views, etc.).
+    - Interactive Review: Proposes target names while allowing manual edits before execution.
+    - Safety First: Validates naming conflicts and provides a detailed summary of all renamed types.
 
-    The tool reads discipline standards, separates View Types by View Family,
-    proposes editable target names, and lets the user review all changes
-    before applying them to the model.
-
-    It is ideal for project cleanup, documentation consistency,
-    discipline-based naming control, and internal BIM standard enforcement.
+    Ideal for project cleanup, ensuring documentation consistency and enforcing internal BIM protocols.
   es_es: |
-    Analiza los tipos de vista existentes, revisa reglas editables de nombres
-    por disciplina y los renombra de forma segura mediante un gestor interactivo pyMENVIC.
-    ______________________________________________________________
-    View Type Standardizer es una herramienta avanzada de pyMENVIC diseñada para
-    limpiar, estandarizar, renombrar y organizar tipos de vista en proyectos Revit.
+    Analiza los tipos de vista existentes y aplica estándares de nomenclatura por disciplina mediante una interfaz de gestión interactiva.
+    _______________________________________________________________
+    Gestor de Tipos de Vista es una herramienta avanzada de pyMENVIC diseñada 
+    para unificar y organizar la jerarquía de vistas del proyecto.
 
-    La herramienta lee estandares por disciplina, separa los tipos de vista por
-    View Family, propone nombres destino editables y permite revisar todos los
-    cambios antes de aplicarlos al modelo.
+    Características clave:
+    - Lógica de Disciplina: Carga estándares de nombres desde archivos externos (view_type_standards.txt).
+    - Agrupación Inteligente: Separa automáticamente tipos de vista por familia (Plantas, Alzados, Vistas 3D, etc.).
+    - Revisión Interactiva: Propone nombres destino permitiendo ediciones manuales antes de la ejecución.
+    - Seguridad Integrada: Valida conflictos de nombres y proporciona un resumen detallado de los cambios.
 
-    Es ideal para limpieza de proyectos, consistencia documental,
-    control de nomenclatura por disciplina y aplicacion de estandares BIM internos.
+    Ideal para limpieza de proyectos, consistencia documental y aplicación de protocolos BIM internos.
+
+description:
+  en_us: >
+    View Type Manager automates the complex process of standardizing View 
+    Family Types in Revit. By utilizing an external standard file, it maps 
+    current types to office-approved nomenclature. The tool features a 
+    robust WPF interface that displays usage status, family categories, 
+    and proposed changes, allowing BIM managers to refine the model's 
+    organization with surgical precision.
+  es_es: >
+    Gestor de Tipos de Vista automatiza el complejo proceso de estandarizar 
+    los View Family Types en Revit. Utilizando un archivo de estándares externo, 
+    mapea los tipos actuales a la nomenclatura aprobada por la oficina. 
+    La herramienta cuenta con una interfaz WPF robusta que muestra el estado 
+    de uso, categorías de familia y cambios propuestos, permitiendo a los 
+    BIM managers refinar la organización del modelo con precisión quirúrgica.
 
 author: Ricardo J. Mendieta | pyMENVIC
 version: 1.0.0
-highlight: NEW
+# highlight: NEW
 
 help_url: https://www.menvic.com
 

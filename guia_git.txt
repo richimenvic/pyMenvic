@@ -1,0 +1,30 @@
+Perfecto. Ya quedó bien.
+
+Ahora tienes:
+
+* `.gitignore` creado y subido
+* repo sincronizado con GitHub
+* `working tree clean`
+* y los archivos temporales/`WORKING` protegidos para que no se vuelvan a colar
+
+Estás en buen estado de trabajo.
+
+Para revisar rápido en el futuro:
+
+```powershell
+git status
+git ls-files | Select-String "Copy|Works|WORKING"
+```
+
+Y para subir cambios normales:
+
+```powershell
+git add .
+git commit -m "mensaje"
+git push origin main
+```
+
+Lo importante es que ya dejaste tu repo mucho más limpio.
+Ahora sí ya puedes concentrarte en el contenido de los scripts sin pelearte con Git.
+
+Si quieres, el siguiente paso útil es revisar la estructura de tu repo pyRevit y dejar nombres más consistentes para los botones y scripts.
