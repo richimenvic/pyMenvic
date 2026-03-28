@@ -17,3 +17,6 @@ __pycache__/
 *-2.xaml
 
 guia_git.txt
+_LOCAL_NOTES/
+_LOCAL_TOOLS/
+crear_nota_local.ps1
