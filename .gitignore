@@ -1,8 +1,4 @@
-WORKING/
-pyMenvic.tab/WorksetsStandards.panel/WORKING/
-pyMenvic.tab/WorksetsStandards.panel/WorkSet1.stack/LinkWorksetMananger.pushbutton/WORKING/
-pyMenvic.tab/WorksetsStandards.panel/WorkSet1.stack/WorksetMappingManager.pushbutton/WORKING/
-pyMenvic.tab/WorksetsStandards.panel/WorkSet1.stack/WorksetStandardizer.pushbutton/WORKING/
+**/WORKING*/
 
 *Copy*.py
 *Copy*.xaml
@@ -10,3 +6,14 @@ pyMenvic.tab/WorksetsStandards.panel/WorkSet1.stack/WorksetStandardizer.pushbutt
 *Works*.xaml
 *WORKS*.py
 *WORKS*.xaml
+*.bak*
+
+__pycache__/
+*.pyc
+
+*.xaml.[0-9]*
+*.yaml[0-9]*
+*.stack.1/
+*-2.xaml
+
+guia_git.txt

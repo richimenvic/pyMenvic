@@ -29,6 +29,10 @@ from System.Windows.Data import CollectionViewSource
 from System.Windows.Controls import DataGridEditingUnit
 from System.Windows.Input import Keyboard
 from System.ComponentModel import INotifyPropertyChanged, PropertyChangedEventArgs
+from System.Windows.Controls import ComboBox
+from System.Windows.Media import VisualTreeHelper
+
+
 
 doc = revit.doc
 
@@ -534,7 +538,24 @@ class LinkWorksetManagerWindow(forms.WPFWindow):
         self.btnApply.Click += self.on_apply
         self.btnCancel.Click += self.on_cancel
         self.txtFilter.TextChanged += self.on_filter_changed
-        self.dgLinks.CurrentCellChanged += self.on_grid_cell_changed
+        # self.dgLinks.CurrentCellChanged += self.on_grid_cell_changed
+        self.dgLinks.PreviewMouseLeftButtonDown += self.on_dg_preview_mouse_left_button_down
+
+    def find_visual_parent(self, child, target_type):
+        current = child
+        while current:
+            if isinstance(current, target_type):
+                return current
+            current = VisualTreeHelper.GetParent(current)
+        return None
+
+    def on_dg_preview_mouse_left_button_down(self, sender, e):
+        dep = e.OriginalSource
+        combo = self.find_visual_parent(dep, ComboBox)
+        if combo:
+            combo.Focus()
+            combo.IsDropDownOpen = True
+            e.Handled = True
 
     def load_data(self):
         self.refresh_workset_cache()

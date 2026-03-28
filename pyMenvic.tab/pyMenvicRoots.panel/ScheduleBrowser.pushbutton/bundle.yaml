@@ -1,0 +1,62 @@
+title:
+  en_us: Schedule Browser
+  es_es: Explorador de Tablas
+
+tooltip:
+  en_us: |
+    Browse, preview, and export Revit schedules to Excel through a dedicated management interface.
+    Schedule Browser is a pyMENVIC productivity tool designed to simplify 
+    data extraction and table auditing.
+    _______________________________________________________________
+    Key features:
+    - Field Preview: Instantly lists all parameters and fields included in any selected schedule.
+    - Batch Export: Select multiple schedules and export them to CSV format in a single action.
+    - Excel Integration: Automatically opens exported files in Excel using custom user paths.
+    - Search & Filter: Quickly find specific schedules within large projects using the real-time search bar.
+
+    Ideal for data validation, quantity take-offs, and external reporting.
+  es_es: |
+    Navega, previsualiza y exporta tablas de planificación de Revit a Excel mediante una interfaz de gestión dedicada.
+    _______________________________________________________________
+    Explorador de Tablas es una herramienta de productividad de pyMENVIC diseñada 
+    para simplificar la extracción de datos y la auditoría de tablas.
+
+    Características clave:
+    - Previsualización de Campos: Lista instantáneamente todos los parámetros y campos incluidos en cualquier tabla.
+    - Exportación Masiva: Selecciona múltiples tablas y expórtalas a formato CSV en una sola acción.
+    - Integración con Excel: Abre automáticamente los archivos exportados en Excel usando rutas personalizadas.
+    - Búsqueda y Filtro: Encuentra rápidamente tablas específicas mediante la barra de búsqueda en tiempo real.
+
+    Ideal para validación de datos, cómputos métricos y reportes externos.
+
+description:
+  en_us: >
+    Schedule Browser provides a modern, dark-themed interface to manage 
+    project schedules. It allows BIM managers to audit schedule structures 
+    without opening each view, providing a clear list of scheduled fields. 
+    The tool streamlines the workflow between Revit and Excel, handling 
+    the export process and file opening automatically for high-efficiency 
+    data management.
+  es_es: >
+    Explorador de Tablas proporciona una interfaz moderna con tema oscuro 
+    para gestionar las tablas del proyecto. Permite a los BIM managers 
+    auditar la estructura de las tablas sin abrirlas una por una, 
+    proporcionando una lista clara de los campos programados. La herramienta 
+    optimiza el flujo de trabajo entre Revit y Excel, manejando el proceso 
+    de exportación y apertura de archivos de forma automática.
+
+author: Ricardo J. Mendieta | pyMENVIC
+version: 1.0.0
+# highlight: NEW
+
+help_url: https://www.menvic.com
+
+min_revit_version: 2020
+max_revit_version: 2026
+
+context: doc-project
+
+engine:
+  clean: true
+  fullframe: false
+  persistent: false

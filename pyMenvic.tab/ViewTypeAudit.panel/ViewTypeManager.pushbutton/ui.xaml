@@ -5,376 +5,717 @@
         Width="1510"
         MinHeight="800"
         MinWidth="1250"
-        Background="#222933"
+        Background="#1C2128"
         WindowStartupLocation="CenterScreen"
         ResizeMode="CanResize">
-        <!-- aqui Background="#252526"-->
 
     <Window.Resources>
-        <!-- aqui <SolidColorBrush x:Key="WindowBgBrush" Color="#252526"/>-->
-        <SolidColorBrush x:Key="WindowBgBrush" Color="#222933"/>
-        <SolidColorBrush x:Key="PanelBgBrush" Color="#2D2D30"/>
-        <SolidColorBrush x:Key="PanelBgBrush2" Color="#29323C"/>
-        <SolidColorBrush x:Key="RulesHeaderBrush" Color="#46697A"/>
-        <SolidColorBrush x:Key="ProjectHeaderBrush" Color="#5C4F7A"/>
-        <SolidColorBrush x:Key="GridBgBrush" Color="#3B4453"/>
-        <SolidColorBrush x:Key="GridAltBrush" Color="#314854"/>
-        <SolidColorBrush x:Key="BorderBrush" Color="#3F3F46"/>
-        <SolidColorBrush x:Key="GridLineBrush" Color="#4A4A4A"/>
-        <SolidColorBrush x:Key="TextBrush" Color="#FFFFFF"/>
-        <SolidColorBrush x:Key="SecondaryTextBrush" Color="#D7DEE3"/>
-        <SolidColorBrush x:Key="AccentBrush" Color="#6D97AE"/>
-        <SolidColorBrush x:Key="AccentHoverBrush" Color="#5D8194"/>
-        <SolidColorBrush x:Key="AccentDarkBrush" Color="#416172"/>
+
+        <!-- ============================================================
+             COLOR TOKENS
+        ============================================================ -->
+        <SolidColorBrush x:Key="BgApp"           Color="#1C2128"/>
+        <SolidColorBrush x:Key="BgSurface"       Color="#252B35"/>
+        <SolidColorBrush x:Key="BgSurfaceAlt"    Color="#2C3340"/>
+        <SolidColorBrush x:Key="BgInput"         Color="#161B22"/>
+        <SolidColorBrush x:Key="BgRow"           Color="#252B35"/>
+        <SolidColorBrush x:Key="BgRowAlt"        Color="#2A3040"/>
+        <SolidColorBrush x:Key="BgRowHover"      Color="#2F3A4E"/>
+        <SolidColorBrush x:Key="BgSelection"     Color="#1F4068"/>
+        <SolidColorBrush x:Key="BgMetric"        Color="#1F2630"/>
+
+        <SolidColorBrush x:Key="BorderSubtle"    Color="#30404F"/>
+        <SolidColorBrush x:Key="BorderMedium"    Color="#415060"/>
+        <SolidColorBrush x:Key="BorderAccent"    Color="#4A8AA8"/>
+
+        <SolidColorBrush x:Key="TextHigh"        Color="#E8EDF2"/>
+        <SolidColorBrush x:Key="TextMed"         Color="#8FA3B3"/>
+        <SolidColorBrush x:Key="TextLow"         Color="#566575"/>
+        <SolidColorBrush x:Key="TextAccent"      Color="#58A6D4"/>
+
+        <!-- Blue — primary action -->
+        <SolidColorBrush x:Key="BtnBlueBg"       Color="#1F5E87"/>
+        <SolidColorBrush x:Key="BtnBlueHover"    Color="#276FA0"/>
+        <SolidColorBrush x:Key="BtnBluePress"    Color="#184D6E"/>
+
+        <!-- Slate — secondary / neutral -->
+        <SolidColorBrush x:Key="BtnSlateBg"      Color="#2E3D4E"/>
+        <SolidColorBrush x:Key="BtnSlateHover"   Color="#374A5C"/>
+        <SolidColorBrush x:Key="BtnSlatePress"   Color="#253040"/>
+
+        <!-- Teal — add-rules accent -->
+        <SolidColorBrush x:Key="BtnTealBg"       Color="#1A5060"/>
+        <SolidColorBrush x:Key="BtnTealHover"    Color="#1F6070"/>
+        <SolidColorBrush x:Key="BtnTealPress"    Color="#143D4A"/>
+
+        <!-- Green — apply / commit -->
+        <SolidColorBrush x:Key="BtnGreenBg"      Color="#1C5C30"/>
+        <SolidColorBrush x:Key="BtnGreenHover"   Color="#246E39"/>
+        <SolidColorBrush x:Key="BtnGreenPress"   Color="#154824"/>
+
+        <!-- Red — danger / close -->
+        <SolidColorBrush x:Key="BtnRedBg"        Color="#5C2020"/>
+        <SolidColorBrush x:Key="BtnRedHover"     Color="#6E2828"/>
+        <SolidColorBrush x:Key="BtnRedPress"     Color="#481818"/>
+
+        <!-- Rules grid header -->
+        <SolidColorBrush x:Key="RulesHeader"     Color="#1D4A60"/>
+        <!-- Project grid header -->
+        <SolidColorBrush x:Key="ProjectHeader"   Color="#3A2A58"/>
+
+        <!-- ============================================================
+             SHARED BUTTON CONTROL TEMPLATE
+        ============================================================ -->
+        <ControlTemplate x:Key="FlatButtonTemplate" TargetType="Button">
+            <Border x:Name="bd"
+                    Background="{TemplateBinding Background}"
+                    BorderBrush="{TemplateBinding BorderBrush}"
+                    BorderThickness="{TemplateBinding BorderThickness}"
+                    CornerRadius="4"
+                    Padding="{TemplateBinding Padding}">
+                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+            </Border>
+            <ControlTemplate.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter TargetName="bd" Property="Background" Value="{Binding Tag, RelativeSource={RelativeSource TemplatedParent}}"/>
+                </Trigger>
+                <Trigger Property="IsEnabled" Value="False">
+                    <Setter TargetName="bd" Property="Opacity" Value="0.38"/>
+                </Trigger>
+            </ControlTemplate.Triggers>
+        </ControlTemplate>
+
+        <!-- ============================================================
+             ELEMENT STYLES
+        ============================================================ -->
 
         <Style TargetType="TextBlock">
-            <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
+            <Setter Property="Foreground" Value="{StaticResource TextHigh}"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
         </Style>
 
-        <Style x:Key="FormLabelStyle" TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}">
-            <Setter Property="Foreground" Value="White"/>
-            <Setter Property="FontWeight" Value="Bold"/>
-            <Setter Property="FontSize" Value="12"/>
-        </Style>
-
-        <Style TargetType="GroupBox">
-            <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
-            <Setter Property="Background" Value="{StaticResource PanelBgBrush}"/>
-            <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}"/>
-            <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="Padding" Value="10"/>
-        </Style>
-
-        <Style TargetType="Button">
-            <Setter Property="Foreground" Value="White"/>
-            <Setter Property="Background" Value="{StaticResource AccentBrush}"/>
-            <Setter Property="BorderBrush" Value="{StaticResource AccentDarkBrush}"/>
-            <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="Padding" Value="12,6"/>
-            <Setter Property="Margin" Value="0,0,8,0"/>
+        <Style x:Key="LabelStyle" TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}">
+            <Setter Property="FontSize"   Value="10"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
-            <Setter Property="Cursor" Value="Hand"/>
-            <Setter Property="Height" Value="34"/>
-            <Style.Triggers>
-                <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="{StaticResource AccentHoverBrush}"/>
-                </Trigger>
-            </Style.Triggers>
-        </Style>
-
-        <Style x:Key="SecondaryButtonStyle" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
-            <Setter Property="Background" Value="#4E5A61"/>
-            <Setter Property="BorderBrush" Value="#596870"/>
-        </Style>
-
-        <Style x:Key="GreenButtonStyle" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
-            <Setter Property="Background" Value="#4E7A56"/>
-            <Setter Property="BorderBrush" Value="#6A9C73"/>
-        </Style>
-
-        <Style x:Key="DangerButtonStyle" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
-            <Setter Property="Background" Value="#7A4C4C"/>
-            <Setter Property="BorderBrush" Value="#8E5F5F"/>
-        </Style>
-
-        <Style x:Key="AddRulesButtonStyle" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
-            <Setter Property="Background" Value="#46697A"/>
-            <Setter Property="BorderBrush" Value="#5C8090"/>
-        </Style>
-
-        <Style TargetType="ComboBox">
-            <Setter Property="Foreground" Value="#111111"/>
-            <Setter Property="Background" Value="#F2F2F2"/>
-            <Setter Property="BorderBrush" Value="#8FA5B2"/>
-            <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="Padding" Value="6,3"/>
-            <Setter Property="Height" Value="32"/>
-            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Foreground" Value="{StaticResource TextMed}"/>
+            <Setter Property="Margin"     Value="0,0,0,5"/>
         </Style>
 
         <Style TargetType="TextBox">
-            <Setter Property="Foreground" Value="#111111"/>
-            <Setter Property="Background" Value="#F2F2F2"/>
-            <Setter Property="BorderBrush" Value="#8FA5B2"/>
-            <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="Padding" Value="6,3"/>
-            <Setter Property="Height" Value="32"/>
-        </Style>
-
-        <Style TargetType="ComboBoxItem">
-            <Setter Property="Foreground" Value="White"/>
-            <Setter Property="Background" Value="#2F3A44"/>
-            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Foreground"              Value="{StaticResource TextHigh}"/>
+            <Setter Property="Background"              Value="{StaticResource BgInput}"/>
+            <Setter Property="CaretBrush"              Value="{StaticResource TextAccent}"/>
+            <Setter Property="BorderBrush"             Value="{StaticResource BorderSubtle}"/>
+            <Setter Property="BorderThickness"         Value="1"/>
+            <Setter Property="Padding"                 Value="8,5"/>
+            <Setter Property="Height"                  Value="32"/>
+            <Setter Property="FontSize"                Value="13"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
             <Style.Triggers>
-                <Trigger Property="IsHighlighted" Value="True">
-                    <Setter Property="Background" Value="#8FC1E0"/>
-                    <Setter Property="Foreground" Value="#10212E"/>
-                </Trigger>
-                <Trigger Property="IsSelected" Value="True">
-                    <Setter Property="Background" Value="#8FC1E0"/>
-                    <Setter Property="Foreground" Value="#10212E"/>
+                <Trigger Property="IsFocused" Value="True">
+                    <Setter Property="BorderBrush" Value="{StaticResource BorderAccent}"/>
                 </Trigger>
             </Style.Triggers>
         </Style>
 
-        <Style TargetType="DataGrid">
-            <Setter Property="Background" Value="{StaticResource GridBgBrush}"/>
-            <Setter Property="Foreground" Value="White"/>
-            <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}"/>
+        <!-- ComboBoxItem — Revit dark list style -->
+        <Style TargetType="ComboBoxItem">
+            <Setter Property="Foreground"                Value="#D7DEE3"/>
+            <Setter Property="Background"                Value="#2D3742"/>
+            <Setter Property="BorderThickness"           Value="0"/>
+            <Setter Property="Padding"                   Value="8,5"/>
+            <Setter Property="FontSize"                  Value="13"/>
+            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ComboBoxItem">
+                        <Border x:Name="bd"
+                                Background="{TemplateBinding Background}"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsHighlighted" Value="True">
+                                <Setter TargetName="bd" Property="Background" Value="#3E5A70"/>
+                                <Setter Property="Foreground" Value="#FFFFFF"/>
+                            </Trigger>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="bd" Property="Background" Value="#3C7CA8"/>
+                                <Setter Property="Foreground" Value="#FFFFFF"/>
+                            </Trigger>
+                            <MultiTrigger>
+                                <MultiTrigger.Conditions>
+                                    <Condition Property="IsSelected"    Value="True"/>
+                                    <Condition Property="IsHighlighted" Value="True"/>
+                                </MultiTrigger.Conditions>
+                                <Setter TargetName="bd" Property="Background" Value="#4A90C0"/>
+                            </MultiTrigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- ComboBox — full ControlTemplate, Revit dark popup -->
+        <Style TargetType="ComboBox">
+            <Setter Property="Foreground"        Value="#D7DEE3"/>
+            <Setter Property="Background"        Value="#3C4A57"/>
+            <Setter Property="BorderBrush"       Value="#555F6A"/>
+            <Setter Property="BorderThickness"   Value="1"/>
+            <Setter Property="Height"            Value="32"/>
+            <Setter Property="FontSize"          Value="13"/>
+            <Setter Property="Padding"           Value="8,0"/>
+            <Setter Property="MaxDropDownHeight" Value="300"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ComboBox">
+                        <Grid>
+                            <Border x:Name="MainBorder"
+                                    Background="{TemplateBinding Background}"
+                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                    BorderThickness="{TemplateBinding BorderThickness}"
+                                    CornerRadius="2"/>
+                            <ContentPresenter x:Name="ContentSite"
+                                              Content="{TemplateBinding SelectionBoxItem}"
+                                              ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"
+                                              Margin="8,0,30,0"
+                                              VerticalAlignment="Center"
+                                              IsHitTestVisible="False"/>
+                            <ToggleButton x:Name="ToggleButton"
+                                          IsChecked="{Binding IsDropDownOpen, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}"
+                                          Focusable="False"
+                                          ClickMode="Press"
+                                          Background="Transparent"
+                                          BorderThickness="0">
+                                <ToggleButton.Template>
+                                    <ControlTemplate TargetType="ToggleButton">
+                                        <Grid Background="Transparent">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="26"/>
+                                            </Grid.ColumnDefinitions>
+                                            <Border Grid.Column="1" Background="Transparent">
+                                                <Path x:Name="Arrow"
+                                                      Data="M 0 0 L 5 5 L 10 0"
+                                                      Stroke="#8FA3B3"
+                                                      StrokeThickness="1.5"
+                                                      StrokeLineJoin="Round"
+                                                      HorizontalAlignment="Center"
+                                                      VerticalAlignment="Center"/>
+                                            </Border>
+                                        </Grid>
+                                        <ControlTemplate.Triggers>
+                                            <Trigger Property="IsChecked" Value="True">
+                                                <Setter TargetName="Arrow" Property="Stroke" Value="#FFFFFF"/>
+                                            </Trigger>
+                                        </ControlTemplate.Triggers>
+                                    </ControlTemplate>
+                                </ToggleButton.Template>
+                            </ToggleButton>
+                            <Popup x:Name="Popup"
+                                   Placement="Bottom"
+                                   IsOpen="{TemplateBinding IsDropDownOpen}"
+                                   AllowsTransparency="True"
+                                   Focusable="False"
+                                   PopupAnimation="None">
+                                <Border x:Name="DropDownBorder"
+                                        MinWidth="{TemplateBinding ActualWidth}"
+                                        MaxHeight="{TemplateBinding MaxDropDownHeight}"
+                                        Background="#2D3742"
+                                        BorderBrush="#555F6A"
+                                        BorderThickness="1"
+                                        SnapsToDevicePixels="True">
+                                    <ScrollViewer CanContentScroll="True"
+                                                  VerticalScrollBarVisibility="Auto">
+                                        <StackPanel IsItemsHost="True"/>
+                                    </ScrollViewer>
+                                </Border>
+                            </Popup>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="MainBorder" Property="Background"  Value="#465565"/>
+                                <Setter TargetName="MainBorder" Property="BorderBrush" Value="#6A7E8F"/>
+                            </Trigger>
+                            <Trigger Property="IsDropDownOpen" Value="True">
+                                <Setter TargetName="MainBorder" Property="Background"  Value="#465565"/>
+                                <Setter TargetName="MainBorder" Property="BorderBrush" Value="{StaticResource BorderAccent}"/>
+                                <Setter TargetName="MainBorder" Property="CornerRadius" Value="2,2,0,0"/>
+                                <Setter TargetName="DropDownBorder" Property="BorderBrush" Value="{StaticResource BorderAccent}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Base button -->
+        <Style TargetType="Button">
+            <Setter Property="Foreground"      Value="{StaticResource TextHigh}"/>
+            <Setter Property="Background"      Value="{StaticResource BtnBlueBg}"/>
+            <Setter Property="BorderBrush"     Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding"         Value="14,0"/>
+            <Setter Property="Height"          Value="32"/>
+            <Setter Property="FontSize"        Value="12"/>
+            <Setter Property="FontWeight"      Value="SemiBold"/>
+            <Setter Property="Cursor"          Value="Hand"/>
+            <Setter Property="Tag"             Value="{StaticResource BtnBlueHover}"/>
+            <Setter Property="Template"        Value="{StaticResource FlatButtonTemplate}"/>
+        </Style>
+
+        <Style x:Key="SecondaryButtonStyle" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+            <Setter Property="Background" Value="{StaticResource BtnSlateBg}"/>
+            <Setter Property="Tag"        Value="{StaticResource BtnSlateHover}"/>
+        </Style>
+
+        <Style x:Key="TealButtonStyle" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+            <Setter Property="Background" Value="{StaticResource BtnTealBg}"/>
+            <Setter Property="Tag"        Value="{StaticResource BtnTealHover}"/>
+        </Style>
+
+        <Style x:Key="GreenButtonStyle" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+            <Setter Property="Background" Value="{StaticResource BtnGreenBg}"/>
+            <Setter Property="Tag"        Value="{StaticResource BtnGreenHover}"/>
+        </Style>
+
+        <Style x:Key="DangerButtonStyle" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+            <Setter Property="Background" Value="{StaticResource BtnRedBg}"/>
+            <Setter Property="Tag"        Value="{StaticResource BtnRedHover}"/>
+        </Style>
+
+        <!-- GroupBox -->
+        <Style TargetType="GroupBox">
+            <Setter Property="Foreground"      Value="{StaticResource TextMed}"/>
+            <Setter Property="Background"      Value="{StaticResource BgSurface}"/>
+            <Setter Property="BorderBrush"     Value="{StaticResource BorderSubtle}"/>
             <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="GridLinesVisibility" Value="Horizontal"/>
-            <Setter Property="HorizontalGridLinesBrush" Value="{StaticResource GridLineBrush}"/>
-            <Setter Property="VerticalGridLinesBrush" Value="{StaticResource GridLineBrush}"/>
-            <Setter Property="HeadersVisibility" Value="Column"/>
-            <Setter Property="RowBackground" Value="{StaticResource GridBgBrush}"/>
-            <Setter Property="AlternatingRowBackground" Value="{StaticResource GridAltBrush}"/>
-            <Setter Property="CanUserResizeRows" Value="False"/>
-            <Setter Property="RowHeight" Value="20"/>
+            <Setter Property="Padding"         Value="10"/>
+            <Setter Property="FontSize"        Value="11"/>
+            <Setter Property="FontWeight"      Value="SemiBold"/>
+        </Style>
+
+        <!-- DataGrid base -->
+        <Style TargetType="DataGrid">
+            <Setter Property="Background"               Value="{StaticResource BgRow}"/>
+            <Setter Property="Foreground"               Value="{StaticResource TextHigh}"/>
+            <Setter Property="BorderBrush"              Value="{StaticResource BorderSubtle}"/>
+            <Setter Property="BorderThickness"          Value="1"/>
+            <Setter Property="GridLinesVisibility"      Value="Horizontal"/>
+            <Setter Property="HorizontalGridLinesBrush" Value="{StaticResource BorderSubtle}"/>
+            <Setter Property="VerticalGridLinesBrush"   Value="Transparent"/>
+            <Setter Property="HeadersVisibility"        Value="Column"/>
+            <Setter Property="RowBackground"            Value="{StaticResource BgRow}"/>
+            <Setter Property="AlternatingRowBackground" Value="{StaticResource BgRowAlt}"/>
+            <Setter Property="CanUserResizeRows"        Value="False"/>
+            <Setter Property="RowHeight"                Value="28"/>
+            <Setter Property="RowHeaderWidth"           Value="0"/>
+            <Setter Property="SelectionMode"            Value="Extended"/>
+            <Setter Property="SelectionUnit"            Value="FullRow"/>
+        </Style>
+
+        <Style TargetType="DataGridRow">
+            <Setter Property="BorderThickness" Value="0"/>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="{StaticResource BgRowHover}"/>
+                </Trigger>
+                <Trigger Property="IsSelected" Value="True">
+                    <Setter Property="Background" Value="{StaticResource BgSelection}"/>
+                </Trigger>
+            </Style.Triggers>
         </Style>
 
         <Style TargetType="DataGridColumnHeader">
-            <Setter Property="Foreground" Value="White"/>
-            <Setter Property="FontWeight" Value="Bold"/>
-            <Setter Property="Height" Value="34"/>
-            <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}"/>
-            <Setter Property="BorderThickness" Value="0,0,1,1"/>
+            <Setter Property="Foreground"      Value="{StaticResource TextMed}"/>
+            <Setter Property="Background"      Value="{StaticResource BgSurfaceAlt}"/>
+            <Setter Property="BorderBrush"     Value="{StaticResource BorderSubtle}"/>
+            <Setter Property="BorderThickness" Value="0,0,0,1"/>
+            <Setter Property="Padding"         Value="10,6"/>
+            <Setter Property="FontSize"        Value="10"/>
+            <Setter Property="FontWeight"      Value="SemiBold"/>
+            <Setter Property="Height"          Value="32"/>
+            <Setter Property="Cursor"          Value="Arrow"/>
         </Style>
 
         <Style TargetType="DataGridCell">
-            <Setter Property="Foreground" Value="White"/>
-            <Setter Property="Background" Value="Transparent"/>
-            <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="Padding" Value="6,2"/>
-            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="Foreground"           Value="{StaticResource TextHigh}"/>
+            <Setter Property="Background"           Value="Transparent"/>
+            <Setter Property="BorderThickness"      Value="0"/>
+            <Setter Property="FocusVisualStyle"     Value="{x:Null}"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="DataGridCell">
+                        <Border Padding="10,0" Background="Transparent">
+                            <ContentPresenter VerticalAlignment="Center"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
         </Style>
 
-        <Style x:Key="RulesHeaderStyle" TargetType="DataGridColumnHeader" BasedOn="{StaticResource {x:Type DataGridColumnHeader}}">
-            <Setter Property="Background" Value="{StaticResource RulesHeaderBrush}"/>
+        <!-- Header accent overrides -->
+        <Style x:Key="RulesHeaderStyle" TargetType="DataGridColumnHeader"
+               BasedOn="{StaticResource {x:Type DataGridColumnHeader}}">
+            <Setter Property="Background" Value="{StaticResource RulesHeader}"/>
+            <Setter Property="Foreground" Value="#A8D8F0"/>
         </Style>
 
-        <Style x:Key="ProjectHeaderStyle" TargetType="DataGridColumnHeader" BasedOn="{StaticResource {x:Type DataGridColumnHeader}}">
-            <Setter Property="Background" Value="{StaticResource ProjectHeaderBrush}"/>
+        <Style x:Key="ProjectHeaderStyle" TargetType="DataGridColumnHeader"
+               BasedOn="{StaticResource {x:Type DataGridColumnHeader}}">
+            <Setter Property="Background" Value="{StaticResource ProjectHeader}"/>
+            <Setter Property="Foreground" Value="#C0A8E8"/>
         </Style>
 
+        <!-- Checkbox inside grid cells -->
         <Style x:Key="FastCheckStyle" TargetType="CheckBox">
             <Setter Property="HorizontalAlignment" Value="Center"/>
-            <Setter Property="VerticalAlignment" Value="Center"/>
-            <Setter Property="Focusable" Value="False"/>
-            <Setter Property="Margin" Value="10,0"/>
-            <Setter Property="Width" Value="24"/>
-            <Setter Property="Height" Value="24"/>
+            <Setter Property="VerticalAlignment"   Value="Center"/>
+            <Setter Property="Focusable"           Value="False"/>
+            <Setter Property="Width"               Value="18"/>
+            <Setter Property="Height"              Value="18"/>
         </Style>
+
     </Window.Resources>
 
-    <Grid Margin="14" Background="{StaticResource WindowBgBrush}">
+    <!-- ================================================================
+         ROOT GRID
+    ================================================================ -->
+    <Grid Background="{StaticResource BgApp}">
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="245"/>
-            <RowDefinition Height="12"/>
-            <RowDefinition Height="*"/>
-            <RowDefinition Height="12"/>
-            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>   <!-- Header -->
+            <RowDefinition Height="10"/>
+            <RowDefinition Height="Auto"/>   <!-- Metric cards -->
+            <RowDefinition Height="10"/>
+            <RowDefinition Height="245"/>    <!-- Standard rules -->
+            <RowDefinition Height="10"/>
+            <RowDefinition Height="*"/>      <!-- Project types -->
+            <RowDefinition Height="10"/>
+            <RowDefinition Height="Auto"/>   <!-- Footer -->
         </Grid.RowDefinitions>
 
-        <Border Grid.Row="0" Background="{StaticResource PanelBgBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" Padding="14" Margin="0,0,0,12">
+        <!-- ============================================================
+             HEADER
+        ============================================================ -->
+        <Border Grid.Row="0"
+                Background="{StaticResource BgSurface}"
+                BorderBrush="{StaticResource BorderSubtle}"
+                BorderThickness="0,0,0,1"
+                Padding="16,12">
             <Grid>
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="90"/>
+                    <ColumnDefinition Width="72"/>
                     <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="610"/>
+                    <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
 
-                <Border Grid.Column="0" Width="72" Height="72" Background="#1E1E1E" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="4" HorizontalAlignment="Left" VerticalAlignment="Center">
+                <!-- Logo -->
+                <Border Grid.Column="0"
+                        Width="56" Height="56"
+                        Background="#111518"
+                        BorderBrush="{StaticResource BorderSubtle}"
+                        BorderThickness="1"
+                        CornerRadius="4"
+                        HorizontalAlignment="Left"
+                        VerticalAlignment="Center">
                     <Image x:Name="logoImage" Stretch="Uniform" Margin="6"/>
                 </Border>
 
-                <StackPanel Grid.Column="1" Margin="12,0,12,0">
-                    <TextBlock Text="VIEW TYPE STANDARDIZER - pyMENVIC" FontSize="22" FontWeight="Bold"/>
-                    <TextBlock Text="Rules above. Project review below. Analyze first, then review only the family and status you want." Margin="0,6,0,0" Foreground="{StaticResource SecondaryTextBrush}" FontSize="13" TextWrapping="Wrap"/>
+                <!-- Title + subtitle -->
+                <StackPanel Grid.Column="1"
+                            Margin="14,0,20,0"
+                            VerticalAlignment="Center">
+                    <TextBlock Text="VIEW TYPE STANDARDIZER - pyMENVIC"
+                               FontSize="20"
+                               FontWeight="SemiBold"
+                               Foreground="{StaticResource TextHigh}"/>
+                    <TextBlock Text="Load a discipline standard, analyze the project, review suggestions, then apply."
+                               FontSize="12"
+                               Foreground="{StaticResource TextMed}"
+                               Margin="0,4,0,0"
+                               TextWrapping="Wrap"/>
                 </StackPanel>
 
-                <Border Grid.Column="2" Background="{StaticResource PanelBgBrush2}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" Padding="10">
+                <!-- Controls panel -->
+                <Border Grid.Column="2"
+                        Background="{StaticResource BgSurfaceAlt}"
+                        BorderBrush="{StaticResource BorderSubtle}"
+                        BorderThickness="1"
+                        CornerRadius="4"
+                        Padding="14,10">
                     <Grid>
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="92"/>
-                            <ColumnDefinition Width="92"/>
-                            <ColumnDefinition Width="92"/>
-                            <ColumnDefinition Width="92"/>
+                            <ColumnDefinition Width="220"/>
+                            <ColumnDefinition Width="10"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="8"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="8"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="8"/>
+                            <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
 
-                        <StackPanel Grid.Column="0" Margin="0,0,10,0">
-                            <TextBlock Text="DISCIPLINE / STANDARD" Style="{StaticResource FormLabelStyle}" Margin="0,0,0,6"/>
-                            <ComboBox x:Name="DisciplineCombo" IsEditable="False" FontSize="18" FontWeight="Bold" Foreground="#111111" Background="#F2F2F2"/>
+                        <StackPanel Grid.Column="0">
+                            <TextBlock Text="DISCIPLINE" Style="{StaticResource LabelStyle}"/>
+                            <ComboBox x:Name="DisciplineCombo"
+                                      IsEditable="False"
+                                      FontSize="15"
+                                      FontWeight="SemiBold"/>
                         </StackPanel>
 
-                        <Button x:Name="LoadDisciplineButton" Grid.Column="1" Content="LOAD" Margin="0,20,8,0"/>
-                        <Button x:Name="ReloadTxtButton" Grid.Column="2" Content="RELOAD" Style="{StaticResource SecondaryButtonStyle}" Margin="0,20,8,0"/>
-                        <Button x:Name="SaveTxtButton" Grid.Column="3" Content="SAVE TXT" Margin="0,20,8,0"/>
-                        <Button x:Name="RefreshProjectButton" Grid.Column="4" Content="REFRESH" Style="{StaticResource SecondaryButtonStyle}" Margin="0,20,0,0"/>
+                        <Button x:Name="LoadDisciplineButton"
+                                Grid.Column="2"
+                                Content="LOAD"
+                                Width="82"
+                                VerticalAlignment="Bottom"/>
+                        <Button x:Name="ReloadTxtButton"
+                                Grid.Column="4"
+                                Content="RELOAD TXT"
+                                Width="98"
+                                Style="{StaticResource SecondaryButtonStyle}"
+                                VerticalAlignment="Bottom"/>
+                        <Button x:Name="SaveTxtButton"
+                                Grid.Column="6"
+                                Content="SAVE TXT"
+                                Width="90"
+                                VerticalAlignment="Bottom"/>
+                        <Button x:Name="RefreshProjectButton"
+                                Grid.Column="8"
+                                Content="REFRESH"
+                                Width="82"
+                                Style="{StaticResource SecondaryButtonStyle}"
+                                VerticalAlignment="Bottom"/>
                     </Grid>
                 </Border>
             </Grid>
         </Border>
 
-        <Grid Grid.Row="1" Margin="0,0,0,12">
+        <!-- ============================================================
+             METRIC CARDS
+        ============================================================ -->
+        <Grid Grid.Row="2" Margin="16,0">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="210"/>
-                <ColumnDefinition Width="210"/>
-                <ColumnDefinition Width="210"/>
-                <ColumnDefinition Width="210"/>
-                <ColumnDefinition Width="210"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="10"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="10"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="10"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="10"/>
                 <ColumnDefinition Width="*"/>
             </Grid.ColumnDefinitions>
 
-            <Border Grid.Column="0" Background="{StaticResource PanelBgBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" Padding="10" Margin="0,0,10,0"><StackPanel><TextBlock Text="TOTAL RULES" Foreground="{StaticResource SecondaryTextBrush}" FontSize="12"/><TextBlock x:Name="TotalRulesText" Text="0" FontSize="24" FontWeight="Bold"/></StackPanel></Border>
-            <Border Grid.Column="1" Background="{StaticResource PanelBgBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" Padding="10" Margin="0,0,10,0"><StackPanel><TextBlock Text="TOTAL TYPES" Foreground="{StaticResource SecondaryTextBrush}" FontSize="12"/><TextBlock x:Name="TotalTypesText" Text="0" FontSize="24" FontWeight="Bold"/></StackPanel></Border>
-            <Border Grid.Column="2" Background="{StaticResource PanelBgBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" Padding="10" Margin="0,0,10,0"><StackPanel><TextBlock Text="SELECTED" Foreground="{StaticResource SecondaryTextBrush}" FontSize="12"/><TextBlock x:Name="SelectedTypesText" Text="0" FontSize="24" FontWeight="Bold"/></StackPanel></Border>
-            <Border Grid.Column="3" Background="{StaticResource PanelBgBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" Padding="10" Margin="0,0,10,0"><StackPanel><TextBlock Text="MATCHED" Foreground="{StaticResource SecondaryTextBrush}" FontSize="12"/><TextBlock x:Name="MatchedTypesText" Text="0" FontSize="24" FontWeight="Bold"/></StackPanel></Border>
-            <Border Grid.Column="4" Background="{StaticResource PanelBgBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" Padding="10"><StackPanel><TextBlock Text="RENAMED" Foreground="{StaticResource SecondaryTextBrush}" FontSize="12"/><TextBlock x:Name="RenamedTypesText" Text="0" FontSize="24" FontWeight="Bold"/></StackPanel></Border>
+            <Border Grid.Column="0" Background="{StaticResource BgMetric}" BorderBrush="{StaticResource BorderSubtle}" BorderThickness="1" CornerRadius="4" Padding="14,10">
+                <StackPanel>
+                    <TextBlock Text="TOTAL RULES" Style="{StaticResource LabelStyle}"/>
+                    <TextBlock x:Name="TotalRulesText" Text="0" FontSize="26" FontWeight="SemiBold" Foreground="{StaticResource TextAccent}"/>
+                </StackPanel>
+            </Border>
+            <Border Grid.Column="2" Background="{StaticResource BgMetric}" BorderBrush="{StaticResource BorderSubtle}" BorderThickness="1" CornerRadius="4" Padding="14,10">
+                <StackPanel>
+                    <TextBlock Text="PROJECT TYPES" Style="{StaticResource LabelStyle}"/>
+                    <TextBlock x:Name="TotalTypesText" Text="0" FontSize="26" FontWeight="SemiBold" Foreground="{StaticResource TextHigh}"/>
+                </StackPanel>
+            </Border>
+            <Border Grid.Column="4" Background="{StaticResource BgMetric}" BorderBrush="{StaticResource BorderSubtle}" BorderThickness="1" CornerRadius="4" Padding="14,10">
+                <StackPanel>
+                    <TextBlock Text="SELECTED" Style="{StaticResource LabelStyle}"/>
+                    <TextBlock x:Name="SelectedTypesText" Text="0" FontSize="26" FontWeight="SemiBold" Foreground="{StaticResource TextHigh}"/>
+                </StackPanel>
+            </Border>
+            <Border Grid.Column="6" Background="{StaticResource BgMetric}" BorderBrush="{StaticResource BorderSubtle}" BorderThickness="1" CornerRadius="4" Padding="14,10">
+                <StackPanel>
+                    <TextBlock Text="MATCHED" Style="{StaticResource LabelStyle}"/>
+                    <TextBlock x:Name="MatchedTypesText" Text="0" FontSize="26" FontWeight="SemiBold" Foreground="#5DA468"/>
+                </StackPanel>
+            </Border>
+            <Border Grid.Column="8" Background="{StaticResource BgMetric}" BorderBrush="{StaticResource BorderSubtle}" BorderThickness="1" CornerRadius="4" Padding="14,10">
+                <StackPanel>
+                    <TextBlock Text="RENAMED" Style="{StaticResource LabelStyle}"/>
+                    <TextBlock x:Name="RenamedTypesText" Text="0" FontSize="26" FontWeight="SemiBold" Foreground="#C8A84B"/>
+                </StackPanel>
+            </Border>
         </Grid>
 
-        <GroupBox Grid.Row="2" Header="STANDARD RULES">
+        <!-- ============================================================
+             STANDARD RULES GROUP
+        ============================================================ -->
+        <GroupBox Grid.Row="4"
+                  Header="STANDARD RULES"
+                  Margin="16,0">
             <Grid>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="6"/>
                     <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="8"/>
+                    <RowDefinition Height="6"/>
                     <RowDefinition Height="*"/>
                 </Grid.RowDefinitions>
 
                 <DockPanel Grid.Row="0" LastChildFill="False">
-                    <Button x:Name="AddRuleButton" Content="ADD RULE" Style="{StaticResource AddRulesButtonStyle}"/>
-                    <Button x:Name="RemoveRuleButton" Content="REMOVE RULE" Style="{StaticResource DangerButtonStyle}"/>
-                    <Button x:Name="MatchRulesButton" Content="ANALYZE PROJECT" Margin="16,0,0,0"/>
+                    <Button x:Name="AddRuleButton"    Content="ADD RULE"       Style="{StaticResource TealButtonStyle}" Width="100"/>
+                    <Button x:Name="RemoveRuleButton" Content="REMOVE RULE"    Style="{StaticResource DangerButtonStyle}" Width="110" Margin="6,0,0,0"/>
+                    <Button x:Name="MatchRulesButton" Content="ANALYZE PROJECT" Width="140" Margin="16,0,0,0"/>
                 </DockPanel>
 
-                <TextBlock x:Name="StandardRulesCountText" Grid.Row="1" Margin="2,8,0,0" Foreground="{StaticResource SecondaryTextBrush}" Text="Showing 0 rules"/>
+                <TextBlock x:Name="StandardRulesCountText"
+                           Grid.Row="2"
+                           Text="Showing 0 rules"
+                           FontSize="11"
+                           Foreground="{StaticResource TextLow}"/>
 
-                <DataGrid x:Name="StandardGrid" Grid.Row="3" AutoGenerateColumns="False" CanUserAddRows="False" CanUserDeleteRows="False" SelectionMode="Extended" SelectionUnit="FullRow" ColumnHeaderStyle="{StaticResource RulesHeaderStyle}">
+                <DataGrid x:Name="StandardGrid"
+                          Grid.Row="4"
+                          AutoGenerateColumns="False"
+                          CanUserAddRows="False"
+                          CanUserDeleteRows="False"
+                          ColumnHeaderStyle="{StaticResource RulesHeaderStyle}">
                     <DataGrid.Columns>
                         <DataGridComboBoxColumn x:Name="StandardFamilyColumn"
                                                 Header="VIEW FAMILY"
                                                 SelectedItemBinding="{Binding ViewFamilyName, UpdateSourceTrigger=PropertyChanged}"
                                                 Width="210"/>
-
-                        <DataGridTextColumn Header="OLD STANDARD NAME" Binding="{Binding OldTypeName, UpdateSourceTrigger=PropertyChanged}" Width="*">
+                        <DataGridTextColumn Header="OLD STANDARD NAME"
+                                            Binding="{Binding OldTypeName, UpdateSourceTrigger=PropertyChanged}"
+                                            Width="*">
                             <DataGridTextColumn.ElementStyle>
-                                <Style TargetType="TextBlock">
-                                    <Setter Property="VerticalAlignment" Value="Center"/>
+                                <Style TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}">
+                                    <Setter Property="Foreground" Value="{StaticResource TextMed}"/>
                                 </Style>
                             </DataGridTextColumn.ElementStyle>
                         </DataGridTextColumn>
-
-                        <DataGridTextColumn Header="NEW STANDARD NAME" Binding="{Binding NewTypeName, UpdateSourceTrigger=PropertyChanged}" Width="*">
-                            <DataGridTextColumn.ElementStyle>
-                                <Style TargetType="TextBlock">
-                                    <Setter Property="VerticalAlignment" Value="Center"/>
-                                </Style>
-                            </DataGridTextColumn.ElementStyle>
-                        </DataGridTextColumn>
+                        <DataGridTextColumn Header="NEW STANDARD NAME"
+                                            Binding="{Binding NewTypeName, UpdateSourceTrigger=PropertyChanged}"
+                                            Width="*"/>
                     </DataGrid.Columns>
                 </DataGrid>
-<!-- 
-                <DataGrid x:Name="StandardGrid" Grid.Row="3" AutoGenerateColumns="False" CanUserAddRows="False" CanUserDeleteRows="False" SelectionMode="Extended" SelectionUnit="FullRow" ColumnHeaderStyle="{StaticResource RulesHeaderStyle}">
-                    <DataGrid.Columns>
-                        <DataGridComboBoxColumn Header="VIEW FAMILY" Binding="{Binding OldTypeName, UpdateSourceTrigger=PropertyChanged}" Width="*">
-                            <DataGridTextColumn.ElementStyle>
-                                <Style TargetType="TextBlock">
-                                    <Setter Property="VerticalAlignment" Value="Center"/>
-                                </Style>
-                            </DataGridTextColumn.ElementStyle>
-                        </DataGridTextColumn>
-                        <DataGridTextColumn Header="OLD STANDARD NAME" Binding="{Binding OldTypeName, UpdateSourceTrigger=PropertyChanged}" Width="*">
-                            <DataGridTextColumn.ElementStyle>
-                                <Style TargetType="TextBlock">
-                                    <Setter Property="VerticalAlignment" Value="Center"/>
-                                </Style>
-                            </DataGridTextColumn.ElementStyle>
-                        </DataGridTextColumn>
-                        <DataGridTextColumn Header="NEW STANDARD NAME" Binding="{Binding NewTypeName, UpdateSourceTrigger=PropertyChanged}" Width="*">
-                            <DataGridTextColumn.ElementStyle>
-                                <Style TargetType="TextBlock">
-                                    <Setter Property="VerticalAlignment" Value="Center"/>
-                                </Style>
-                            </DataGridTextColumn.ElementStyle>
-                        </DataGridTextColumn>
-                                            
-                    </DataGrid.Columns>
-                </DataGrid> -->
             </Grid>
         </GroupBox>
 
-        <GroupBox Grid.Row="4" Header="PROJECT TYPES TO REVIEW">
+        <!-- ============================================================
+             PROJECT TYPES GROUP
+        ============================================================ -->
+        <GroupBox Grid.Row="6"
+                  Header="PROJECT TYPES TO REVIEW"
+                  Margin="16,0">
             <Grid>
                 <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="8"/>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="8"/>
                     <RowDefinition Height="*"/>
                 </Grid.RowDefinitions>
 
+                <!-- Filter row -->
                 <Grid Grid.Row="0">
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="Auto"/>
-                    </Grid.RowDefinitions>
                     <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="300"/>
-                        <ColumnDefinition Width="240"/>
-                        <ColumnDefinition Width="260"/>
+                        <ColumnDefinition Width="220"/>
+                        <ColumnDefinition Width="12"/>
+                        <ColumnDefinition Width="180"/>
+                        <ColumnDefinition Width="12"/>
+                        <ColumnDefinition Width="220"/>
                         <ColumnDefinition Width="*"/>
                     </Grid.ColumnDefinitions>
 
-                    <StackPanel Grid.Row="0" Grid.Column="0" Margin="0,0,12,0">
-                        <TextBlock Text="FILTER VIEW FAMILY" Style="{StaticResource FormLabelStyle}" Margin="0,0,0,4"/>
-                        <ComboBox x:Name="ProjectFamilyFilter" Foreground="#111111" Background="#F2F2F2"/>
+                    <StackPanel Grid.Column="0">
+                        <TextBlock Text="VIEW FAMILY" Style="{StaticResource LabelStyle}"/>
+                        <ComboBox x:Name="ProjectFamilyFilter"/>
                     </StackPanel>
 
-                    <StackPanel Grid.Row="0" Grid.Column="1" Margin="0,0,12,0">
-                        <TextBlock Text="SHOW STATUS" Style="{StaticResource FormLabelStyle}" Margin="0,0,0,4"/>
-                        <ComboBox x:Name="ProjectStatusFilter" Foreground="#111111" Background="#F2F2F2"/>
+                    <StackPanel Grid.Column="2">
+                        <TextBlock Text="STATUS" Style="{StaticResource LabelStyle}"/>
+                        <ComboBox x:Name="ProjectStatusFilter"/>
                     </StackPanel>
 
-                    <StackPanel Grid.Row="0" Grid.Column="2" Margin="0,0,12,0">
-                        <TextBlock Text="SEARCH" Style="{StaticResource FormLabelStyle}" Margin="0,0,0,4"/>
-                        <TextBox x:Name="ProjectSearchBox" Height="32" Padding="8,4"/>
+                    <StackPanel Grid.Column="4">
+                        <TextBlock Text="SEARCH" Style="{StaticResource LabelStyle}"/>
+                        <TextBox x:Name="ProjectSearchBox"/>
                     </StackPanel>
 
-                    <TextBlock x:Name="ProjectTypesCountText" Grid.Row="0" Grid.Column="3" Margin="8,24,0,0" Foreground="{StaticResource SecondaryTextBrush}" VerticalAlignment="Top" Text="Showing 0 of 0 project types"/>
-
-                    <StackPanel Grid.Row="1" Grid.ColumnSpan="4" Orientation="Horizontal" Margin="0,8,0,0">
-                        <Button x:Name="CheckVisibleAddRuleButton" Content="CHECK VISIBLE ADD RULE" Style="{StaticResource AddRulesButtonStyle}"/>
-                        <Button x:Name="CheckVisibleUseButton" Content="CHECK VISIBLE USE" Style="{StaticResource SecondaryButtonStyle}"/>
-                        <Button x:Name="UncheckVisibleButton" Content="UNCHECK VISIBLE" Style="{StaticResource DangerButtonStyle}"/>
-                    </StackPanel>
+                    <TextBlock x:Name="ProjectTypesCountText"
+                               Grid.Column="5"
+                               Margin="16,0,0,0"
+                               VerticalAlignment="Bottom"
+                               FontSize="11"
+                               Foreground="{StaticResource TextLow}"
+                               Text="Showing 0 of 0 project types"/>
                 </Grid>
 
-                <DataGrid x:Name="ProjectGrid" Grid.Row="2" AutoGenerateColumns="False" CanUserAddRows="False" CanUserDeleteRows="False" SelectionMode="Extended" SelectionUnit="FullRow" ColumnHeaderStyle="{StaticResource ProjectHeaderStyle}">
+                <!-- Bulk action buttons -->
+                <StackPanel Grid.Row="2" Orientation="Horizontal">
+                    <Button x:Name="CheckVisibleAddRuleButton"
+                            Content="CHECK VISIBLE — ADD RULE"
+                            Style="{StaticResource TealButtonStyle}"
+                            Width="190"/>
+                    <Button x:Name="CheckVisibleUseButton"
+                            Content="CHECK VISIBLE — USE"
+                            Style="{StaticResource SecondaryButtonStyle}"
+                            Width="160"
+                            Margin="6,0,0,0"/>
+                    <Button x:Name="UncheckVisibleButton"
+                            Content="UNCHECK VISIBLE"
+                            Style="{StaticResource DangerButtonStyle}"
+                            Width="140"
+                            Margin="6,0,0,0"/>
+                </StackPanel>
+
+                <!-- Grid -->
+                <DataGrid x:Name="ProjectGrid"
+                          Grid.Row="4"
+                          AutoGenerateColumns="False"
+                          CanUserAddRows="False"
+                          CanUserDeleteRows="False"
+                          ColumnHeaderStyle="{StaticResource ProjectHeaderStyle}">
                     <DataGrid.Columns>
-                        <DataGridTextColumn Header="VIEW FAMILY" Binding="{Binding ViewFamilyName}" Width="170" IsReadOnly="True"/>
-                        <DataGridTextColumn Header="CURRENT PROJECT TYPE" Binding="{Binding CurrentTypeName}" Width="*" IsReadOnly="True"/>
-                        <DataGridTextColumn Header="SUGGESTED / NEW TYPE" Binding="{Binding NewTypeName, UpdateSourceTrigger=PropertyChanged}" Width="*"/>
-                        <DataGridTemplateColumn Header="STATUS" Width="130">
+                        <DataGridTextColumn Header="VIEW FAMILY"
+                                            Binding="{Binding ViewFamilyName}"
+                                            Width="160"
+                                            IsReadOnly="True"/>
+                        <DataGridTextColumn Header="CURRENT PROJECT TYPE"
+                                            Binding="{Binding CurrentTypeName}"
+                                            Width="*"
+                                            IsReadOnly="True">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}">
+                                    <Setter Property="Foreground" Value="{StaticResource TextMed}"/>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+                        <DataGridTextColumn Header="SUGGESTED / NEW TYPE"
+                                            Binding="{Binding NewTypeName, UpdateSourceTrigger=PropertyChanged}"
+                                            Width="*"/>
+                        <DataGridTemplateColumn Header="STATUS" Width="120">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
-                                    <Border Background="{Binding StatusBg}" CornerRadius="3" Padding="6,2" HorizontalAlignment="Left">
-                                        <TextBlock Text="{Binding Status}" Foreground="{Binding StatusFg}" FontWeight="Bold"/>
+                                    <Border Background="{Binding StatusBg}"
+                                            CornerRadius="3"
+                                            Padding="8,2"
+                                            HorizontalAlignment="Left"
+                                            VerticalAlignment="Center">
+                                        <TextBlock Text="{Binding Status}"
+                                                   Foreground="{Binding StatusFg}"
+                                                   FontSize="10"
+                                                   FontWeight="SemiBold"/>
                                     </Border>
                                 </DataTemplate>
                             </DataGridTemplateColumn.CellTemplate>
                         </DataGridTemplateColumn>
-                        <DataGridTemplateColumn Header="ADD RULE" Width="90">
+                        <DataGridTemplateColumn Header="ADD RULE" Width="80">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
-                                    <CheckBox IsChecked="{Binding AddRule, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FastCheckStyle}"/>
+                                    <CheckBox IsChecked="{Binding AddRule, UpdateSourceTrigger=PropertyChanged}"
+                                              Style="{StaticResource FastCheckStyle}"/>
                                 </DataTemplate>
                             </DataGridTemplateColumn.CellTemplate>
                         </DataGridTemplateColumn>
-                        <DataGridTemplateColumn Header="USE" Width="70">
+                        <DataGridTemplateColumn Header="USE" Width="60">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
-                                    <CheckBox IsChecked="{Binding Include, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FastCheckStyle}"/>
+                                    <CheckBox IsChecked="{Binding Include, UpdateSourceTrigger=PropertyChanged}"
+                                              Style="{StaticResource FastCheckStyle}"/>
                                 </DataTemplate>
                             </DataGridTemplateColumn.CellTemplate>
                         </DataGridTemplateColumn>
@@ -383,20 +724,39 @@
             </Grid>
         </GroupBox>
 
-        <Border Grid.Row="6" Background="{StaticResource PanelBgBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" Padding="12">
-            <Grid>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="145"/>
-                    <ColumnDefinition Width="110"/>
-                    <ColumnDefinition Width="110"/>
-                </Grid.ColumnDefinitions>
+        <!-- ============================================================
+             FOOTER
+        ============================================================ -->
+        <Border Grid.Row="8"
+                Background="{StaticResource BgSurface}"
+                BorderBrush="{StaticResource BorderSubtle}"
+                BorderThickness="0,1,0,0"
+                Padding="16,10">
+            <DockPanel LastChildFill="False">
+                <TextBlock DockPanel.Dock="Left"
+                           VerticalAlignment="Center"
+                           FontSize="12"
+                           Foreground="{StaticResource TextLow}"
+                           Text="Workflow: LOAD standard → ANALYZE PROJECT → filter → review suggestions → ADD RULE / USE → APPLY"/>
 
-                <TextBlock Grid.Column="0" VerticalAlignment="Center" Foreground="{StaticResource SecondaryTextBrush}" Text="Workflow: LOAD standard → ANALYZE PROJECT → filter → edit suggestions → check ADD RULE and/or USE → APPLY."/>
-                <Button x:Name="AddCheckedToRulesButton" Grid.Column="1" Content="ADD TO RULES" Style="{StaticResource AddRulesButtonStyle}" Margin="0,0,8,0"/>
-                <Button x:Name="ApplyButton" Grid.Column="2" Content="APPLY" Style="{StaticResource GreenButtonStyle}" Margin="0,0,8,0"/>
-                <Button x:Name="CloseButton" Grid.Column="3" Content="CLOSE" Style="{StaticResource DangerButtonStyle}" Margin="0"/>
-            </Grid>
+                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                    <Button x:Name="AddCheckedToRulesButton"
+                            Content="ADD TO RULES"
+                            Style="{StaticResource TealButtonStyle}"
+                            Width="130"/>
+                    <Button x:Name="ApplyButton"
+                            Content="APPLY"
+                            Style="{StaticResource GreenButtonStyle}"
+                            Width="90"
+                            Margin="8,0,0,0"/>
+                    <Button x:Name="CloseButton"
+                            Content="CLOSE"
+                            Style="{StaticResource DangerButtonStyle}"
+                            Width="80"
+                            Margin="8,0,0,0"/>
+                </StackPanel>
+            </DockPanel>
         </Border>
+
     </Grid>
 </Window>

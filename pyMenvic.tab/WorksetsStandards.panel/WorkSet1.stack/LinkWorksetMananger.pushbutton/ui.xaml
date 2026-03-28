@@ -5,554 +5,684 @@
         Width="1320"
         MinHeight="720"
         MinWidth="1080"
-        Background="#252526"
+        Background="#1C2128"
         WindowStartupLocation="CenterScreen"
         ResizeMode="CanResize">
 
     <Window.Resources>
         <BooleanToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
 
-        <SolidColorBrush x:Key="WindowBgBrush" Color="#252526"/>
-        <SolidColorBrush x:Key="PanelBgBrush" Color="#2D2D30"/>
-        <SolidColorBrush x:Key="SecondaryPanelBrush" Color="#314854"/>
-        <SolidColorBrush x:Key="GridBgBrush" Color="#3B4453"/>
-        <SolidColorBrush x:Key="BorderBrush" Color="#3F3F46"/>
-        <SolidColorBrush x:Key="GridLineBrush" Color="#4A4A4A"/>
+        <!-- ============================================================
+             COLOR TOKENS
+        ============================================================ -->
+        <SolidColorBrush x:Key="BgApp"          Color="#1C2128"/>
+        <SolidColorBrush x:Key="BgSurface"      Color="#252B35"/>
+        <SolidColorBrush x:Key="BgSurfaceAlt"   Color="#2C3340"/>
+        <SolidColorBrush x:Key="BgInput"        Color="#161B22"/>
+        <SolidColorBrush x:Key="BgRow"          Color="#252B35"/>
+        <SolidColorBrush x:Key="BgRowAlt"       Color="#2A3040"/>
+        <SolidColorBrush x:Key="BgRowHover"     Color="#2F3A4E"/>
+        <SolidColorBrush x:Key="BgSelection"    Color="#1F4068"/>
+        <SolidColorBrush x:Key="BgPending"      Color="#1E3528"/>
+        <SolidColorBrush x:Key="BgReview"       Color="#3A2418"/>
 
-        <SolidColorBrush x:Key="TextBrush" Color="#FFFFFF"/>
-        <SolidColorBrush x:Key="SecondaryTextBrush" Color="#D7DEE3"/>
-        <SolidColorBrush x:Key="MutedTextBrush" Color="#9A9A9A"/>
+        <SolidColorBrush x:Key="BorderSubtle"   Color="#30404F"/>
+        <SolidColorBrush x:Key="BorderMedium"   Color="#415060"/>
+        <SolidColorBrush x:Key="BorderAccent"   Color="#4A8AA8"/>
+        <SolidColorBrush x:Key="BorderWarning"  Color="#C0882A"/>
 
-        <SolidColorBrush x:Key="AccentBlueBrush" Color="#6D97AE"/>
-<!-- color de la seleccion -->
-        <SolidColorBrush x:Key="AccentBlueHoverBrush" Color="#5D8194"/>
-        <SolidColorBrush x:Key="AccentBlueDarkBrush" Color="#416172"/>
-        <SolidColorBrush x:Key="SelectionBrush" Color="#5B8AA3"/>
-        <SolidColorBrush x:Key="HoverBrush" Color="#3E5A6B"/>
+        <SolidColorBrush x:Key="TextHigh"       Color="#E8EDF2"/>
+        <SolidColorBrush x:Key="TextMed"        Color="#8FA3B3"/>
+        <SolidColorBrush x:Key="TextLow"        Color="#566575"/>
+        <SolidColorBrush x:Key="TextAccent"     Color="#58A6D4"/>
+        <SolidColorBrush x:Key="TextWarning"    Color="#FFD985"/>
+        <SolidColorBrush x:Key="TextDanger"     Color="#FFB3A7"/>
+        <SolidColorBrush x:Key="TextOk"         Color="#7EC882"/>
 
-        <SolidColorBrush x:Key="DropdownBackgroundBrush" Color="#4E7082"/>
-        <SolidColorBrush x:Key="DropdownPopupBrush" Color="#2B2B31"/>
-        <SolidColorBrush x:Key="DropdownBorderBrush" Color="#4E7082"/>
-<!-- color del texto de la seleccion FFFFFF-->
-        <SolidColorBrush x:Key="DropdownTextBrush" Color="#FFFFFF"/>
+        <!-- Combo / dropdown — Revit panel style -->
+        <SolidColorBrush x:Key="ComboBg"        Color="#3C4A57"/>
+        <SolidColorBrush x:Key="ComboBorder"    Color="#555F6A"/>
+        <SolidColorBrush x:Key="ComboPopupBg"   Color="#2D3742"/>
+        <SolidColorBrush x:Key="ComboHover"     Color="#465565"/>
+        <SolidColorBrush x:Key="ComboItemHover" Color="#3E5A70"/>
+        <SolidColorBrush x:Key="ComboItemSel"   Color="#3C7CA8"/>
 
-        <SolidColorBrush x:Key="PendingBrush" Color="#415E70"/>
-        <SolidColorBrush x:Key="ReviewBrush" Color="#6F5A3A"/>
-        <SolidColorBrush x:Key="ReviewBorderBrush" Color="#D0A14A"/>
-        <SolidColorBrush x:Key="WarningTextBrush" Color="#FFD985"/>
-        <SolidColorBrush x:Key="StatusDotBrush" Color="#D8AA3C"/>
+        <!-- Buttons -->
+        <SolidColorBrush x:Key="BtnSlateBg"     Color="#2E3D4E"/>
+        <SolidColorBrush x:Key="BtnSlateHover"  Color="#374A5C"/>
+        <SolidColorBrush x:Key="BtnGreenBg"     Color="#1C5C30"/>
+        <SolidColorBrush x:Key="BtnGreenHover"  Color="#246E39"/>
+        <SolidColorBrush x:Key="BtnRedBg"       Color="#5C2020"/>
+        <SolidColorBrush x:Key="BtnRedHover"    Color="#6E2828"/>
 
-        <Style TargetType="TextBlock">
-            <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
-        </Style>
+        <!-- DataGrid header -->
+        <SolidColorBrush x:Key="HeaderBg"       Color="#1E2730"/>
 
-        <Style x:Key="ToolbarButtonStyle" TargetType="Button">
-            <Setter Property="Background" Value="#3A3A3A"/>
-            <Setter Property="Foreground" Value="White"/>
-            <Setter Property="BorderBrush" Value="#5A5A5A"/>
-            <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="Padding" Value="12,6"/>
-            <Setter Property="Margin" Value="0"/>
-            <Setter Property="Cursor" Value="Hand"/>
-            <Setter Property="MinWidth" Value="116"/>
-            <Setter Property="Height" Value="34"/>
-        </Style>
-
-        <Style x:Key="ApplyButtonStyle" TargetType="Button" BasedOn="{StaticResource ToolbarButtonStyle}">
-            <Setter Property="Background" Value="#3F8F46"/>
-            <Setter Property="BorderBrush" Value="#4FA558"/>
-            <Setter Property="Foreground" Value="White"/>
-            <Setter Property="MinWidth" Value="128"/>
-            <Style.Triggers>
-                <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="#4AA352"/>
-                </Trigger>
-            </Style.Triggers>
-        </Style>
-
-        <Style x:Key="CloseButtonStyle" TargetType="Button" BasedOn="{StaticResource ToolbarButtonStyle}">
-            <Setter Property="Background" Value="#B3261E"/>
-            <Setter Property="BorderBrush" Value="#C93B32"/>
-            <Setter Property="Foreground" Value="White"/>
-            <Setter Property="MinWidth" Value="100"/>
-            <Style.Triggers>
-                <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="#C93B32"/>
-                </Trigger>
-            </Style.Triggers>
-        </Style>
-
-        <Style x:Key="CenteredTextBlockStyle" TargetType="TextBlock">
-            <Setter Property="VerticalAlignment" Value="Center"/>
-            <Setter Property="TextWrapping" Value="NoWrap"/>
-            <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
-        </Style>
-
-        <Style x:Key="FilterTextBoxStyle" TargetType="TextBox">
-            <Setter Property="Height" Value="30"/>
-            <Setter Property="Padding" Value="10,4"/>
-            <Setter Property="Background" Value="#202327"/>
-            <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
-            <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}"/>
-            <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="VerticalContentAlignment" Value="Center"/>
-        </Style>
-
-        <ControlTemplate x:Key="ComboToggleButtonTemplate" TargetType="ToggleButton">
-            <Border x:Name="ToggleBorder"
+        <!-- ============================================================
+             SHARED BUTTON TEMPLATE
+        ============================================================ -->
+        <ControlTemplate x:Key="FlatBtnTpl" TargetType="Button">
+            <Border x:Name="bd"
                     Background="{TemplateBinding Background}"
                     BorderBrush="{TemplateBinding BorderBrush}"
                     BorderThickness="{TemplateBinding BorderThickness}"
-                    CornerRadius="2">
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="26"/>
-                    </Grid.ColumnDefinitions>
-
-                    <ContentPresenter Grid.Column="0"
-                                      Margin="8,0,4,0"
-                                      VerticalAlignment="Center"
-                                      HorizontalAlignment="Left"/>
-
-                    <Border Grid.Column="1"
-                            Background="#3E5A6B"
-                            BorderBrush="{TemplateBinding BorderBrush}"
-                            BorderThickness="1,0,0,0">
-                        <Path x:Name="Arrow"
-                              Data="M 0 0 L 4 4 L 8 0 Z"
-                              Width="8"
-                              Height="4"
-                              Stretch="Fill"
-                              Fill="{StaticResource DropdownTextBrush}"
-                              HorizontalAlignment="Center"
-                              VerticalAlignment="Center"/>
-                    </Border>
-                </Grid>
+                    CornerRadius="3"
+                    Padding="{TemplateBinding Padding}">
+                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
             </Border>
-
             <ControlTemplate.Triggers>
                 <Trigger Property="IsMouseOver" Value="True">
-                    <Setter TargetName="ToggleBorder" Property="Background" Value="{StaticResource AccentBlueHoverBrush}"/>
-                </Trigger>
-                <Trigger Property="IsChecked" Value="True">
-                    <Setter TargetName="ToggleBorder" Property="Background" Value="{StaticResource AccentBlueDarkBrush}"/>
+                    <Setter TargetName="bd" Property="Background"
+                            Value="{Binding Tag, RelativeSource={RelativeSource TemplatedParent}}"/>
                 </Trigger>
                 <Trigger Property="IsEnabled" Value="False">
-                    <Setter TargetName="ToggleBorder" Property="Opacity" Value="0.65"/>
+                    <Setter TargetName="bd" Property="Opacity" Value="0.38"/>
                 </Trigger>
             </ControlTemplate.Triggers>
         </ControlTemplate>
 
-        <Style x:Key="GridComboBoxItemStyle" TargetType="ComboBoxItem">
-            <Setter Property="Foreground" Value="{StaticResource DropdownTextBrush}"/>
-            <Setter Property="Background" Value="{StaticResource DropdownPopupBrush}"/>
-            <Setter Property="Padding" Value="8,4"/>
-            <Setter Property="HorizontalContentAlignment" Value="Left"/>
+        <!-- ============================================================
+             ELEMENT STYLES
+        ============================================================ -->
+
+        <Style TargetType="TextBlock">
+            <Setter Property="Foreground"        Value="{StaticResource TextHigh}"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+
+        <!-- TextBox -->
+        <Style TargetType="TextBox">
+            <Setter Property="Foreground"               Value="{StaticResource TextHigh}"/>
+            <Setter Property="Background"               Value="{StaticResource BgInput}"/>
+            <Setter Property="CaretBrush"               Value="{StaticResource TextAccent}"/>
+            <Setter Property="BorderBrush"              Value="{StaticResource BorderSubtle}"/>
+            <Setter Property="BorderThickness"          Value="1"/>
+            <Setter Property="Padding"                  Value="10,5"/>
+            <Setter Property="Height"                   Value="32"/>
+            <Setter Property="FontSize"                 Value="13"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
             <Style.Triggers>
-                <Trigger Property="IsHighlighted" Value="True">
-                    <Setter Property="Background" Value="{StaticResource HoverBrush}"/>
-                </Trigger>
-                <Trigger Property="IsSelected" Value="True">
-                    <Setter Property="Background" Value="{StaticResource SelectionBrush}"/>
+                <Trigger Property="IsFocused" Value="True">
+                    <Setter Property="BorderBrush" Value="{StaticResource BorderAccent}"/>
                 </Trigger>
             </Style.Triggers>
         </Style>
 
-        <Style x:Key="GridComboStyle" TargetType="ComboBox">
-            <Setter Property="Foreground" Value="{StaticResource DropdownTextBrush}"/>
-            <Setter Property="Background" Value="{StaticResource DropdownBackgroundBrush}"/>
-            <Setter Property="BorderBrush" Value="{StaticResource DropdownBorderBrush}"/>
-            <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="Height" Value="28"/>
-            <Setter Property="Padding" Value="2"/>
-            <Setter Property="VerticalContentAlignment" Value="Center"/>
-            <Setter Property="VerticalAlignment" Value="Center"/>
-            <Setter Property="HorizontalContentAlignment" Value="Left"/>
-            <Setter Property="ItemContainerStyle" Value="{StaticResource GridComboBoxItemStyle}"/>
+        <!-- Base Button -->
+        <Style TargetType="Button">
+            <Setter Property="Foreground"      Value="{StaticResource TextHigh}"/>
+            <Setter Property="Background"      Value="{StaticResource BtnSlateBg}"/>
+            <Setter Property="BorderBrush"     Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding"         Value="16,0"/>
+            <Setter Property="Height"          Value="32"/>
+            <Setter Property="FontSize"        Value="12"/>
+            <Setter Property="FontWeight"      Value="SemiBold"/>
+            <Setter Property="Cursor"          Value="Hand"/>
+            <Setter Property="Tag"             Value="{StaticResource BtnSlateHover}"/>
+            <Setter Property="Template"        Value="{StaticResource FlatBtnTpl}"/>
+        </Style>
+
+        <Style x:Key="GreenBtnStyle" TargetType="Button"
+               BasedOn="{StaticResource {x:Type Button}}">
+            <Setter Property="Background" Value="{StaticResource BtnGreenBg}"/>
+            <Setter Property="Tag"        Value="{StaticResource BtnGreenHover}"/>
+            <Setter Property="MinWidth"   Value="110"/>
+        </Style>
+
+        <Style x:Key="RedBtnStyle" TargetType="Button"
+               BasedOn="{StaticResource {x:Type Button}}">
+            <Setter Property="Background" Value="{StaticResource BtnRedBg}"/>
+            <Setter Property="Tag"        Value="{StaticResource BtnRedHover}"/>
+            <Setter Property="MinWidth"   Value="90"/>
+        </Style>
+
+        <!-- ComboBoxItem — Revit dark list -->
+        <Style TargetType="ComboBoxItem">
+            <Setter Property="Foreground"                Value="#D7DEE3"/>
+            <Setter Property="Background"                Value="{StaticResource ComboPopupBg}"/>
+            <Setter Property="BorderThickness"           Value="0"/>
+            <Setter Property="Padding"                   Value="8,5"/>
+            <Setter Property="FontSize"                  Value="13"/>
+            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ComboBoxItem">
+                        <Border x:Name="bd"
+                                Background="{TemplateBinding Background}"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsHighlighted" Value="True">
+                                <Setter TargetName="bd" Property="Background"
+                                        Value="{StaticResource ComboItemHover}"/>
+                                <Setter Property="Foreground" Value="#FFFFFF"/>
+                            </Trigger>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="bd" Property="Background"
+                                        Value="{StaticResource ComboItemSel}"/>
+                                <Setter Property="Foreground" Value="#FFFFFF"/>
+                            </Trigger>
+                            <MultiTrigger>
+                                <MultiTrigger.Conditions>
+                                    <Condition Property="IsSelected"    Value="True"/>
+                                    <Condition Property="IsHighlighted" Value="True"/>
+                                </MultiTrigger.Conditions>
+                                <Setter TargetName="bd" Property="Background" Value="#4A90C0"/>
+                            </MultiTrigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- ComboBox — full ControlTemplate, dark popup -->
+        <Style TargetType="ComboBox">
+            <Setter Property="Foreground"        Value="#D7DEE3"/>
+            <Setter Property="Background"        Value="{StaticResource ComboBg}"/>
+            <Setter Property="BorderBrush"       Value="{StaticResource ComboBorder}"/>
+            <Setter Property="BorderThickness"   Value="1"/>
+            <Setter Property="Height"            Value="32"/>
+            <Setter Property="FontSize"          Value="13"/>
+            <Setter Property="Padding"           Value="8,0"/>
+            <Setter Property="MaxDropDownHeight" Value="280"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ComboBox">
+                        <Grid>
+                            <Border x:Name="MainBorder"
+                                    Background="{TemplateBinding Background}"
+                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                    BorderThickness="{TemplateBinding BorderThickness}"
+                                    CornerRadius="2"/>
+                            <ContentPresenter x:Name="ContentSite"
+                                              Content="{TemplateBinding SelectionBoxItem}"
+                                              ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"
+                                              Margin="8,0,30,0"
+                                              VerticalAlignment="Center"
+                                              IsHitTestVisible="False"/>
+                            <ToggleButton x:Name="ToggleButton"
+                                          IsChecked="{Binding IsDropDownOpen, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}"
+                                          Focusable="False"
+                                          ClickMode="Press"
+                                          Background="Transparent"
+                                          BorderThickness="0">
+                                <ToggleButton.Template>
+                                    <ControlTemplate TargetType="ToggleButton">
+                                        <Grid Background="Transparent">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="26"/>
+                                            </Grid.ColumnDefinitions>
+                                            <Border Grid.Column="1" Background="Transparent">
+                                                <Path x:Name="Arrow"
+                                                      Data="M 0 0 L 5 5 L 10 0"
+                                                      Stroke="#8FA3B3"
+                                                      StrokeThickness="1.5"
+                                                      StrokeLineJoin="Round"
+                                                      HorizontalAlignment="Center"
+                                                      VerticalAlignment="Center"/>
+                                            </Border>
+                                        </Grid>
+                                        <ControlTemplate.Triggers>
+                                            <Trigger Property="IsChecked" Value="True">
+                                                <Setter TargetName="Arrow" Property="Stroke" Value="#FFFFFF"/>
+                                            </Trigger>
+                                        </ControlTemplate.Triggers>
+                                    </ControlTemplate>
+                                </ToggleButton.Template>
+                            </ToggleButton>
+                            <Popup x:Name="Popup"
+                                   Placement="Bottom"
+                                   IsOpen="{TemplateBinding IsDropDownOpen}"
+                                   AllowsTransparency="True"
+                                   Focusable="False"
+                                   PopupAnimation="None">
+                                <Border x:Name="DropDownBorder"
+                                        MinWidth="{TemplateBinding ActualWidth}"
+                                        MaxHeight="{TemplateBinding MaxDropDownHeight}"
+                                        Background="{StaticResource ComboPopupBg}"
+                                        BorderBrush="{StaticResource ComboBorder}"
+                                        BorderThickness="1"
+                                        SnapsToDevicePixels="True">
+                                    <ScrollViewer CanContentScroll="True"
+                                                  VerticalScrollBarVisibility="Auto">
+                                        <StackPanel IsItemsHost="True"/>
+                                    </ScrollViewer>
+                                </Border>
+                            </Popup>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="MainBorder" Property="Background"
+                                        Value="{StaticResource ComboHover}"/>
+                                <Setter TargetName="MainBorder" Property="BorderBrush" Value="#6A7E8F"/>
+                            </Trigger>
+                            <Trigger Property="IsDropDownOpen" Value="True">
+                                <Setter TargetName="MainBorder" Property="Background"
+                                        Value="{StaticResource ComboHover}"/>
+                                <Setter TargetName="MainBorder" Property="BorderBrush"
+                                        Value="{StaticResource BorderAccent}"/>
+                                <Setter TargetName="MainBorder" Property="CornerRadius" Value="2,2,0,0"/>
+                                <Setter TargetName="DropDownBorder" Property="BorderBrush"
+                                        Value="{StaticResource BorderAccent}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Grid combo — compact version for DataGrid cells -->
+        <Style x:Key="GridComboStyle" TargetType="ComboBox"
+               BasedOn="{StaticResource {x:Type ComboBox}}">
+            <Setter Property="Height"            Value="26"/>
+            <Setter Property="FontSize"          Value="12"/>
+            <Setter Property="MaxDropDownHeight" Value="200"/>
             <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Disabled"/>
         </Style>
 
+        <!-- DataGrid -->
         <Style TargetType="DataGrid">
-            <Setter Property="Background" Value="{StaticResource GridBgBrush}"/>
-            <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
-            <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}"/>
-            <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="HeadersVisibility" Value="Column"/>
-            <Setter Property="GridLinesVisibility" Value="All"/>
-            <Setter Property="HorizontalGridLinesBrush" Value="{StaticResource GridLineBrush}"/>
-            <Setter Property="VerticalGridLinesBrush" Value="{StaticResource GridLineBrush}"/>
-            <Setter Property="CanUserAddRows" Value="False"/>
-            <Setter Property="CanUserDeleteRows" Value="False"/>
-            <Setter Property="CanUserResizeRows" Value="False"/>
-            <Setter Property="SelectionMode" Value="Single"/>
-            <Setter Property="SelectionUnit" Value="FullRow"/>
-            <Setter Property="AutoGenerateColumns" Value="False"/>
-            <Setter Property="RowHeaderWidth" Value="0"/>
-            <Setter Property="SelectionUnit" Value="FullRow"/>
-            <Setter Property="SelectionMode" Value="Single"/>
+            <Setter Property="Background"               Value="{StaticResource BgRow}"/>
+            <Setter Property="Foreground"               Value="{StaticResource TextHigh}"/>
+            <Setter Property="BorderBrush"              Value="{StaticResource BorderSubtle}"/>
+            <Setter Property="BorderThickness"          Value="0"/>
+            <Setter Property="HeadersVisibility"        Value="Column"/>
+            <Setter Property="GridLinesVisibility"      Value="Horizontal"/>
+            <Setter Property="HorizontalGridLinesBrush" Value="{StaticResource BorderSubtle}"/>
+            <Setter Property="VerticalGridLinesBrush"   Value="Transparent"/>
+            <Setter Property="CanUserAddRows"           Value="False"/>
+            <Setter Property="CanUserDeleteRows"        Value="False"/>
+            <Setter Property="CanUserResizeRows"        Value="False"/>
+            <Setter Property="SelectionMode"            Value="Single"/>
+            <Setter Property="SelectionUnit"            Value="CellOrRowHeader"/>
+            <Setter Property="AutoGenerateColumns"      Value="False"/>
+            <Setter Property="RowHeaderWidth"           Value="0"/>
         </Style>
 
         <Style TargetType="DataGridColumnHeader">
-            <Setter Property="Background" Value="{StaticResource PanelBgBrush}"/>
-            <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
-            <Setter Property="BorderBrush" Value="{StaticResource GridLineBrush}"/>
-            <Setter Property="BorderThickness" Value="0,0,1,1"/>
-            <Setter Property="Padding" Value="8,7"/>
-            <Setter Property="FontWeight" Value="SemiBold"/>
-            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Background"               Value="{StaticResource HeaderBg}"/>
+            <Setter Property="Foreground"               Value="{StaticResource TextMed}"/>
+            <Setter Property="BorderBrush"              Value="{StaticResource BorderSubtle}"/>
+            <Setter Property="BorderThickness"          Value="0,0,1,1"/>
+            <Setter Property="Padding"                  Value="10,7"/>
+            <Setter Property="FontWeight"               Value="SemiBold"/>
+            <Setter Property="FontSize"                 Value="11"/>
             <Setter Property="HorizontalContentAlignment" Value="Center"/>
             <Setter Property="VerticalContentAlignment" Value="Center"/>
-        </Style>
-
-        <Style TargetType="DataGridCell">
-            <Setter Property="Focusable" Value="False"/>
-            <Setter Property="Background" Value="{StaticResource GridBgBrush}"/>
-            <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
-            <Setter Property="BorderBrush" Value="{StaticResource GridLineBrush}"/>
-            <Setter Property="BorderThickness" Value="0,0,1,1"/>
-            <Setter Property="Padding" Value="7,4"/>
-            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
-            <Setter Property="VerticalContentAlignment" Value="Center"/>
-            <Setter Property="KeyboardNavigation.IsTabStop" Value="False"/>
-            <Style.Triggers>
-                <Trigger Property="IsSelected" Value="True">
-                    <Setter Property="Background" Value="{StaticResource SelectionBrush}"/>
-                    <Setter Property="Foreground" Value="White"/>
-                    <Setter Property="BorderBrush" Value="{StaticResource GridLineBrush}"/>
-                </Trigger>
-                <Trigger Property="IsKeyboardFocusWithin" Value="True">
-                    <Setter Property="BorderBrush" Value="{StaticResource GridLineBrush}"/>
-                </Trigger>
-            </Style.Triggers>
+            <Setter Property="Height"                   Value="34"/>
+            <Setter Property="Cursor"                   Value="Arrow"/>
         </Style>
 
         <Style TargetType="DataGridRow">
-            <Setter Property="Background" Value="{StaticResource GridBgBrush}"/>
-            <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
-            <Setter Property="BorderBrush" Value="{StaticResource GridLineBrush}"/>
+            <Setter Property="Background" Value="{StaticResource BgRow}"/>
+            <Setter Property="Foreground" Value="{StaticResource TextHigh}"/>
             <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="MinHeight" Value="34"/>
-            <Setter Property="ToolTip" Value="{Binding WarningText}"/>
             <Style.Triggers>
                 <DataTrigger Binding="{Binding IsUnrecognized}" Value="True">
-                    <Setter Property="Background" Value="{StaticResource ReviewBrush}"/>
+                    <Setter Property="Background" Value="{StaticResource BgReview}"/>
                 </DataTrigger>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="{StaticResource BgRowHover}"/>
+                </Trigger>
             </Style.Triggers>
         </Style>
+
+
+        <Style TargetType="DataGridCell">
+            <Setter Property="Focusable" Value="False"/>
+            <Setter Property="IsTabStop" Value="False"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="{StaticResource TextHigh}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource BorderSubtle}"/>
+            <Setter Property="BorderThickness" Value="0,0,0,1"/>
+            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+            <Setter Property="KeyboardNavigation.IsTabStop" Value="False"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="DataGridCell">
+                        <Border Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                Padding="10,0"
+                                SnapsToDevicePixels="True">
+                            <ContentPresenter VerticalAlignment="Center"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsSelected" Value="True">
+                    <Setter Property="Background" Value="{StaticResource BgSelection}"/>
+                    <Setter Property="Foreground" Value="White"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- <Style TargetType="DataGridCell">
+            <Setter Property="Focusable"            Value="True"/>
+            <Setter Property="Background"           Value="Transparent"/>
+            <Setter Property="Foreground"           Value="{StaticResource TextHigh}"/>
+            <Setter Property="BorderBrush"          Value="{StaticResource BorderSubtle}"/>
+            <Setter Property="BorderThickness"      Value="0,0,0,1"/>
+            <Setter Property="FocusVisualStyle"     Value="{x:Null}"/>
+            <Setter Property="KeyboardNavigation.IsTabStop" Value="True"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="DataGridCell">
+                        <Border Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                Padding="10,0">
+                            <ContentPresenter VerticalAlignment="Center"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsSelected" Value="True">
+                    <Setter Property="Background" Value="{StaticResource BgSelection}"/>
+                    <Setter Property="Foreground" Value="White"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style> -->
+
+        <!-- Centered text inside grid cells -->
+        <Style x:Key="CenteredTextBlockStyle" TargetType="TextBlock"
+               BasedOn="{StaticResource {x:Type TextBlock}}">
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="TextWrapping"      Value="NoWrap"/>
+            <Setter Property="TextTrimming"      Value="CharacterEllipsis"/>
+        </Style>
+
     </Window.Resources>
 
-    <Border Background="{StaticResource WindowBgBrush}"
-            BorderBrush="{StaticResource BorderBrush}"
-            BorderThickness="1"
-            Margin="10">
+    <!-- ================================================================
+         ROOT
+    ================================================================ -->
+    <Grid Background="{StaticResource BgApp}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>   <!-- Header   -->
+            <RowDefinition Height="Auto"/>   <!-- Toolbar  -->
+            <RowDefinition Height="*"/>      <!-- DataGrid -->
+            <RowDefinition Height="Auto"/>   <!-- Footer   -->
+        </Grid.RowDefinitions>
 
-        <Grid>
-            <Grid.RowDefinitions>
-                <RowDefinition Height="88"/>
-                <RowDefinition Height="56"/>
-                <RowDefinition Height="*"/>
-                <RowDefinition Height="50"/>
-            </Grid.RowDefinitions>
-
-            <Border Grid.Row="0"
-                    Background="{StaticResource SecondaryPanelBrush}"
-                    BorderBrush="{StaticResource GridLineBrush}"
-                    BorderThickness="0,0,0,1"
-                    Padding="16,12">
-                <DockPanel LastChildFill="True">
-                    <Border Width="60"
-                            Height="60"
-                            Background="{StaticResource PanelBgBrush}"
-                            BorderBrush="{StaticResource BorderBrush}"
-                            BorderThickness="1"
-                            CornerRadius="2"
-                            DockPanel.Dock="Left"
-                            Margin="0,0,14,0">
-                        <Image x:Name="logoImage"
-                               Stretch="Uniform"
-                               Margin="8"/>
-                    </Border>
-
-                    <StackPanel VerticalAlignment="Center">
-                        <TextBlock Text="Link Workset Manager"
-                                   FontSize="22"
-                                   FontWeight="Bold"
-                                   Foreground="{StaticResource TextBrush}"
-                                   Margin="0,0,0,2"/>
-                        <TextBlock Text="Auto-detects link discipline and preselects target workset."
-                                   FontSize="13"
-                                   Foreground="{StaticResource SecondaryTextBrush}"
-                                   FontWeight="Medium"/>
-                    </StackPanel>
-                </DockPanel>
-            </Border>
-
-            <Border Grid.Row="1"
-                    Background="{StaticResource SecondaryPanelBrush}"
-                    BorderBrush="{StaticResource GridLineBrush}"
-                    BorderThickness="0,0,0,1"
-                    Padding="12,8">
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto"/>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="Auto"/>
-                        <ColumnDefinition Width="280"/>
-                    </Grid.ColumnDefinitions>
-
-                    <Button x:Name="btnRefresh"
-                            Content="REFRESH"
-                            Grid.Column="0"
-                            Style="{StaticResource ToolbarButtonStyle}"/>
-
-                    <TextBlock Grid.Column="2"
-                               Text="FILTER:"
-                               VerticalAlignment="Center"
-                               Margin="0,0,8,0"
-                               Foreground="{StaticResource TextBrush}"
-                               FontSize="13"
-                               FontWeight="SemiBold"/>
-
-                    <TextBox x:Name="txtFilter"
-                             Grid.Column="3"
-                             Style="{StaticResource FilterTextBoxStyle}"/>
-                </Grid>
-            </Border>
-
-            <Border Grid.Row="2"
-                    Background="{StaticResource GridBgBrush}"
-                    BorderBrush="{StaticResource GridLineBrush}"
-                    BorderThickness="0">
-                <DataGrid x:Name="dgLinks"
-                          Margin="0">
-                    <DataGrid.Columns>
-                        <DataGridTextColumn Header="LINK NAME"
-                                            Binding="{Binding LinkName}"
-                                            Width="2.10*"
-                                            IsReadOnly="False">
-                            <DataGridTextColumn.ElementStyle>
-                                <Style TargetType="TextBlock" BasedOn="{StaticResource CenteredTextBlockStyle}"/>
-                            </DataGridTextColumn.ElementStyle>
-                        </DataGridTextColumn>
-
-                        <DataGridTextColumn Header="TYPE NAME"
-                                            Binding="{Binding TypeName}"
-                                            Width="1.80*"
-                                            IsReadOnly="False">
-                            <DataGridTextColumn.ElementStyle>
-                                <Style TargetType="TextBlock" BasedOn="{StaticResource CenteredTextBlockStyle}"/>
-                            </DataGridTextColumn.ElementStyle>
-                        </DataGridTextColumn>
-
-                        <DataGridTextColumn Header="INST WS"
-                                            Binding="{Binding CurrentInstanceWorkset}"
-                                            Width="0.92*"
-                                            IsReadOnly="False">
-                            <DataGridTextColumn.ElementStyle>
-                                <Style TargetType="TextBlock" BasedOn="{StaticResource CenteredTextBlockStyle}">
-                                    <Setter Property="TextAlignment" Value="Center"/>
-                                </Style>
-                            </DataGridTextColumn.ElementStyle>
-                        </DataGridTextColumn>
-
-                        <DataGridTextColumn Header="TYPE WS"
-                                            Binding="{Binding CurrentTypeWorkset}"
-                                            Width="0.92*"
-                                            IsReadOnly="False">
-                            <DataGridTextColumn.ElementStyle>
-                                <Style TargetType="TextBlock" BasedOn="{StaticResource CenteredTextBlockStyle}">
-                                    <Setter Property="TextAlignment" Value="Center"/>
-                                </Style>
-                            </DataGridTextColumn.ElementStyle>
-                        </DataGridTextColumn>
-
-                        <DataGridTextColumn Header="STATUS"
-                                            Binding="{Binding Status}"
-                                            Width="82"
-                                            CanUserResize="False"
-                                            IsReadOnly="False">
-                            <DataGridTextColumn.ElementStyle>
-                                <Style TargetType="TextBlock" BasedOn="{StaticResource CenteredTextBlockStyle}">
-                                    <Setter Property="TextAlignment" Value="Center"/>
-                                </Style>
-                            </DataGridTextColumn.ElementStyle>
-                        </DataGridTextColumn>
-
-                        <DataGridTextColumn Header="PIN"
-                                            Binding="{Binding PinnedText}"
-                                            Width="54"
-                                            CanUserResize="False"
-                                            IsReadOnly="False">
-                            <DataGridTextColumn.ElementStyle>
-                                <Style TargetType="TextBlock" BasedOn="{StaticResource CenteredTextBlockStyle}">
-                                    <Setter Property="TextAlignment" Value="Center"/>
-                                </Style>
-                            </DataGridTextColumn.ElementStyle>
-                        </DataGridTextColumn>
-
-                        <DataGridTextColumn Header="DISCIPLINE"
-                                            Binding="{Binding DisciplineText}"
-                                            Width="96"
-                                            CanUserResize="False"
-                                            IsReadOnly="False">
-                            <DataGridTextColumn.ElementStyle>
-                                <Style TargetType="TextBlock" BasedOn="{StaticResource CenteredTextBlockStyle}">
-                                    <Setter Property="TextAlignment" Value="Center"/>
-                                </Style>
-                            </DataGridTextColumn.ElementStyle>
-                        </DataGridTextColumn>
-
-                        <DataGridTextColumn Header="STATE"
-                                            Binding="{Binding StateText}"
-                                            Width="88"
-                                            CanUserResize="False"
-                                            IsReadOnly="False">
-                            <DataGridTextColumn.ElementStyle>
-                                <Style TargetType="TextBlock" BasedOn="{StaticResource CenteredTextBlockStyle}">
-                                    <Setter Property="TextAlignment" Value="Center"/>
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding StateText}" Value="OK">
-                                            <Setter Property="Foreground" Value="{StaticResource SecondaryTextBrush}"/>
-                                        </DataTrigger>
-                                        <DataTrigger Binding="{Binding StateText}" Value="CHANGE">
-                                            <Setter Property="Foreground" Value="{StaticResource WarningTextBrush}"/>
-                                            <Setter Property="FontWeight" Value="SemiBold"/>
-                                        </DataTrigger>
-                                        <DataTrigger Binding="{Binding StateText}" Value="REVIEW">
-                                            <Setter Property="Foreground" Value="#FFB3A7"/>
-                                            <Setter Property="FontWeight" Value="SemiBold"/>
-                                        </DataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </DataGridTextColumn.ElementStyle>
-                        </DataGridTextColumn>
-
-                        <DataGridTemplateColumn Header=""
-                                                Width="34"
-                                                CanUserResize="False"
-                                                IsReadOnly="False">
-                            <DataGridTemplateColumn.CellTemplate>
-                                <DataTemplate>
-                                    <Grid Background="Transparent"
-                                          ToolTip="{Binding WarningText}">
-                                        <TextBlock Text="!"
-                                                   FontWeight="Bold"
-                                                   FontSize="14"
-                                                   Foreground="{StaticResource WarningTextBrush}"
-                                                   HorizontalAlignment="Center"
-                                                   VerticalAlignment="Center"
-                                                   Visibility="{Binding IsUnrecognized, Converter={StaticResource BoolToVisibilityConverter}}"/>
-                                    </Grid>
-                                </DataTemplate>
-                            </DataGridTemplateColumn.CellTemplate>
-                        </DataGridTemplateColumn>
-
-                        <DataGridTemplateColumn Header="TARGET WORKSET" Width="1.08*">
-                            <DataGridTemplateColumn.CellStyle>
-                                <Style TargetType="DataGridCell">
-                                    <Setter Property="Background" Value="{StaticResource GridBgBrush}"/>
-                                    <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
-                                    <Setter Property="BorderBrush" Value="{StaticResource GridLineBrush}"/>
-                                    <Setter Property="BorderThickness" Value="0,0,1,1"/>
-                                    <Setter Property="Padding" Value="4,2"/>
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding IsPendingChange}" Value="True">
-                                            <Setter Property="Background" Value="{StaticResource PendingBrush}"/>
-                                        </DataTrigger>
-                                        <DataTrigger Binding="{Binding IsUnrecognized}" Value="True">
-                                            <Setter Property="BorderBrush" Value="{StaticResource ReviewBorderBrush}"/>
-                                        </DataTrigger>
-                                        <Trigger Property="IsSelected" Value="True">
-                                            <Setter Property="Background" Value="{StaticResource SelectionBrush}"/>
-                                            <Setter Property="Foreground" Value="White"/>
-                                        </Trigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </DataGridTemplateColumn.CellStyle>
-
-                            <DataGridTemplateColumn.CellTemplate>
-                                <DataTemplate>
-                                    <Grid Background="Transparent"
-                                          ToolTip="{Binding WarningText}">
-                                        <TextBlock Text="{Binding SelectedTargetWorksetName}"
-                                                   Margin="8,0,24,0"
-                                                   VerticalAlignment="Center"
-                                                   Foreground="{StaticResource TextBrush}"
-                                                   TextTrimming="CharacterEllipsis"/>
-                                    </Grid>
-                                </DataTemplate>
-                            </DataGridTemplateColumn.CellTemplate>
-
-                            <DataGridTemplateColumn.CellEditingTemplate>
-                                <DataTemplate>
-                                    <Grid Background="Transparent"
-                                          ToolTip="{Binding WarningText}">
-                                        <ComboBox ItemsSource="{Binding WorksetOptions}"
-                                                  Text="{Binding SelectedTargetWorksetName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                                  SelectedItem="{Binding SelectedTargetWorksetName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                                  Style="{StaticResource GridComboStyle}"
-                                                  MinWidth="140"
-                                                  FocusVisualStyle="{x:Null}"
-                                                  IsEditable="True"
-                                                  IsReadOnly="False"
-                                                  IsTextSearchEnabled="False"
-                                                  StaysOpenOnEdit="True"
-                                                  Background="{StaticResource DropdownBackgroundBrush}"
-                                                  Foreground="Black"
-                                                  BorderBrush="{StaticResource DropdownBorderBrush}">
-                                            <ComboBox.Resources>
-                                                <Style TargetType="TextBox">
-                                                    <Setter Property="Foreground" Value="Black"/>
-                                                    <Setter Property="CaretBrush" Value="Black"/>
-                                                    <Setter Property="Background" Value="White"/>
-                                                    <Setter Property="BorderThickness" Value="0"/>
-                                                    <Setter Property="Padding" Value="4,0,4,0"/>
-                                                    <Setter Property="VerticalContentAlignment" Value="Center"/>
-                                                </Style>
-                                            </ComboBox.Resources>
-                                        </ComboBox>
-                                    </Grid>
-                                </DataTemplate>
-                            </DataGridTemplateColumn.CellEditingTemplate>
-                        </DataGridTemplateColumn>
-                    </DataGrid.Columns>
-                </DataGrid>
-            </Border>
-
-            <Border Grid.Row="3"
-                    Background="{StaticResource SecondaryPanelBrush}"
-                    BorderBrush="{StaticResource GridLineBrush}"
-                    BorderThickness="0,1,0,0"
-                    Padding="12,8">
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="Auto"/>
-                        <ColumnDefinition Width="Auto"/>
-                    </Grid.ColumnDefinitions>
-
-                    <TextBlock x:Name="txtStatus"
-                               Grid.Column="0"
-                               VerticalAlignment="Center"
-                               FontSize="14"
+        <!-- ============================================================
+             HEADER
+        ============================================================ -->
+        <Border Grid.Row="0"
+                Background="{StaticResource BgSurface}"
+                BorderBrush="{StaticResource BorderSubtle}"
+                BorderThickness="0,0,0,1"
+                Padding="16,12">
+            <DockPanel LastChildFill="True">
+                <Border Width="52" Height="52"
+                        Background="#111518"
+                        BorderBrush="{StaticResource BorderSubtle}"
+                        BorderThickness="1"
+                        CornerRadius="3"
+                        DockPanel.Dock="Left"
+                        Margin="0,0,14,0">
+                    <Image x:Name="logoImage" Stretch="Uniform" Margin="7"/>
+                </Border>
+                <StackPanel VerticalAlignment="Center">
+                    <TextBlock Text="Link Workset Manager - pyMENVIC"
+                               FontSize="18"
                                FontWeight="SemiBold"
-                               Foreground="{StaticResource SecondaryTextBrush}"
-                               Text="Links: 0 | OK: 0 | Pending: 0 | Review: 0"/>
+                               Foreground="{StaticResource TextHigh}"/>
+                    <TextBlock Text="Auto-detects link discipline and preselects target workset."
+                               FontSize="12"
+                               Foreground="{StaticResource TextMed}"
+                               Margin="0,3,0,0"/>
+                </StackPanel>
+            </DockPanel>
+        </Border>
 
+        <!-- ============================================================
+             TOOLBAR
+        ============================================================ -->
+        <Border Grid.Row="1"
+                Background="{StaticResource BgSurface}"
+                BorderBrush="{StaticResource BorderSubtle}"
+                BorderThickness="0,0,0,1"
+                Padding="14,8">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="8"/>
+                    <ColumnDefinition Width="260"/>
+                </Grid.ColumnDefinitions>
+
+                <Button x:Name="btnRefresh"
+                        Grid.Column="0"
+                        Content="REFRESH"
+                        Width="100"/>
+
+                <TextBlock Grid.Column="2"
+                           Text="FILTER"
+                           FontSize="11"
+                           FontWeight="SemiBold"
+                           Foreground="{StaticResource TextMed}"
+                           VerticalAlignment="Center"
+                           Margin="0,0,8,0"/>
+
+                <TextBox x:Name="txtFilter"
+                         Grid.Column="4"
+                         Height="30"/>
+            </Grid>
+        </Border>
+
+        <!-- ============================================================
+             DATA GRID
+        ============================================================ -->
+        <DataGrid x:Name="dgLinks" Grid.Row="2">
+            <DataGrid.Columns>
+
+                <DataGridTextColumn Header="LINK NAME"
+                                    Binding="{Binding LinkName}"
+                                    Width="2.10*"
+                                    IsReadOnly="True">
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock"
+                               BasedOn="{StaticResource CenteredTextBlockStyle}"/>
+                    </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
+
+                <DataGridTextColumn Header="TYPE NAME"
+                                    Binding="{Binding TypeName}"
+                                    Width="1.80*"
+                                    IsReadOnly="True">
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock"
+                               BasedOn="{StaticResource CenteredTextBlockStyle}"/>
+                    </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
+
+                <DataGridTextColumn Header="INST WS"
+                                    Binding="{Binding CurrentInstanceWorkset}"
+                                    Width="0.92*"
+                                    IsReadOnly="True">
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock"
+                               BasedOn="{StaticResource CenteredTextBlockStyle}">
+                            <Setter Property="TextAlignment" Value="Center"/>
+                            <Setter Property="Foreground" Value="{StaticResource TextMed}"/>
+                        </Style>
+                    </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
+
+                <DataGridTextColumn Header="TYPE WS"
+                                    Binding="{Binding CurrentTypeWorkset}"
+                                    Width="0.92*"
+                                    IsReadOnly="True">
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock"
+                               BasedOn="{StaticResource CenteredTextBlockStyle}">
+                            <Setter Property="TextAlignment" Value="Center"/>
+                            <Setter Property="Foreground" Value="{StaticResource TextMed}"/>
+                        </Style>
+                    </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
+
+                <DataGridTextColumn Header="STATUS"
+                                    Binding="{Binding Status}"
+                                    Width="82"
+                                    CanUserResize="False"
+                                    IsReadOnly="True">
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock"
+                               BasedOn="{StaticResource CenteredTextBlockStyle}">
+                            <Setter Property="TextAlignment" Value="Center"/>
+                            <Setter Property="Foreground" Value="{StaticResource TextMed}"/>
+                        </Style>
+                    </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
+
+                <DataGridTextColumn Header="PIN"
+                                    Binding="{Binding PinnedText}"
+                                    Width="54"
+                                    CanUserResize="False"
+                                    IsReadOnly="True">
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock"
+                               BasedOn="{StaticResource CenteredTextBlockStyle}">
+                            <Setter Property="TextAlignment" Value="Center"/>
+                            <Setter Property="Foreground" Value="{StaticResource TextMed}"/>
+                        </Style>
+                    </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
+
+                <DataGridTextColumn Header="DISCIPLINE"
+                                    Binding="{Binding DisciplineText}"
+                                    Width="96"
+                                    CanUserResize="False"
+                                    IsReadOnly="True">
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock"
+                               BasedOn="{StaticResource CenteredTextBlockStyle}">
+                            <Setter Property="TextAlignment" Value="Center"/>
+                        </Style>
+                    </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
+
+                <DataGridTextColumn Header="STATE"
+                                    Binding="{Binding StateText}"
+                                    Width="88"
+                                    CanUserResize="False"
+                                    IsReadOnly="True">
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock"
+                               BasedOn="{StaticResource CenteredTextBlockStyle}">
+                            <Setter Property="TextAlignment" Value="Center"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding StateText}" Value="OK">
+                                    <Setter Property="Foreground" Value="{StaticResource TextOk}"/>
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding StateText}" Value="CHANGE">
+                                    <Setter Property="Foreground" Value="{StaticResource TextWarning}"/>
+                                    <Setter Property="FontWeight" Value="SemiBold"/>
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding StateText}" Value="REVIEW">
+                                    <Setter Property="Foreground" Value="{StaticResource TextDanger}"/>
+                                    <Setter Property="FontWeight" Value="SemiBold"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
+
+                <!-- Warning icon -->
+                <DataGridTemplateColumn Header=""
+                                        Width="34"
+                                        CanUserResize="False"
+                                        IsReadOnly="True">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <Grid Background="Transparent">
+                                <TextBlock Text="!"
+                                        FontWeight="Bold"
+                                        FontSize="14"
+                                        Foreground="{StaticResource TextWarning}"
+                                        HorizontalAlignment="Center"
+                                        VerticalAlignment="Center"
+                                        ToolTip="{Binding WarningText}"
+                                        Visibility="{Binding IsUnrecognized, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                            </Grid>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+
+                <!-- Target workset (editable combo) -->
+                <DataGridTemplateColumn Header="TARGET WORKSET" Width="1.08*">
+                    <DataGridTemplateColumn.CellStyle>
+                        <Style TargetType="DataGridCell"
+                            BasedOn="{StaticResource {x:Type DataGridCell}}">
+                            <Setter Property="Focusable" Value="True"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsPendingChange}" Value="True">
+                                    <Setter Property="Background" Value="{StaticResource BgPending}"/>
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding IsUnrecognized}" Value="True">
+                                    <Setter Property="BorderBrush" Value="{StaticResource BorderWarning}"/>
+                                    <Setter Property="BorderThickness" Value="0,0,0,2"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </DataGridTemplateColumn.CellStyle>
+
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <Grid Background="Transparent">
+                                <ComboBox ItemsSource="{Binding WorksetOptions}"
+                                    SelectedItem="{Binding SelectedTargetWorksetName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                    Style="{StaticResource GridComboStyle}"
+                                    FocusVisualStyle="{x:Null}"
+                                    IsEditable="False"
+                                    IsTextSearchEnabled="True"
+                                    StaysOpenOnEdit="False"/>
+                             </Grid>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+
+            </DataGrid.Columns>
+        </DataGrid>
+
+        <!-- ============================================================
+             FOOTER
+        ============================================================ -->
+        <Border Grid.Row="3"
+                Background="{StaticResource BgSurface}"
+                BorderBrush="{StaticResource BorderSubtle}"
+                BorderThickness="0,1,0,0"
+                Padding="14,10">
+            <DockPanel LastChildFill="False">
+
+                <TextBlock x:Name="txtStatus"
+                           DockPanel.Dock="Left"
+                           VerticalAlignment="Center"
+                           FontSize="13"
+                           Foreground="{StaticResource TextMed}"
+                           Text="Links: 0 | OK: 0 | Pending: 0 | Review: 0"/>
+
+                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
                     <Button x:Name="btnApply"
                             Content="APPLY"
-                            Grid.Column="1"
-                            Style="{StaticResource ApplyButtonStyle}"
-                            Margin="0,0,10,0"/>
-
+                            Style="{StaticResource GreenBtnStyle}"/>
                     <Button x:Name="btnCancel"
                             Content="CLOSE"
-                            Grid.Column="2"
-                            Style="{StaticResource CloseButtonStyle}"
-                            MinWidth="90"/>
-                </Grid>
-            </Border>
-        </Grid>
-    </Border>
+                            Style="{StaticResource RedBtnStyle}"
+                            Margin="8,0,0,0"/>
+                </StackPanel>
+
+            </DockPanel>
+        </Border>
+
+    </Grid>
 </Window>
