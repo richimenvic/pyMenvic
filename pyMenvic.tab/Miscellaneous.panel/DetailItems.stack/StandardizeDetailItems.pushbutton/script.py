@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""MENVIC | FAMILY DETAIL ITEMS - SEED STANDARD
+"""MENVIC | STANDARDIZE DETAIL ITEMS (FAMILY EDITOR)- SEED STANDARD
 
 Family Editor tool to standardize Object Styles -> Detail Items subcategories.
 
