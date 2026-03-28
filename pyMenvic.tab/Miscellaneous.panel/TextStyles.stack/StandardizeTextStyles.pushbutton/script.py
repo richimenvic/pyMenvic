@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-__title__  = "Text Style Standardizer"
+__title__  = "Standardize Text Styles"
 __author__ = "Ricardo J. Mendieta"
 
 """

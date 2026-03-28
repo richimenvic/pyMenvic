@@ -1,4 +1,69 @@
 # -*- coding: utf-8 -*-
+__title__  = "Standardize Line Styles"
+__author__ = "Ricardo J. Mendieta"
+
+"""
+==========================================================
+pyMENVIC | STANDARDIZE LINE STYLES
+Revit + pyRevit
+
+Descripción
+-----------
+Herramienta avanzada para estandarizar los estilos de línea
+(LineStyles) dentro del proyecto según el estándar de
+oficina definido para pyMENVIC.
+
+El script puede:
+
+- limpiar estilos duplicados
+- normalizar pesos de línea
+- ajustar patrones de línea
+- unificar colores
+- renombrar estilos según estándar
+- eliminar estilos no utilizados
+- crear automáticamente estilos estándar
+
+Estándar de Oficina
+-------------------
+Configuración controlada por:
+
+- Line Weight (grosor)
+- Line Pattern (patrón)
+- Color (RGB)
+
+Convención de nombres:
+DISCIPLINA_USO_PESO
+
+Ejemplos:
+A-CUT-01  
+A-PROJ-02  
+A-ANNO-01  
+
+Reglas importantes
+------------------
+- No se eliminan estilos en uso.
+- Los duplicados se fusionan si coinciden en propiedades.
+- Los nombres se ajustan al estándar automáticamente.
+- Se respetan subcategorías críticas del sistema.
+
+Funciones principales
+---------------------
+RUN: CLEAN AND STANDARDIZE
+    Limpia, normaliza, renombra y purga estilos.
+
+ADD STANDARD STYLES
+    Crea los estilos estándar de oficina.
+
+RENAME ONLY
+    Solo renombra los estilos según configuración.
+
+Autor
+-----
+Ricardo J. Mendieta  
+pyMENVIC – Ayudas para MENVIC ARQ
+==========================================================
+"""
+
 import Autodesk.Revit.DB as DB
 import math
 import re
