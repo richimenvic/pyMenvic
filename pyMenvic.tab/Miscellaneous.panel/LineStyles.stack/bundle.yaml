@@ -1,4 +1,4 @@
 layout:
-  - LineStyleStandardizer
+  - StandardizeLineStyles
   - ListLineStyles
   - PurgeDWGPatterns
