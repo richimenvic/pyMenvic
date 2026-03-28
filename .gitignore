@@ -21,3 +21,4 @@ _LOCAL_NOTES/
 _LOCAL_TOOLS/
 crear_nota_local.ps1
 nota.bat
+subir_github.bat
