@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+__title__ = "Family Library Sorter"
+
 from pyrevit import forms, script
 from Autodesk.Revit.DB import BasicFileInfo, OpenOptions, ModelPathUtils
 import os

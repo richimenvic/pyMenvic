@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+__title__ = "Revision Sheet Set"
+
 # pylint: disable=E0401,C0103,C0111
 
 import Autodesk.Revit.DB as DB

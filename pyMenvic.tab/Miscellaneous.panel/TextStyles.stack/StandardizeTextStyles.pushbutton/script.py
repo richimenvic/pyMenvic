@@ -4,7 +4,7 @@ __author__ = "Ricardo J. Mendieta"
 
 """
 ==========================================================
-pyMENVIC | TEXT STYLE STANDARDIZER
+pyMENVIC | STANDARDIZE TEXT STYLES
 Revit + pyRevit
 
 Descripción

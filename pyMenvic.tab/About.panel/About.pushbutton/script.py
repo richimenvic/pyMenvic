@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+__title__ = "About pyMenvic"
 
 import os
 import webbrowser

@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+__title__ = "Standardize Detail Items (Family Editor)"
+
 """MENVIC | STANDARDIZE DETAIL ITEMS (FAMILY EDITOR)- SEED STANDARD
 
 Family Editor tool to standardize Object Styles -> Detail Items subcategories.

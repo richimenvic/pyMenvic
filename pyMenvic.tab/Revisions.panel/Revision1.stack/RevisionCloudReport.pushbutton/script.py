@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+__title__ = "Revision Cloud Report"
 import re
 from pyrevit import revit, DB, script
 
