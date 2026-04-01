@@ -1,0 +1,60 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:system="clr-namespace:System;assembly=mscorlib">
+    <system:String x:Key="Title">Imprimir</system:String>
+
+    <system:String x:Key="Model">Modelo</system:String>
+    <system:String x:Key="LinkedPrefix">Vínculo: </system:String>
+    <system:String x:Key="SheetIndex">Índice</system:String>
+
+    <system:String x:Key="SheetOrdering">Orden</system:String>
+    <system:String x:Key="ReversePrintOrder">Invertir Orden</system:String>
+    <system:String x:Key="ShowNonPrintableSheets">Ver No Imprimibles</system:String>
+    <system:String x:Key="IncludeNonPrintableInIndexing">Indexar No Imprimibles</system:String>
+    <system:String x:Key="IndexDigits">Dígitos</system:String>
+    <system:String x:Key="IndexStart">Inicio</system:String>
+    <system:String x:Key="Reset">Reset</system:String>
+    <system:String x:Key="SheetLookup">Buscar Hoja</system:String>
+
+    <system:String x:Key="SheetPrinting">Impresión</system:String>
+    <system:String x:Key="CombineIntoOnePDF">Unir en un PDF</system:String>
+    <system:String x:Key="ExportFormat">Formato</system:String>
+    <system:String x:Key="ExportFormatPDF">PDF</system:String>
+    <system:String x:Key="ExportFormatPDFDWG">PDF + DWG</system:String>
+    <system:String x:Key="ExportFormatPDFDXF">PDF + DXF</system:String>
+    <system:String x:Key="NamingFormat">Nomenclatura</system:String>
+    <system:String x:Key="EditFormats">Editar Formatos</system:String>
+    <system:String x:Key="OutputFolder">Carpeta Salida</system:String>
+    <system:String x:Key="Browse">Explorar</system:String>
+    <system:String x:Key="Printer">Impresora</system:String>
+    <system:String x:Key="PageSettings">Config. Página</system:String>
+    <system:String x:Key="IncompatibleWithPrinter">Incompatible</system:String>
+
+    <system:String x:Key="ListOfSheets">Hojas en índice</system:String>
+    <system:String x:Key="AddSheets">Añadir</system:String>
+    <system:String x:Key="RemoveSelected">Quitar</system:String>
+    <system:String x:Key="MoveToTop">Ir al Inicio</system:String>
+    <system:String x:Key="MoveUp">Subir</system:String>
+    <system:String x:Key="MoveDown">Bajar</system:String>
+    <system:String x:Key="ResetToStandard">Por Defecto</system:String>
+    <system:String x:Key="SortBySheetNumber">Ordenar por Nº</system:String>
+    <system:String x:Key="SaveCurrentSet">Guardar Set</system:String>
+    <system:String x:Key="SetPrintSettings">Config. Impresión</system:String>
+    <system:String x:Key="ResetPrintSettings">Reset Impresión</system:String>
+    <system:String x:Key="Guide">Guía</system:String>
+    <system:String x:Key="GuideText">Use parámetros "Print Setting" en el cajetín para detección automática.</system:String>
+
+    <system:String x:Key="KudosToRyan">Créditos: pyMenvic</system:String>
+
+    <system:String x:Key="CopySheetFileNames">Copiar Nombres</system:String>
+    <system:String x:Key="CopyNamingFormat">Copiar Formato</system:String>
+
+    <system:String x:Key="PrintIndex">ID Impresión</system:String>
+    <system:String x:Key="SheetNumber">Nº Hoja</system:String>
+    <system:String x:Key="SheetName">Nombre</system:String>
+    <system:String x:Key="SheetRevision">Rev. (Fecha)</system:String>
+    <system:String x:Key="Revision">Rev.</system:String>
+    <system:String x:Key="PrintSetting">Configuración</system:String>
+    <system:String x:Key="FileName">Archivo</system:String>
+    <system:String x:Key="FileNameToolTip">PDF Único: nombre final. Individual: prefijo de archivo.</system:String>
+</ResourceDictionary>

@@ -1,0 +1,201 @@
+<Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        ShowInTaskbar="False"
+        WindowStartupLocation="CenterScreen"
+        HorizontalContentAlignment="Center"
+        ResizeMode="CanResizeWithGrip" SizeToContent="Height" Width="950" MinHeight="500"
+        Title="Edit Naming Formats" Closing="cancelled">
+    <Window.Resources>
+        <Style x:Key="FormatterTextBox" TargetType="{x:Type TextBox}">
+            <Setter Property="FontFamily" Value="Consolas" />
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="MinHeight" Value="30" />
+            <Setter Property="Height" Value="30" />
+            <Setter Property="Margin" Value="0,6,0,0" />
+            <Setter Property="Padding" Value="8,0,8,0" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="BorderBrush" Value="#B8B8B8" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding builtin}" Value="True">
+                    <Setter Property="IsReadOnly" Value="True" />
+                    <Setter Property="IsEnabled" Value="False" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="SectionTitleStyle" TargetType="{x:Type TextBlock}">
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Margin" Value="0,0,0,4" />
+        </Style>
+
+        <Style x:Key="HelpTextStyle" TargetType="{x:Type TextBlock}">
+            <Setter Property="TextWrapping" Value="Wrap" />
+            <Setter Property="Foreground" Value="DimGray" />
+            <Setter Property="Margin" Value="0,0,0,6" />
+        </Style>
+    </Window.Resources>
+
+    <Grid Margin="10">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition MinWidth="240" Width="1*" />
+            <ColumnDefinition Width="8" />
+            <ColumnDefinition MinWidth="450" Width="2*" />
+        </Grid.ColumnDefinitions>
+
+        <DockPanel Grid.Column="0" Margin="0,0,6,0" LastChildFill="True">
+            <TextBlock Text="NAMING FORMATS" Style="{StaticResource SectionTitleStyle}" DockPanel.Dock="Top" />
+            <TextBlock Text="Select an existing format or duplicate one to create a custom version."
+                       Style="{StaticResource HelpTextStyle}"
+                       DockPanel.Dock="Top" />
+
+            <StackPanel DockPanel.Dock="Bottom" Margin="0,10,0,0">
+                <Grid Margin="0,0,0,6">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition />
+                        <ColumnDefinition />
+                    </Grid.ColumnDefinitions>
+                    <Button Grid.Column="0"
+                            Content="Duplicate"
+                            Height="32"
+                            Margin="0,0,4,0"
+                            Click="duplicate_namingformat"/>
+                    <Button Grid.Column="1"
+                            Content="Delete"
+                            Height="32"
+                            Margin="4,0,0,0"
+                            Click="delete_namingformat"/>
+                </Grid>
+                <Button Content="Save"
+                        Height="32"
+                        Click="save_formats"/>
+            </StackPanel>
+
+            <Border BorderBrush="#D0D0D0" BorderThickness="1" Margin="0,6,0,0">
+                <ListBox x:Name="formats_lb"
+                         FontFamily="Consolas"
+                         BorderThickness="0"
+                         Padding="3"
+                         SelectionChanged="namingformat_changed"
+                         SelectionMode="Single"
+                         SelectedIndex="0">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <StackPanel Orientation="Horizontal">
+                                <ContentPresenter Content="{Binding name}" RecognizesAccessKey="False"/>
+                            </StackPanel>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+            </Border>
+        </DockPanel>
+
+        <GridSplitter Grid.Column="1" HorizontalAlignment="Stretch" Width="8" />
+
+        <StackPanel x:Name="namingformat_edit" Grid.Column="2" Margin="6,0,0,0">
+            <TextBlock Text="PREVIEW NAME" Style="{StaticResource SectionTitleStyle}" />
+            <TextBlock Text="This name can auto-generate from the template, but you can still edit it manually."
+                       Style="{StaticResource HelpTextStyle}" />
+            <Grid Margin="0,0,0,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="100" />
+                </Grid.ColumnDefinitions>
+                <TextBox x:Name="template_name_tb"
+                         Grid.Column="0"
+                         Text="{Binding name, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                         Style="{StaticResource FormatterTextBox}"
+                         Margin="0,6,8,0"/>
+                <Button Grid.Column="1"
+                        Content="Reset"
+                        Height="30"
+                        Margin="0,6,0,0"
+                        Click="reset_name_from_template"/>
+            </Grid>
+
+            <TextBlock Text="TEMPLATE" Style="{StaticResource SectionTitleStyle}" Margin="0,14,0,4" />
+            <TextBlock Text="Edit the filename pattern below. You can type directly or drag a tag into the template."
+                       Style="{StaticResource HelpTextStyle}" />
+            <TextBox x:Name="template_tb"
+                     Text="{Binding template, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                     Style="{StaticResource FormatterTextBox}"
+                     AllowDrop="True"
+                     PreviewDrop="stop_drag"
+                     PreviewDragOver="preview_drag"/>
+
+            <TextBlock Text="AVAILABLE TAGS"
+                       Style="{StaticResource SectionTitleStyle}"
+                       Margin="0,14,0,4" />
+            <TextBlock Text="Drag a tag into the template. Hover a tag to see what it does."
+                       Style="{StaticResource HelpTextStyle}" />
+
+            <ItemsControl x:Name="formatters_wp" Margin="0,2,0,0">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <WrapPanel IsItemsHost="True" PreviewMouseLeftButtonDown="start_drag"/>
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Border x:Name="formatter_box" Height="20" Margin="5,5,0,0" Background="DarkGray" BorderThickness="0" CornerRadius="5" ToolTip="{Binding desc}">
+                            <TextBlock Text="{Binding template}" FontFamily="Consolas" Foreground="White" VerticalAlignment="Center" Margin="5,0,5,0" Padding="0,0,0,1" />
+                        </Border>
+                        <DataTemplate.Triggers>
+                            <DataTrigger Binding="{Binding template}" Value="{}{index}">
+                                <Setter TargetName="formatter_box" Property="Background" Value="{DynamicResource pyRevitAccentBrush}" />
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding template}" Value="{}{name}">
+                                <Setter TargetName="formatter_box" Property="Background" Value="{DynamicResource pyRevitDarkBrush}" />
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding template}" Value="{}{name_dash}">
+                                <Setter TargetName="formatter_box" Property="Background" Value="{DynamicResource pyRevitDarkBrush}" />
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding template}" Value="{}{name_underline}">
+                                <Setter TargetName="formatter_box" Property="Background" Value="{DynamicResource pyRevitDarkBrush}" />
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding template}" Value="{}{rev_number}">
+                                <Setter TargetName="formatter_box" Property="Background" Value="#d84936" />
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding template}" Value="{}{rev_desc}">
+                                <Setter TargetName="formatter_box" Property="Background" Value="#d84936" />
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding template}" Value="{}{rev_date}">
+                                <Setter TargetName="formatter_box" Property="Background" Value="#d84936" />
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding template}" Value="{}{proj_name}">
+                                <Setter TargetName="formatter_box" Property="Background" Value="#665dba" />
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding template}" Value="{}{proj_number}">
+                                <Setter TargetName="formatter_box" Property="Background" Value="#665dba" />
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding template}" Value="{}{proj_building_name}">
+                                <Setter TargetName="formatter_box" Property="Background" Value="#665dba" />
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding template}" Value="{}{proj_issue_date}">
+                                <Setter TargetName="formatter_box" Property="Background" Value="#665dba" />
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding template}" Value="{}{proj_org_name}">
+                                <Setter TargetName="formatter_box" Property="Background" Value="#665dba" />
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding template}" Value="{}{proj_status}">
+                                <Setter TargetName="formatter_box" Property="Background" Value="#665dba" />
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding template}" Value="{}{sheet_param:PARAM_NAME}">
+                                <Setter TargetName="formatter_box" Property="Background" Value="Black" />
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding template}" Value="{}{tblock_param:PARAM_NAME}">
+                                <Setter TargetName="formatter_box" Property="Background" Value="Black" />
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding template}" Value="{}{proj_param:PARAM_NAME}">
+                                <Setter TargetName="formatter_box" Property="Background" Value="Black" />
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding template}" Value="{}{glob_param:PARAM_NAME}">
+                                <Setter TargetName="formatter_box" Property="Background" Value="Black" />
+                            </DataTrigger>
+                        </DataTemplate.Triggers>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </StackPanel>
+    </Grid>
+</Window>
