@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<config>
+  <ui>
+    <button_name>Crear conjunto de láminas por revisión</button_name>
+    <selector_title>Seleccionar revisiones</selector_title>
+    <search_label>Buscar revisiones</search_label>
+    <search_placeholder>Escribe para filtrar revisiones...</search_placeholder>
+    <mode_label>Láminas a incluir</mode_label>
+    <mode_help>Todas las revisiones seleccionadas = solo láminas que contienen todas las revisiones elegidas. Cualquier revisión seleccionada = láminas que contienen al menos una de las revisiones elegidas.</mode_help>
+    <revisions_label>Revisiones disponibles</revisions_label>
+    <selection_status>Seleccionadas: {} | Visibles: {} | Total: {}</selection_status>
+    <empty_sheets_title>**Láminas vacías detectadas:**</empty_sheets_title>
+    <report_title>### pyMenvic | Conjunto de láminas por revisión - EJECUCIÓN</report_title>
+    <report_sheetset># Conjunto de impresión: {}</report_sheetset>
+    <report_revision>## {}</report_revision>
+    <report_summary>Estado: {} | Modo: {} | Láminas: {} | Vacías: {}</report_summary>
+    <report_note>**Nota:** {}</report_note>
+    <report_cancelled>**Nota:** Operación cancelada por el usuario.</report_cancelled>
+    <report_revisions_included>**Revisiones incluidas:**</report_revisions_included>
+    <report_graphic_check>#### Verificación gráfica</report_graphic_check>
+  </ui>
+  <options>
+    <match_any>Cualquier revisión seleccionada</match_any>
+    <match_all>Todas las revisiones seleccionadas</match_all>
+  </options>
+  <messages>
+    <not_created>No creado</not_created>
+    <created_name_unknown>Creado (nombre desconocido)</created_name_unknown>
+    <no_revision>Ninguna</no_revision>
+    <revision_fallback>Revisión</revision_fallback>
+    <revision_id_prefix>Revisión Id {}</revision_id_prefix>
+    <multiple_revisions>{} revisiones</multiple_revisions>
+    <mode_none>Ninguno</mode_none>
+    <no_matches>No se encontraron láminas que coincidan con las revisiones seleccionadas.</no_matches>
+    <create_failed>No se pudo crear el conjunto de láminas: {}</create_failed>
+    <xaml_missing>Falta el archivo XAML:
+{}</xaml_missing>
+    <select_revisions_required>Selecciona al menos una revisión.</select_revisions_required>
+    <check_yes>Sí</check_yes>
+    <check_no>No</check_no>
+  </messages>
+  <checks>
+    <revisions_selected>Revisiones seleccionadas</revisions_selected>
+    <match_option_picked>Modo seleccionado</match_option_picked>
+    <has_matches>Tiene coincidencias (prevalidación)</has_matches>
+    <sheetset_created>Conjunto creado</sheetset_created>
+    <sheets_in_set>Láminas en el conjunto &gt; 0</sheets_in_set>
+    <no_empty_sheets>Sin láminas vacías</no_empty_sheets>
+    <status_ok>[OK]</status_ok>
+    <status_fail>[FAIL]</status_fail>
+  </checks>
+  <buttons>
+    <select_visible>Seleccionar visibles</select_visible>
+    <clear_visible>Limpiar visibles</clear_visible>
+    <invert_visible>Invertir visibles</invert_visible>
+    <cancel>Cancelar</cancel>
+    <create>Crear conjunto</create>
+  </buttons>
+</config>

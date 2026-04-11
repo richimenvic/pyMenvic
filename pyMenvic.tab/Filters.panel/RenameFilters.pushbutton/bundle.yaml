@@ -1,0 +1,32 @@
+title:
+  en_us: Rename Filters
+  es_es: Renombrar Filtros
+
+tooltip:
+  en_us: |
+    Batch renames Revit parameter filters with preview, duplicate validation,
+    and a focused replace-text workflow.
+  es_es: |
+    Renombra filtros de Revit masivamente con vista previa, validacion de
+    duplicados y un flujo enfocado en reemplazar texto.
+
+description:
+  en_us: >
+    Rename Filters lets you search and replace text across Parameter Filter
+    names, review the proposed results, and safely apply only valid changes.
+  es_es: >
+    Renombrar Filtros permite buscar y reemplazar texto en nombres de
+    Parameter Filters, revisar los resultados propuestos y aplicar solo los
+    cambios validos de forma segura.
+
+author: Ricardo J. Mendieta | pyMENVIC
+version: 1.0.0
+help_url: https://www.menvic.com
+min_revit_version: 2020
+max_revit_version: 2026
+context: doc-project
+
+engine:
+  clean: true
+  fullframe: false
+  persistent: false

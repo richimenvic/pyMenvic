@@ -2,8 +2,6 @@
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                     xmlns:system="clr-namespace:System;assembly=mscorlib">
     <system:String x:Key="Title">Imprimir</system:String>
-    <system:String x:Key="MainHeading">Imprimir planos</system:String>
-    <system:String x:Key="MainSubheading">Gestiona el orden, el nombrado y la exportación PDF desde un solo lugar.</system:String>
 
     <system:String x:Key="Model">Modelo</system:String>
     <system:String x:Key="LinkedPrefix">Vínculo: </system:String>
@@ -17,8 +15,6 @@
     <system:String x:Key="IndexStart">Inicio</system:String>
     <system:String x:Key="Reset">Reset</system:String>
     <system:String x:Key="SheetLookup">Buscar Hoja</system:String>
-    <system:String x:Key="QuickGuide">Guía Rápida</system:String>
-    <system:String x:Key="QuickGuideText">Invertir cambia el orden actual. Las hojas no imprimibles pueden mantenerse visibles como referencia o excluirse de la indexación.</system:String>
 
     <system:String x:Key="SheetPrinting">Impresión</system:String>
     <system:String x:Key="CombineIntoOnePDF">Unir en un PDF</system:String>
@@ -34,7 +30,7 @@
     <system:String x:Key="PageSettings">Config. Página</system:String>
     <system:String x:Key="IncompatibleWithPrinter">Incompatible</system:String>
 
-    <system:String x:Key="ListOfSheets">Lista de hojas del índice seleccionado</system:String>
+    <system:String x:Key="ListOfSheets">Hojas en índice</system:String>
     <system:String x:Key="AddSheets">Añadir</system:String>
     <system:String x:Key="RemoveSelected">Quitar</system:String>
     <system:String x:Key="MoveToTop">Ir al Inicio</system:String>
@@ -52,16 +48,6 @@
 
     <system:String x:Key="CopySheetFileNames">Copiar Nombres</system:String>
     <system:String x:Key="CopyNamingFormat">Copiar Formato</system:String>
-    <system:String x:Key="OutputSection">Salida</system:String>
-    <system:String x:Key="DeviceSection">Dispositivo</system:String>
-    <system:String x:Key="PdfOutputSection">Salida PDF</system:String>
-    <system:String x:Key="PdfOptions">Opciones PDF</system:String>
-    <system:String x:Key="VariablePaperGuideText">Para tamaño de papel variable, selecciona hojas y asigna configuraciones de impresión.</system:String>
-    <system:String x:Key="StatusTitle">pyMENVIC Imprimir a PDF</system:String>
-    <system:String x:Key="OutputModeUnknown">Usando: Desconocido</system:String>
-    <system:String x:Key="OutputModeNative">Usando exportación PDF nativa</system:String>
-    <system:String x:Key="OutputModeNativeOverrides">Usando exportación PDF nativa + ajustes</system:String>
-    <system:String x:Key="OutputModePrinter">Usando impresora / PrintManager</system:String>
 
     <system:String x:Key="PrintIndex">ID Impresión</system:String>
     <system:String x:Key="SheetNumber">Nº Hoja</system:String>

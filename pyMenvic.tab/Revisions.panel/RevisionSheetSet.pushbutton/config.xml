@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="utf-8"?>
+<config>
+  <settings>
+    <language>auto</language>
+  </settings>
+  <ui>
+    <button_name>Create Sheet Set</button_name>
+    <selector_title>Select Revisions</selector_title>
+    <search_label>Search revisions</search_label>
+    <search_placeholder>Type to filter revisions...</search_placeholder>
+    <mode_label>Sheets to include</mode_label>
+    <mode_help>All selected revisions = only sheets that contain every selected revision. Any selected revision = sheets that contain at least one selected revision.</mode_help>
+    <revisions_label>Available revisions</revisions_label>
+    <selection_status>Selected: {} | Visible: {} | Total: {}</selection_status>
+    <pick_option>Pick an option:</pick_option>
+    <empty_sheets_title>**Empty sheets detected:**</empty_sheets_title>
+    <report_title>### pyMenvic | Revision Sheet Set - RUN</report_title>
+    <report_sheetset># Sheet Set: {}</report_sheetset>
+    <report_revision>## {}</report_revision>
+    <report_summary>Status: {} | Mode: {} | Sheets: {} | Empty: {}</report_summary>
+    <report_note>**Note:** {}</report_note>
+    <report_cancelled>**Note:** Operation cancelled by user.</report_cancelled>
+    <report_revisions_included>**Revisions included:**</report_revisions_included>
+    <report_graphic_check>#### Graphic Check</report_graphic_check>
+  </ui>
+  <options>
+    <match_any>Any selected revision</match_any>
+    <match_all>All selected revisions</match_all>
+  </options>
+  <messages>
+    <not_created>Not created</not_created>
+    <created_name_unknown>Created (name unknown)</created_name_unknown>
+    <no_revision>None</no_revision>
+    <revision_fallback>Revision</revision_fallback>
+    <revision_id_prefix>Revision Id {}</revision_id_prefix>
+    <multiple_revisions>{} revisions</multiple_revisions>
+    <mode_none>None</mode_none>
+    <no_matches>No sheets match the selected revision(s).</no_matches>
+    <create_failed>Failed to create sheet set: {}</create_failed>
+    <xaml_missing>Missing XAML file:
+{}</xaml_missing>
+    <select_revisions_required>Select at least one revision.</select_revisions_required>
+    <check_yes>Yes</check_yes>
+    <check_no>No</check_no>
+  </messages>
+  <checks>
+    <revisions_selected>Revisions selected</revisions_selected>
+    <match_option_picked>Match option picked</match_option_picked>
+    <has_matches>Has matches (pre-check)</has_matches>
+    <sheetset_created>Sheet set created</sheetset_created>
+    <sheets_in_set>Sheets in set &gt; 0</sheets_in_set>
+    <no_empty_sheets>No empty sheets</no_empty_sheets>
+    <status_ok>[OK]</status_ok>
+    <status_fail>[FAIL]</status_fail>
+  </checks>
+  <buttons>
+    <select_visible>Select Visible</select_visible>
+    <clear_visible>Clear Visible</clear_visible>
+    <invert_visible>Invert Visible</invert_visible>
+    <cancel>Cancel</cancel>
+    <create>Create</create>
+  </buttons>
+  <theme>
+    <dark_primary>#2C3440</dark_primary>
+    <dark_secondary>#3B4352</dark_secondary>
+    <dark_window_bg>#252B34</dark_window_bg>
+    <dark_surface>#313947</dark_surface>
+    <dark_list_surface>#3A4353</dark_list_surface>
+    <dark_input_bg>#232933</dark_input_bg>
+    <dark_text>#F4F7FA</dark_text>
+    <dark_text_muted>#BFC7D1</dark_text_muted>
+    <dark_border>#4B5565</dark_border>
+    <dark_primary_button>#D89C34</dark_primary_button>
+    <dark_primary_button_border>#B57E22</dark_primary_button_border>
+    <light_primary>#F4F6F8</light_primary>
+    <light_secondary>#E7EBF0</light_secondary>
+    <light_window_bg>#F7F7F8</light_window_bg>
+    <light_surface>#FFFFFF</light_surface>
+    <light_list_surface>#FFFFFF</light_list_surface>
+    <light_input_bg>#FFFFFF</light_input_bg>
+    <light_text>#1F2933</light_text>
+    <light_text_muted>#5B6672</light_text_muted>
+    <light_border>#C7CDD4</light_border>
+    <light_primary_button>#D89C34</light_primary_button>
+    <light_primary_button_border>#B57E22</light_primary_button_border>
+  </theme>
+</config>

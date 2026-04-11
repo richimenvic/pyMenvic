@@ -3,6 +3,61 @@
 __title__ = "Schedule Browser"
 __author__ = "Ricardo J. Mendieta"
 
+__doc__ = """
+==========================================================
+pyMENVIC | SCHEDULE BROWSER
+Revit + pyRevit
+
+Descripción
+-----------
+Herramienta para explorar schedules del modelo, exportarlos a Excel
+e importar cambios desde Excel a Revit, usando metadatos y columnas
+técnicas de identificación cuando sea posible.
+
+Capacidades
+-----------
+- Lista schedules disponibles en el proyecto
+- Muestra campos visibles con origen y estado editable
+- Exporta schedules a Excel con las hojas Data y Schema
+- Escribe UniqueId y ElementId en columnas técnicas cuando es posible
+- Soporta fallback por elementos reales del schedule si el CSV no trae ElementId
+- Permite previsualizar cambios antes de importar desde Excel
+- Permite importar cambios desde Excel a Revit
+- Detecta conflictos de unicidad en campos conocidos durante el preview y la importación
+
+Funciones principales
+---------------------
+collect_schedules
+    Recoge los schedules disponibles del modelo
+
+get_schedule_parameters
+    Analiza los campos visibles del schedule seleccionado
+
+export_schedule_to_xlsx
+    Exporta el schedule a Excel con formato y metadatos
+
+run_import_preview
+    Analiza el archivo Excel y muestra un resumen de cambios y conflictos
+
+run_import_apply
+    Importa cambios desde Excel a Revit cuando las referencias y validaciones lo permiten
+
+Reglas importantes
+------------------
+- Compatible con IronPython 2.7
+- Cambios mínimos sobre la lógica original
+- No usa librerías externas fuera de Interop Excel
+- Si el CSV no trae ElementId, intenta resolver IDs desde los elementos reales del schedule
+- El import usa UniqueId y ElementId como referencias técnicas principales
+- El orden de las filas en Excel no se usa como referencia de importación
+
+Autor
+-----
+Ricardo J. Mendieta
+pyMENVIC – Ayudas para MENVIC ARQ
+==========================================================
+"""
+
 import os
 import sys
 import time
@@ -19,6 +74,8 @@ import clr
 clr.AddReference("Microsoft.Office.Interop.Excel")
 from Microsoft.Office.Interop import Excel
 from System.Runtime.InteropServices import Marshal
+from Microsoft.Win32 import SaveFileDialog, OpenFileDialog
+
 
 
 logger = script.get_logger()
@@ -33,14 +90,11 @@ XAML_PATH = os.path.join(THIS_DIR, XAML_FILENAME)
 TEMP_FOLDER = os.path.expandvars("%temp%")
 MAX_SAMPLE_ELEMENTS = 20
 EXPORT_DELIMITER = ","
-TEMP_ELEMENTID_FIELD_NAME = "Element ID"
-
 
 class ScheduleItem(object):
     def __init__(self, schedule):
         self.Schedule = schedule
         self.Name = get_schedule_name(schedule)
-        self.IsChecked = False
 
 
 class ParameterItem(object):
@@ -107,7 +161,37 @@ def sanitize_filename(text):
 
     return result.replace(" ", "_")
 
+def ask_output_xlsx_path(schedule):
+    schedule_name = sanitize_filename(get_schedule_name(schedule))
 
+    dialog = SaveFileDialog()
+    dialog.Title = "Save Excel Export"
+    dialog.Filter = "Excel Workbook (*.xlsx)|*.xlsx"
+    dialog.FileName = "{}.xlsx".format(schedule_name)
+    dialog.DefaultExt = ".xlsx"
+    dialog.AddExtension = True
+    dialog.OverwritePrompt = True
+
+    result = dialog.ShowDialog()
+
+    if result:
+        return dialog.FileName
+
+    return None
+
+def ask_input_xlsx_path():
+    dialog = OpenFileDialog()
+    dialog.Title = "Select Excel File to Import"
+    dialog.Filter = "Excel Workbook (*.xlsx)|*.xlsx"
+    dialog.Multiselect = False
+
+    result = dialog.ShowDialog()
+    if result:
+        return dialog.FileName
+
+    return None
+
+   
 def get_schedule_name(schedule):
     try:
         if getattr(schedule, "Title", None):
@@ -123,6 +207,231 @@ def get_schedule_name(schedule):
 
     return "Unnamed Schedule"
 
+def set_parameter_value(param, value):
+    if param is None:
+        return False
+
+    try:
+        if param.IsReadOnly:
+            return False
+    except Exception:
+        return False
+
+    value = normalize_text(value)
+
+    try:
+        storage_type = param.StorageType
+    except Exception:
+        return False
+
+    try:
+        if storage_type == DB.StorageType.String:
+            param.Set(value)
+            return True
+
+        if storage_type == DB.StorageType.Integer:
+            if value == "":
+                return False
+
+            try:
+                if param.SetValueString(value):
+                    return True
+            except Exception:
+                pass
+
+            param.Set(int(float(value)))
+            return True
+
+        if storage_type == DB.StorageType.Double:
+            if value == "":
+                return False
+
+            try:
+                if param.SetValueString(value):
+                    return True
+            except Exception:
+                pass
+
+            param.Set(float(value))
+            return True
+
+        if storage_type == DB.StorageType.ElementId:
+            if value == "":
+                param.Set(DB.ElementId.InvalidElementId)
+            else:
+                param.Set(DB.ElementId(int(float(value))))
+            return True
+
+    except Exception:
+        return False
+
+    return False
+
+
+def run_import_apply(xlsx_path):
+    excel_app = None
+    workbooks = None
+    workbook = None
+    t = None
+
+    updated = 0
+    skipped = 0
+    failed = 0
+    duplicate_count = 0
+    unresolved_count = 0
+    missing_param_count = 0
+
+    duplicate_lines = []
+    unresolved_lines = []
+    failed_lines = []
+
+    try:
+        excel_app = Excel.ApplicationClass()
+        excel_app.Visible = False
+        excel_app.DisplayAlerts = False
+
+        workbooks = excel_app.Workbooks
+        workbook = workbooks.Open(xlsx_path, False, True)
+
+        data_info = read_data_sheet_for_import_preview(workbook)
+        editable_columns = get_editable_columns_for_import_preview(data_info)
+        rows = data_info.get("Rows", [])
+
+        t = DB.Transaction(doc, "Import Excel to Revit")
+        t.Start()
+
+        for row in rows:
+            excel_row = row.get("ExcelRow", 0)
+            element, resolved_by = resolve_element_from_import_row(row)
+
+            if element is None:
+                skipped += 1
+                unresolved_count += 1
+
+                if len(unresolved_lines) < 10:
+                    unresolved_lines.append(
+                        "Row {} | UniqueId='{}' | ElementId='{}'".format(
+                            excel_row,
+                            safe_text(row.get("Values", {}).get(1, "")),
+                            safe_text(row.get("Values", {}).get(2, ""))
+                        )
+                    )
+                continue
+
+            row_values = row.get("Values", {})
+            row_changed = False
+
+            for col_info in editable_columns:
+                excel_col = col_info.get("ExcelCol", 0)
+                metadata = col_info.get("Metadata")
+                field_name = col_info.get("Name", "")
+                excel_value = normalize_text(row_values.get(excel_col, ""))
+
+                param, origin = get_parameter_from_metadata(element, metadata)
+                if param is None:
+                    missing_param_count += 1
+                    continue
+
+                current_value = get_parameter_preview_value(param)
+
+                if normalize_text(current_value) == normalize_text(excel_value):
+                    continue
+
+                if is_unique_controlled_field(field_name):
+                    is_dup, dup_message = value_exists_in_other_elements(field_name, excel_value, element)
+                    if is_dup:
+                        failed += 1
+                        duplicate_count += 1
+
+                        if len(duplicate_lines) < 15:
+                            duplicate_lines.append(
+                                "Row {} | Id {} | {} | '{}' | {}".format(
+                                    excel_row,
+                                    safe_text(element.Id.IntegerValue),
+                                    field_name,
+                                    excel_value,
+                                    dup_message
+                                )
+                            )
+                        continue
+
+                ok = set_parameter_value(param, excel_value)
+
+                if ok:
+                    updated += 1
+                    row_changed = True
+                else:
+                    failed += 1
+                    if len(failed_lines) < 15:
+                        failed_lines.append(
+                            "Row {} | Id {} | {} | '{}'".format(
+                                excel_row,
+                                safe_text(element.Id.IntegerValue),
+                                field_name,
+                                excel_value
+                            )
+                        )
+
+            if not row_changed:
+                skipped += 1
+
+        t.Commit()
+
+        message = []
+        message.append("Import completed.")
+        message.append("")
+        message.append("Updated values: {}".format(updated))
+        message.append("Skipped: {}".format(skipped))
+        message.append("Failed: {}".format(failed))
+        message.append("Duplicate conflicts: {}".format(duplicate_count))
+        message.append("Unresolved rows: {}".format(unresolved_count))
+        message.append("Missing parameters: {}".format(missing_param_count))
+
+        if duplicate_lines:
+            message.append("")
+            message.append("Sample duplicate conflicts:")
+            for line in duplicate_lines:
+                message.append(line)
+
+        if unresolved_lines:
+            message.append("")
+            message.append("Sample unresolved rows:")
+            for line in unresolved_lines:
+                message.append(line)
+
+        if failed_lines:
+            message.append("")
+            message.append("Sample failed writes:")
+            for line in failed_lines:
+                message.append(line)
+
+        TaskDialog.Show(__title__, "\n".join(message))
+
+    except Exception as ex:
+        try:
+            if t is not None:
+                t.RollBack()
+        except Exception:
+            pass
+
+        TaskDialog.Show(__title__, "Import failed.\n\n{}".format(safe_text(ex)))
+
+    finally:
+        try:
+            if workbook is not None:
+                workbook.Close(False)
+        except Exception:
+            pass
+
+        try:
+            if excel_app is not None:
+                excel_app.Quit()
+        except Exception:
+            pass
+
+        release_com_object(workbook)
+        release_com_object(workbooks)
+        release_com_object(excel_app)
 
 def collect_schedules():
     items = []
@@ -226,6 +535,25 @@ def get_schedule_sample_elements(schedule, max_count):
     except Exception as ex:
         logger.warning(
             "Could not collect sample elements for '%s'. %s",
+            get_schedule_name(schedule),
+            safe_text(ex)
+        )
+
+    return elements
+
+
+def get_schedule_elements(schedule):
+    elements = []
+
+    try:
+        collector = DB.FilteredElementCollector(doc, schedule.Id).WhereElementIsNotElementType()
+        for element in collector:
+            if element is None:
+                continue
+            elements.append(element)
+    except Exception as ex:
+        logger.warning(
+            "Could not collect schedule elements for '%s'. %s",
             get_schedule_name(schedule),
             safe_text(ex)
         )
@@ -534,17 +862,48 @@ def release_com_object(obj):
 
 def get_status_fill_color(status_text):
     text = safe_text(status_text).lower()
-    if "editable" in text:
-        return 0xD9EAD3
     if "locked" in text:
-        return 0xF4CCCC
-    return 0xE6E6E6
+        return 0xACC7F7
+    if "unknown" in text:
+        return 0xF2F2F2
+    return None
 
 
-def auto_fit_used_columns(worksheet, column_count):
-    for i in range(1, column_count + 1):
+def fit_export_columns(worksheet, export_columns, min_width, max_width, last_data_row):
+    total_cols = len(export_columns)
+
+    for i in range(1, total_cols + 1):
         try:
-            worksheet.Columns[i].AutoFit()
+            col = worksheet.Columns[i]
+            role = export_columns[i - 1].get("ColumnRole", "")
+            hidden = export_columns[i - 1].get("Hidden", False)
+
+            if hidden:
+                col.Hidden = True
+                continue
+
+            if role == "UniqueId":
+                col.Hidden = True
+                continue
+
+            if role == "ElementId":
+                col.ColumnWidth = 12
+                continue
+
+            if last_data_row >= 2:
+                fit_range = worksheet.Range[
+                    worksheet.Cells[2, i],
+                    worksheet.Cells[last_data_row, i]
+                ]
+                fit_range.Columns.AutoFit()
+
+            width = col.ColumnWidth
+
+            if width < min_width:
+                col.ColumnWidth = min_width
+            elif width > max_width:
+                col.ColumnWidth = max_width
+
         except Exception:
             pass
 
@@ -632,9 +991,134 @@ def remove_temp_field(schedule, field_id):
             pass
         logger.warning("Could not remove temp field. %s", safe_text(ex))
 
+def capture_schedule_grouping_state(schedule):
+    state = {
+        "IsItemized": True,
+        "Fields": []
+    }
+
+    try:
+        definition = schedule.Definition
+        state["IsItemized"] = definition.IsItemized
+
+        sort_count = definition.GetSortGroupFieldCount()
+        for i in range(sort_count):
+            sgf = definition.GetSortGroupField(i)
+            state["Fields"].append({
+                "ShowHeader": sgf.ShowHeader,
+                "ShowFooter": sgf.ShowFooter,
+                "ShowBlankLine": sgf.ShowBlankLine,
+                "ShowFooterCount": sgf.ShowFooterCount,
+                "ShowFooterTitle": sgf.ShowFooterTitle
+            })
+    except Exception:
+        pass
+
+    return state
+
+
+def flatten_schedule_for_export(schedule):
+    tx = DB.Transaction(doc, "Flatten schedule for export")
+    tx.Start()
+    try:
+        definition = schedule.Definition
+        definition.IsItemized = True
+
+        sort_count = definition.GetSortGroupFieldCount()
+        for i in range(sort_count):
+            sgf = definition.GetSortGroupField(i)
+
+            try:
+                sgf.ShowHeader = False
+            except Exception:
+                pass
+
+            try:
+                sgf.ShowFooter = False
+            except Exception:
+                pass
+
+            try:
+                sgf.ShowBlankLine = False
+            except Exception:
+                pass
+
+            try:
+                sgf.ShowFooterCount = False
+            except Exception:
+                pass
+
+            try:
+                sgf.ShowFooterTitle = False
+            except Exception:
+                pass
+
+            definition.SetSortGroupField(i, sgf)
+
+        tx.Commit()
+        return True
+    except Exception:
+        try:
+            tx.RollBack()
+        except Exception:
+            pass
+        return False
+
+
+def restore_schedule_grouping_state(schedule, state):
+    if not state:
+        return
+
+    tx = DB.Transaction(doc, "Restore schedule grouping")
+    tx.Start()
+    try:
+        definition = schedule.Definition
+        definition.IsItemized = state.get("IsItemized", True)
+
+        saved_fields = state.get("Fields", [])
+        sort_count = definition.GetSortGroupFieldCount()
+
+        for i in range(min(sort_count, len(saved_fields))):
+            sgf = definition.GetSortGroupField(i)
+            saved = saved_fields[i]
+
+            try:
+                sgf.ShowHeader = saved.get("ShowHeader", False)
+            except Exception:
+                pass
+
+            try:
+                sgf.ShowFooter = saved.get("ShowFooter", False)
+            except Exception:
+                pass
+
+            try:
+                sgf.ShowBlankLine = saved.get("ShowBlankLine", False)
+            except Exception:
+                pass
+
+            try:
+                sgf.ShowFooterCount = saved.get("ShowFooterCount", False)
+            except Exception:
+                pass
+
+            try:
+                sgf.ShowFooterTitle = saved.get("ShowFooterTitle", False)
+            except Exception:
+                pass
+
+            definition.SetSortGroupField(i, sgf)
+
+        tx.Commit()
+    except Exception:
+        try:
+            tx.RollBack()
+        except Exception:
+            pass
 
 def export_schedule_to_temp_csv(schedule):
     temp_field_id = add_temp_elementid_field(schedule)
+    grouping_state = capture_schedule_grouping_state(schedule)
 
     schedule_name = get_schedule_name(schedule)
     file_name = "{}_{}.csv".format(
@@ -644,9 +1128,12 @@ def export_schedule_to_temp_csv(schedule):
     full_path = os.path.join(TEMP_FOLDER, file_name)
 
     try:
+        flatten_schedule_for_export(schedule)
+
         options = build_schedule_export_options()
         schedule.Export(TEMP_FOLDER, file_name, options)
     finally:
+        restore_schedule_grouping_state(schedule, grouping_state)
         remove_temp_field(schedule, temp_field_id)
 
     return full_path
@@ -687,6 +1174,35 @@ def find_element_id_column_index(headers):
             return i
     return -1
 
+def find_column_index_by_header(headers, target_name):
+    target = normalize_header(target_name)
+    for i, head in enumerate(headers):
+        if normalize_header(head) == target:
+            return i
+    return -1
+
+
+def row_has_real_schedule_content(row, csv_headers):
+    if not row:
+        return False
+
+    view_name_idx = find_column_index_by_header(csv_headers, "View Name")
+    title_on_sheet_idx = find_column_index_by_header(csv_headers, "Title on Sheet")
+    sheet_number_idx = find_column_index_by_header(csv_headers, "Sheet Number")
+
+    # Si tiene alguno de estos campos con valor, la tratamos como fila real
+    candidate_indexes = [
+        view_name_idx,
+        title_on_sheet_idx,
+        sheet_number_idx
+    ]
+
+    for idx in candidate_indexes:
+        if 0 <= idx < len(row):
+            if normalize_text(row[idx]):
+                return True
+
+    return False
 
 def build_unique_id_map_from_rows(data_rows, element_id_col_index):
     unique_ids = []
@@ -711,8 +1227,15 @@ def build_unique_id_map_from_rows(data_rows, element_id_col_index):
         unique_ids.append(unique_id)
 
     return unique_ids, has_valid_ids
+def build_id_data_from_schedule_elements(schedule, row_count):
+    elements = get_schedule_elements(schedule)
 
+    element_id_values = ["" for _ in range(row_count)]
+    unique_id_values = ["" for _ in range(row_count)]
 
+    # The collector order is not guaranteed to match exported schedule rows,
+    # so we do not assign technical IDs from row position.
+    return element_id_values, unique_id_values, False, len(elements)
 def build_schema_rows(export_columns):
     rows = []
     index = 1
@@ -735,8 +1258,452 @@ def build_schema_rows(export_columns):
 
     return rows
 
+def get_cell_value(worksheet, row, col):
+    try:
+        return worksheet.Cells[row, col].Value2
+    except Exception:
+        return None
 
-def export_schedule_to_xlsx(schedule):
+
+def get_cell_text(worksheet, row, col):
+    try:
+        return worksheet.Cells[row, col].Text
+    except Exception:
+        value = get_cell_value(worksheet, row, col)
+        return safe_text(value)
+
+
+def get_worksheet_by_name(workbook, sheet_name):
+    try:
+        return workbook.Worksheets[sheet_name]
+    except Exception:
+        return None
+
+
+def get_last_used_row_col(worksheet):
+    used_range = None
+    try:
+        used_range = worksheet.UsedRange
+        start_row = used_range.Row
+        start_col = used_range.Column
+        row_count = used_range.Rows.Count
+        col_count = used_range.Columns.Count
+
+        last_row = start_row + row_count - 1
+        last_col = start_col + col_count - 1
+        return last_row, last_col
+    finally:
+        release_com_object(used_range)
+
+
+def parse_metadata_cell(value):
+    text = normalize_text(value)
+    if not text:
+        return None
+
+    try:
+        data = json.loads(text)
+        if isinstance(data, dict):
+            return data
+    except Exception:
+        pass
+
+    return None
+
+
+def get_parameter_preview_value(param):
+    if param is None:
+        return ""
+
+    try:
+        storage_type = param.StorageType
+    except Exception:
+        storage_type = None
+
+    try:
+        if storage_type == DB.StorageType.String:
+            return normalize_text(param.AsString())
+    except Exception:
+        pass
+
+    try:
+        value_string = param.AsValueString()
+        if value_string not in (None, ""):
+            return normalize_text(value_string)
+    except Exception:
+        pass
+
+    try:
+        if storage_type == DB.StorageType.Integer:
+            return normalize_text(param.AsInteger())
+    except Exception:
+        pass
+
+    try:
+        if storage_type == DB.StorageType.Double:
+            return normalize_text(param.AsDouble())
+    except Exception:
+        pass
+
+    try:
+        if storage_type == DB.StorageType.ElementId:
+            eid = param.AsElementId()
+            if eid is not None:
+                return safe_text(eid.IntegerValue)
+    except Exception:
+        pass
+
+    return ""
+
+
+def get_parameter_from_metadata(element, metadata):
+    if element is None or metadata is None:
+        return None, None
+
+    used_params = metadata.get("UsedParams", [])
+    if not used_params:
+        return None, None
+
+    parameter_id_value = None
+    try:
+        parameter_id_value = int(used_params[0])
+    except Exception:
+        return None, None
+
+    param = find_parameter_on_element(element, parameter_id_value)
+    if param is not None:
+        return param, "Instance"
+
+    type_element = get_type_element(element)
+    param = find_parameter_on_element(type_element, parameter_id_value)
+    if param is not None:
+        return param, "Type"
+
+    return None, None
+
+
+def read_data_sheet_for_import_preview(workbook):
+    worksheet = get_worksheet_by_name(workbook, "Data")
+    if worksheet is None:
+        raise Exception("Missing worksheet: Data")
+
+    last_row, last_col = get_last_used_row_col(worksheet)
+    if last_row < 3 or last_col < 2:
+        raise Exception("Worksheet 'Data' does not contain valid rows.")
+
+    metadata_by_col = {}
+    for c in range(1, last_col + 1):
+        metadata_by_col[c] = parse_metadata_cell(get_cell_value(worksheet, 1, c))
+
+    data_rows = []
+    for r in range(3, last_row + 1):
+        row_values = {}
+        has_any_data = False
+
+        for c in range(1, last_col + 1):
+            text_value = normalize_text(get_cell_text(worksheet, r, c))
+            row_values[c] = text_value
+            if text_value:
+                has_any_data = True
+
+        if has_any_data:
+            data_rows.append({
+                "ExcelRow": r,
+                "Values": row_values
+            })
+
+    return {
+        "Worksheet": worksheet,
+        "LastRow": last_row,
+        "LastCol": last_col,
+        "MetadataByCol": metadata_by_col,
+        "Rows": data_rows
+    }
+
+
+def get_editable_columns_for_import_preview(data_info):
+    results = []
+    metadata_by_col = data_info.get("MetadataByCol", {})
+
+    for c in sorted(metadata_by_col.keys()):
+        md = metadata_by_col.get(c)
+        if md is None:
+            continue
+
+        editable = normalize_text(md.get("Editable", ""))
+        role = normalize_text(md.get("ColumnRole", ""))
+
+        if role in ("UniqueId", "ElementId"):
+            continue
+
+        if editable == "Yes":
+            results.append({
+                "ExcelCol": c,
+                "Metadata": md,
+                "Name": normalize_text(md.get("Name", ""))
+            })
+
+    return results
+
+
+def resolve_element_from_import_row(row_info):
+    values = row_info.get("Values", {})
+    unique_id_text = normalize_text(values.get(1, ""))
+    element_id_text = normalize_text(values.get(2, ""))
+
+    if unique_id_text:
+        try:
+            element = doc.GetElement(unique_id_text)
+            if element is not None:
+                return element, "UniqueId"
+        except Exception:
+            pass
+
+    if element_id_text:
+        try:
+            eid = DB.ElementId(int(float(element_id_text)))
+            element = doc.GetElement(eid)
+            if element is not None:
+                return element, "ElementId"
+        except Exception:
+            pass
+
+    return None, "None"
+
+UNIQUE_FIELD_RULES = [
+    "View Name",
+    "Sheet Number",
+    "Level Name",
+    "Grid Name"
+]
+
+
+def is_unique_controlled_field(field_name):
+    return normalize_text(field_name) in [normalize_text(x) for x in UNIQUE_FIELD_RULES]
+
+
+def value_exists_in_other_elements(field_name, new_value, current_element):
+    field_name = normalize_text(field_name)
+    new_value = normalize_text(new_value)
+
+    if not new_value:
+        return False, ""
+
+    try:
+        current_id = current_element.Id.IntegerValue
+    except Exception:
+        current_id = None
+
+    if field_name == normalize_text("View Name"):
+        collector = DB.FilteredElementCollector(doc).OfClass(DB.View)
+        for elem in collector:
+            try:
+                if elem is None:
+                    continue
+                if current_id is not None and elem.Id.IntegerValue == current_id:
+                    continue
+                if normalize_text(elem.Name) == new_value:
+                    return True, "Already used by View Id {}".format(elem.Id.IntegerValue)
+            except Exception:
+                pass
+
+    elif field_name == normalize_text("Sheet Number"):
+        collector = DB.FilteredElementCollector(doc).OfClass(DB.ViewSheet)
+        for elem in collector:
+            try:
+                if elem is None:
+                    continue
+                if current_id is not None and elem.Id.IntegerValue == current_id:
+                    continue
+
+                param = elem.get_Parameter(DB.BuiltInParameter.SHEET_NUMBER)
+                if param is None:
+                    continue
+
+                existing_value = normalize_text(param.AsString())
+                if existing_value == new_value:
+                    return True, "Already used by Sheet Id {}".format(elem.Id.IntegerValue)
+            except Exception:
+                pass
+
+    elif field_name == normalize_text("Level Name"):
+        collector = DB.FilteredElementCollector(doc).OfClass(DB.Level)
+        for elem in collector:
+            try:
+                if elem is None:
+                    continue
+                if current_id is not None and elem.Id.IntegerValue == current_id:
+                    continue
+                if normalize_text(elem.Name) == new_value:
+                    return True, "Already used by Level Id {}".format(elem.Id.IntegerValue)
+            except Exception:
+                pass
+
+    elif field_name == normalize_text("Grid Name"):
+        collector = DB.FilteredElementCollector(doc).OfClass(DB.Grid)
+        for elem in collector:
+            try:
+                if elem is None:
+                    continue
+                if current_id is not None and elem.Id.IntegerValue == current_id:
+                    continue
+                if normalize_text(elem.Name) == new_value:
+                    return True, "Already used by Grid Id {}".format(elem.Id.IntegerValue)
+            except Exception:
+                pass
+
+    return False, ""
+
+def run_import_preview(xlsx_path):
+    excel_app = None
+    workbooks = None
+    workbook = None
+
+    try:
+        excel_app = Excel.ApplicationClass()
+        excel_app.Visible = False
+        excel_app.DisplayAlerts = False
+
+        workbooks = excel_app.Workbooks
+        workbook = workbooks.Open(xlsx_path, False, True)
+
+        data_info = read_data_sheet_for_import_preview(workbook)
+        editable_columns = get_editable_columns_for_import_preview(data_info)
+        rows = data_info.get("Rows", [])
+
+        total_rows = len(rows)
+        resolved_rows = 0
+        unresolved_rows = 0
+        changed_cells = 0
+        rows_with_changes = 0
+        duplicate_count = 0
+        same_count = 0
+        missing_param_count = 0
+
+        preview_lines = []
+        unresolved_lines = []
+        duplicate_lines = []
+
+        for row in rows:
+            excel_row = row.get("ExcelRow", 0)
+            element, resolved_by = resolve_element_from_import_row(row)
+
+            if element is None:
+                unresolved_rows += 1
+                if len(unresolved_lines) < 10:
+                    unresolved_lines.append(
+                        "Row {} | UniqueId='{}' | ElementId='{}'".format(
+                            excel_row,
+                            safe_text(row.get("Values", {}).get(1, "")),
+                            safe_text(row.get("Values", {}).get(2, ""))
+                        )
+                    )
+                continue
+
+            resolved_rows += 1
+            row_change_count = 0
+
+            for col_info in editable_columns:
+                excel_col = col_info.get("ExcelCol", 0)
+                metadata = col_info.get("Metadata")
+                field_name = col_info.get("Name", "")
+                excel_value = normalize_text(row.get("Values", {}).get(excel_col, ""))
+
+                param, param_origin = get_parameter_from_metadata(element, metadata)
+                if param is None:
+                    missing_param_count += 1
+                    continue
+
+                current_value = get_parameter_preview_value(param)
+
+                if normalize_text(current_value) == normalize_text(excel_value):
+                    same_count += 1
+                    continue
+
+                if is_unique_controlled_field(field_name):
+                    is_dup, dup_message = value_exists_in_other_elements(field_name, excel_value, element)
+                    if is_dup:
+                        duplicate_count += 1
+                        if len(duplicate_lines) < 15:
+                            duplicate_lines.append(
+                                "Row {} | Id {} | {} | '{}' | {}".format(
+                                    excel_row,
+                                    safe_text(element.Id.IntegerValue),
+                                    field_name,
+                                    excel_value,
+                                    dup_message
+                                )
+                            )
+                        continue
+
+                row_change_count += 1
+                changed_cells += 1
+
+                if len(preview_lines) < 15:
+                    preview_lines.append(
+                        "Row {} | Id {} | {} | '{}' -> '{}'".format(
+                            excel_row,
+                            safe_text(element.Id.IntegerValue),
+                            field_name,
+                            current_value,
+                            excel_value
+                        )
+                    )
+
+            if row_change_count > 0:
+                rows_with_changes += 1
+
+        message = []
+        message.append("Import preview completed.")
+        message.append("")
+        message.append("File: {}".format(xlsx_path))
+        message.append("Rows: {}".format(total_rows))
+        message.append("Resolved rows: {}".format(resolved_rows))
+        message.append("Unresolved rows: {}".format(unresolved_rows))
+        message.append("Rows with changes: {}".format(rows_with_changes))
+        message.append("Changed cells: {}".format(changed_cells))
+        message.append("Duplicate conflicts: {}".format(duplicate_count))
+        message.append("Same values: {}".format(same_count))
+        message.append("Missing parameters: {}".format(missing_param_count))
+
+        if preview_lines:
+            message.append("")
+            message.append("Sample valid changes:")
+            for line in preview_lines:
+                message.append(line)
+
+        if duplicate_lines:
+            message.append("")
+            message.append("Sample duplicate conflicts:")
+            for line in duplicate_lines:
+                message.append(line)
+
+        if unresolved_lines:
+            message.append("")
+            message.append("Sample unresolved rows:")
+            for line in unresolved_lines:
+                message.append(line)
+
+        TaskDialog.Show(__title__, "\n".join(message))
+
+    finally:
+        try:
+            if workbook is not None:
+                workbook.Close(False)
+        except Exception:
+            pass
+
+        try:
+            if excel_app is not None:
+                excel_app.Quit()
+        except Exception:
+            pass
+
+        release_com_object(workbook)
+        release_com_object(workbooks)
+        release_com_object(excel_app)
+
+def export_schedule_to_xlsx(schedule, full_path):
     original_visible_fields = get_visible_schedule_fields(schedule)
     csv_path = export_schedule_to_temp_csv(schedule)
     csv_rows = read_csv_rows(csv_path)
@@ -752,18 +1719,39 @@ def export_schedule_to_xlsx(schedule):
     csv_headers = [normalize_text(x) for x in csv_headers]
 
     csv_data_rows = []
+    skipped_group_rows = 0
+
     for row in csv_rows[header_row_index + 1:]:
         cleaned = [normalize_text(x) for x in row]
-        if any(cleaned):
-            csv_data_rows.append(cleaned)
+
+        if not any(cleaned):
+            continue
+
+        if not row_has_real_schedule_content(cleaned, csv_headers):
+            skipped_group_rows += 1
+            continue
+
+        csv_data_rows.append(cleaned)
 
     if not csv_headers:
         raise Exception("No headers were found in the exported CSV.")
 
     element_id_csv_index = find_element_id_column_index(csv_headers)
-    unique_id_values, has_valid_element_ids = build_unique_id_map_from_rows(csv_data_rows, element_id_csv_index)
 
-    # Build final headers
+    id_source = "None"
+    schedule_element_count = 0
+    has_valid_element_ids = False
+
+    if element_id_csv_index >= 0:
+        element_id_values = build_element_id_values_from_rows(csv_data_rows, element_id_csv_index)
+        unique_id_values, has_valid_element_ids = build_unique_id_map_from_rows(csv_data_rows, element_id_csv_index)
+        id_source = "CSV"
+    else:
+        element_id_values, unique_id_values, has_valid_element_ids, schedule_element_count = build_id_data_from_schedule_elements(
+            schedule,
+            len(csv_data_rows)
+        )
+
     final_headers = ["UniqueId", "ElementId"]
     export_columns = [
         {
@@ -828,7 +1816,6 @@ def export_schedule_to_xlsx(schedule):
                 "Hidden": False
             })
 
-    # Build final rows
     final_rows = []
     for r, row in enumerate(csv_data_rows):
         new_row = []
@@ -836,9 +1823,7 @@ def export_schedule_to_xlsx(schedule):
         unique_id = unique_id_values[r] if r < len(unique_id_values) else ""
         new_row.append(unique_id)
 
-        element_id_value = ""
-        if 0 <= element_id_csv_index < len(row):
-            element_id_value = row[element_id_csv_index]
+        element_id_value = element_id_values[r] if r < len(element_id_values) else ""
         new_row.append(element_id_value)
 
         for i, cell in enumerate(row):
@@ -862,11 +1847,6 @@ def export_schedule_to_xlsx(schedule):
             "Hidden": col.get("Hidden", False)
         }, separators=(",", ":")))
 
-    file_name = "{}_{}.xlsx".format(
-        sanitize_filename(get_schedule_name(schedule)),
-        str(int(time.time() * 1000))
-    )
-    full_path = os.path.join(TEMP_FOLDER, file_name)
 
     excel_app = None
     workbooks = None
@@ -913,38 +1893,85 @@ def export_schedule_to_xlsx(schedule):
         meta_row_range.Interior.Color = 0xF2F2F2
         data_sheet.Rows[1].Hidden = True
 
-        header_row = data_sheet.Range[data_sheet.Cells[2, 1], data_sheet.Cells[2, total_cols]]
-        header_row.Font.Bold = True
-        header_row.Font.Color = 0xFFFFFF
-        header_row.Interior.Color = 0x5B7D95
-
         last_data_row = max(2, len(final_rows) + 2)
 
         for c in range(1, total_cols + 1):
             role = export_columns[c - 1].get("ColumnRole", "")
             hidden = export_columns[c - 1].get("Hidden", False)
+            editable = export_columns[c - 1].get("Editable", "Unknown")
+            status_text = export_columns[c - 1].get("Status", "Unknown")
 
             if hidden:
                 data_sheet.Columns[c].Hidden = True
 
-            if role in ("UniqueId", "ElementId"):
-                fill_color = 0xEDEDED
+            header_cell = data_sheet.Cells[2, c]
+            header_cell.Font.Bold = True
+
+            if role == "ElementId":
+                header_cell.Font.Color = 0x000000
+                header_cell.Interior.Color = 0x1450BE
+            elif editable == "Yes":
+                header_cell.Font.Color = 0x000000
+                header_cell.Interior.Color = 0xD5E2FB
             else:
-                fill_color = get_status_fill_color(export_columns[c - 1].get("Status", "Unknown"))
+                header_cell.Font.Color = 0x000000
+                header_cell.Interior.Color = 0xACC7F7
 
-            data_sheet.Range[
-                data_sheet.Cells[2, c],
+            if last_data_row < 3:
+                continue
+
+            data_range = data_sheet.Range[
+                data_sheet.Cells[3, c],
                 data_sheet.Cells[last_data_row, c]
-            ].Interior.Color = fill_color
+            ]
 
-        data_sheet.Columns[2].ColumnWidth = 12
+            data_range.Font.Color = 0x000000
+
+            if role == "ElementId":
+                data_range.Interior.Color = 0x1450BE
+            elif role == "UniqueId":
+                data_range.Interior.Color = 0xF2F2F2
+            elif editable == "Yes":
+                data_range.Interior.Pattern = -4142
+            else:
+                fill_color = get_status_fill_color(status_text)
+                if fill_color is not None:
+                    data_range.Interior.Color = fill_color
+                else:
+                    data_range.Interior.Pattern = -4142
 
         used_range = data_sheet.Range[data_sheet.Cells[2, 1], data_sheet.Cells[last_data_row, total_cols]]
         used_range.Borders.LineStyle = 1
 
         data_sheet.Rows["2:2"].AutoFilter()
-        auto_fit_used_columns(data_sheet, total_cols)
-        data_sheet.Protect("pyMenvic", True, True)
+        fit_export_columns(data_sheet, export_columns, 8, 40, last_data_row)
+
+        try:
+            data_sheet.Columns[4].ColumnWidth = 24
+        except Exception:
+            pass
+
+        try:
+            data_sheet.Protect(
+                "pyMenvic",
+                True,
+                True,
+                True,
+                False,
+                True,
+                True,
+                False,
+                False,
+                False,
+                False,
+                False,
+                False,
+                True,
+                True,
+                False
+            )
+        except Exception:
+            data_sheet.Protect("pyMenvic", True, True)
 
         schema_sheet = workbook.Worksheets.Add()
         schema_sheet.Name = "Schema"
@@ -970,7 +1997,38 @@ def export_schedule_to_xlsx(schedule):
 
         schema_used = schema_sheet.Range[schema_sheet.Cells[1, 1], schema_sheet.Cells[max(1, row_index - 1), len(schema_headers)]]
         schema_used.Borders.LineStyle = 1
-        auto_fit_used_columns(schema_sheet, len(schema_headers))
+        schema_last_row = row_index - 1
+
+        for r in range(2, schema_last_row + 1):
+            try:
+                name_value = safe_text(schema_sheet.Cells[r, 3].Value2).strip()
+                editable_value = safe_text(schema_sheet.Cells[r, 6].Value2).strip().lower()
+
+                row_range = schema_sheet.Range[
+                    schema_sheet.Cells[r, 1],
+                    schema_sheet.Cells[r, len(schema_headers)]
+                ]
+
+                row_range.Font.Color = 0x000000
+
+                if name_value in ("UniqueId", "ElementId"):
+                    row_range.Interior.Color = 0x1450BE
+                elif editable_value == "yes":
+                    row_range.Interior.Pattern = -4142
+                elif editable_value == "no":
+                    row_range.Interior.Color = 0xACC7F7
+                else:
+                    row_range.Interior.Color = 0xF2F2F2
+            except Exception:
+                pass
+
+        for c in range(1, len(schema_headers) + 1):
+            try:
+                schema_sheet.Columns[c].AutoFit()
+                if schema_sheet.Columns[c].ColumnWidth > 28:
+                    schema_sheet.Columns[c].ColumnWidth = 28
+            except Exception:
+                pass
 
         workbook.SaveAs(full_path)
         workbook.Close(True)
@@ -981,7 +2039,7 @@ def export_schedule_to_xlsx(schedule):
         except Exception:
             pass
 
-        return full_path, has_valid_element_ids, element_id_csv_index >= 0
+        return full_path, has_valid_element_ids, id_source, len(csv_data_rows), schedule_element_count, skipped_group_rows
 
     finally:
         release_com_object(schema_sheet)
@@ -989,8 +2047,6 @@ def export_schedule_to_xlsx(schedule):
         release_com_object(workbook)
         release_com_object(workbooks)
         release_com_object(excel_app)
-
-
 class ScheduleBrowserWindow(forms.WPFWindow):
     def __init__(self, xaml_path):
         forms.WPFWindow.__init__(self, xaml_path)
@@ -1012,13 +2068,13 @@ class ScheduleBrowserWindow(forms.WPFWindow):
         self.lstSchedules.SelectionChanged += self.on_schedule_selection_changed
         self.lstSchedules.MouseUp += self.on_schedule_list_mouse_up
         self.btnRefresh.Click += self.on_refresh_clicked
+        self.btnImportExcel.Click += self.on_import_excel_clicked
         self.btnExport.Click += self.on_export_clicked
         self.btnClose.Click += self.on_close_clicked
-        self.chkSelectAll.Click += self.on_select_all_clicked
 
     def _configure_export_state(self):
         self.btnExport.IsEnabled = True
-        self.btnExport.ToolTip = "Export selected schedule to formatted Excel (.xlsx)"
+        self.btnExport.ToolTip = "Export selected schedule to Excel"
 
     def _refresh_schedule_list(self):
         self.lstSchedules.ItemsSource = None
@@ -1029,13 +2085,11 @@ class ScheduleBrowserWindow(forms.WPFWindow):
         self.dgParameters.ItemsSource = parameter_items
 
     def _update_status(self):
-        checked_count = len([x for x in self.all_schedules if x.IsChecked])
         total_count = len(self.all_schedules)
         field_count = len(self.filtered_parameters)
 
-        self.lblStatus.Text = "Schedules: {} | Checked: {} | Fields: {}".format(
+        self.lblStatus.Text = "Schedules: {} | Fields: {}".format(
             total_count,
-            checked_count,
             field_count
         )
 
@@ -1096,26 +2150,73 @@ class ScheduleBrowserWindow(forms.WPFWindow):
         self._refresh_parameter_grid([])
         self._update_status()
 
+    def on_import_excel_clicked(self, sender, args):
+        xlsx_path = ask_input_xlsx_path()
+        if not xlsx_path:
+            return
+
+        action = forms.CommandSwitchWindow.show(
+            [
+                "PREVIEW",
+                "IMPORT TO REVIT",
+                "CANCEL"
+            ],
+            message="Choose import action"
+        )
+
+        if not action or action == "CANCEL":
+            return
+
+        try:
+            if action == "IMPORT TO REVIT":
+                run_import_apply(xlsx_path)
+            else:
+                run_import_preview(xlsx_path)
+
+        except Exception as ex:
+            TaskDialog.Show(__title__, "Import Excel failed.\n\n{}".format(safe_text(ex)))
+
     def on_export_clicked(self, sender, args):
         selected_item = self._get_selected_item()
         if selected_item is None:
             TaskDialog.Show(__title__, "Select one schedule first.")
             return
 
+        full_path = ask_output_xlsx_path(selected_item.Schedule)
+        if not full_path:
+            return
+
         try:
-            full_path, has_valid_ids, has_element_id_column = export_schedule_to_xlsx(selected_item.Schedule)
+            full_path, has_valid_ids, id_source, data_row_count, schedule_element_count, skipped_group_rows = export_schedule_to_xlsx(
+                selected_item.Schedule,
+                full_path
+            )
         except Exception as ex:
-            TaskDialog.Show(__title__, "Excel export failed.\n\n{}".format(safe_text(ex)))
+            error_text = safe_text(ex)
+
+            if "0x800A03EC" in error_text or "cannot access" in error_text.lower():
+                TaskDialog.Show(
+                    __title__,
+                    "Excel export failed.\n\nThe Excel file is open.\nClose it before exporting again."
+                )
+            else:
+                TaskDialog.Show(__title__, "Excel export failed.\n\n{}".format(error_text))
+
             return
 
         message = "Excel export completed.\n\n{}".format(full_path)
 
-        if not has_element_id_column:
-            message += "\n\nWarning:\nElementId could not be injected or detected."
-            message += "\nUniqueId may be empty."
+        if skipped_group_rows > 0:
+            message += "\n\nFiltered rows:\n{} group/header rows were excluded from export.".format(skipped_group_rows)
 
-        elif not has_valid_ids:
-            message += "\n\nWarning:\nElementId was found, but UniqueId could not be resolved from the rows."
+        if id_source == "CSV":
+            if not has_valid_ids:
+                message += "\n\nWarning:\nElementId was found in the export, but UniqueId could not be resolved from the rows."
+        else:
+            message += "\n\nWarning:\nNo reliable ElementId / UniqueId source was found for this schedule."
+            if schedule_element_count > 0:
+                message += "\nThe fallback by schedule row order was disabled to avoid assigning IDs to the wrong elements."
+                message += "\nSchedule elements detected: {}".format(schedule_element_count)
 
         try:
             subprocess.Popen([full_path], shell=True)
@@ -1126,15 +2227,6 @@ class ScheduleBrowserWindow(forms.WPFWindow):
 
     def on_close_clicked(self, sender, args):
         self.Close()
-
-    def on_select_all_clicked(self, sender, args):
-        state = bool(self.chkSelectAll.IsChecked)
-
-        for item in self.all_schedules:
-            item.IsChecked = state
-
-        self.lstSchedules.Items.Refresh()
-        self._update_status()
 
     def _load_parameters_from_item(self, item):
         if item is None:
@@ -1147,11 +2239,12 @@ class ScheduleBrowserWindow(forms.WPFWindow):
     def on_schedule_list_mouse_up(self, sender, args):
         item = self._get_selected_item()
         self._load_parameters_from_item(item)
-
-
 if not os.path.exists(XAML_PATH):
     TaskDialog.Show(__title__, "Missing XAML file:\n{}".format(XAML_FILENAME))
     sys.exit()
 
 window = ScheduleBrowserWindow(XAML_PATH)
 window.ShowDialog()
+
+
+

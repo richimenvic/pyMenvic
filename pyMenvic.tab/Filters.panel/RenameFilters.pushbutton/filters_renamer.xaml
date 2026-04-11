@@ -1,0 +1,394 @@
+<Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Rename Filters"
+        Height="760"
+        Width="1320"
+        MinHeight="660"
+        MinWidth="1100"
+        Background="#1E252B"
+        WindowStartupLocation="CenterScreen"
+        ResizeMode="CanResize">
+
+    <Window.Resources>
+        <SolidColorBrush x:Key="BgPanel" Color="#26303A"/>
+        <SolidColorBrush x:Key="BgPanelAlt" Color="#202931"/>
+        <SolidColorBrush x:Key="BgInput" Color="#182028"/>
+        <SolidColorBrush x:Key="Border" Color="#384754"/>
+        <SolidColorBrush x:Key="Accent" Color="#4C9AC0"/>
+        <SolidColorBrush x:Key="TextHigh" Color="#EAF1F5"/>
+        <SolidColorBrush x:Key="TextMed" Color="#A8BAC7"/>
+        <SolidColorBrush x:Key="TextLow" Color="#708392"/>
+        <SolidColorBrush x:Key="BtnPrimary" Color="#245D7C"/>
+        <SolidColorBrush x:Key="BtnSuccess" Color="#2A6B3F"/>
+        <SolidColorBrush x:Key="BtnDanger" Color="#6B3131"/>
+        <SolidColorBrush x:Key="StatusReady" Color="#8ED59B"/>
+        <SolidColorBrush x:Key="StatusBlocked" Color="#F0A96E"/>
+        <SolidColorBrush x:Key="StatusError" Color="#E68181"/>
+        <SolidColorBrush x:Key="StatusMuted" Color="#8B99A4"/>
+
+        <ControlTemplate x:Key="FlatButtonTemplate" TargetType="Button">
+            <Border x:Name="ButtonBorder"
+                    Background="{TemplateBinding Background}"
+                    BorderBrush="{TemplateBinding BorderBrush}"
+                    BorderThickness="{TemplateBinding BorderThickness}"
+                    CornerRadius="4"
+                    Padding="{TemplateBinding Padding}">
+                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+            </Border>
+            <ControlTemplate.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter TargetName="ButtonBorder" Property="Opacity" Value="0.92"/>
+                </Trigger>
+            </ControlTemplate.Triggers>
+        </ControlTemplate>
+
+        <Style TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{StaticResource TextHigh}"/>
+        </Style>
+
+        <Style x:Key="LabelStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Foreground" Value="{StaticResource TextMed}"/>
+            <Setter Property="Margin" Value="0,0,0,6"/>
+        </Style>
+
+        <Style TargetType="TextBox">
+            <Setter Property="Foreground" Value="{StaticResource TextHigh}"/>
+            <Setter Property="Background" Value="{StaticResource BgInput}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource Border}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="10,6"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Height" Value="34"/>
+        </Style>
+
+        <Style TargetType="ComboBoxItem">
+            <Setter Property="Foreground" Value="{StaticResource TextHigh}"/>
+            <Setter Property="Background" Value="{StaticResource BgInput}"/>
+            <Setter Property="Padding" Value="10,6"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ComboBoxItem">
+                        <Border x:Name="ComboItemBorder"
+                                Background="{TemplateBinding Background}"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsHighlighted" Value="True">
+                                <Setter TargetName="ComboItemBorder" Property="Background" Value="#2A5F7D"/>
+                                <Setter Property="Foreground" Value="White"/>
+                            </Trigger>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="ComboItemBorder" Property="Background" Value="#34789E"/>
+                                <Setter Property="Foreground" Value="White"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style TargetType="ComboBox">
+            <Setter Property="Foreground" Value="{StaticResource TextHigh}"/>
+            <Setter Property="Background" Value="{StaticResource BgInput}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource Border}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Height" Value="34"/>
+            <Setter Property="Padding" Value="8,4"/>
+            <Setter Property="MaxDropDownHeight" Value="300"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ComboBox">
+                        <Grid>
+                            <Border x:Name="MainBorder"
+                                    Background="{TemplateBinding Background}"
+                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                    BorderThickness="{TemplateBinding BorderThickness}"
+                                    CornerRadius="2"/>
+                            <ContentPresenter x:Name="ContentSite"
+                                              Content="{TemplateBinding SelectionBoxItem}"
+                                              ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"
+                                              Margin="10,0,30,0"
+                                              VerticalAlignment="Center"
+                                              IsHitTestVisible="False"/>
+                            <ToggleButton x:Name="ToggleButton"
+                                          IsChecked="{Binding IsDropDownOpen, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}"
+                                          Focusable="False"
+                                          ClickMode="Press"
+                                          Background="Transparent"
+                                          BorderThickness="0">
+                                <ToggleButton.Template>
+                                    <ControlTemplate TargetType="ToggleButton">
+                                        <Grid Background="Transparent">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="26"/>
+                                            </Grid.ColumnDefinitions>
+                                            <Border Grid.Column="1" Background="Transparent">
+                                                <Path Data="M 0 0 L 5 5 L 10 0"
+                                                      Stroke="#A8BAC7"
+                                                      StrokeThickness="1.5"
+                                                      StrokeLineJoin="Round"
+                                                      HorizontalAlignment="Center"
+                                                      VerticalAlignment="Center"/>
+                                            </Border>
+                                        </Grid>
+                                    </ControlTemplate>
+                                </ToggleButton.Template>
+                            </ToggleButton>
+                            <Popup x:Name="Popup"
+                                   Placement="Bottom"
+                                   IsOpen="{TemplateBinding IsDropDownOpen}"
+                                   AllowsTransparency="True"
+                                   Focusable="False"
+                                   PopupAnimation="None">
+                                <Border MinWidth="{TemplateBinding ActualWidth}"
+                                        MaxHeight="{TemplateBinding MaxDropDownHeight}"
+                                        Background="{StaticResource BgInput}"
+                                        BorderBrush="{StaticResource Border}"
+                                        BorderThickness="1">
+                                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                        <StackPanel IsItemsHost="True"/>
+                                    </ScrollViewer>
+                                </Border>
+                            </Popup>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style TargetType="CheckBox">
+            <Setter Property="Foreground" Value="{StaticResource TextHigh}"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+
+        <Style TargetType="Button">
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Background" Value="{StaticResource BtnPrimary}"/>
+            <Setter Property="BorderBrush" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="16,0"/>
+            <Setter Property="Height" Value="34"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Template" Value="{StaticResource FlatButtonTemplate}"/>
+        </Style>
+
+        <Style x:Key="SuccessButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+            <Setter Property="Background" Value="{StaticResource BtnSuccess}"/>
+        </Style>
+
+        <Style x:Key="DangerButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+            <Setter Property="Background" Value="{StaticResource BtnDanger}"/>
+        </Style>
+
+        <Style TargetType="DataGrid">
+            <Setter Property="Background" Value="{StaticResource BgPanelAlt}"/>
+            <Setter Property="Foreground" Value="{StaticResource TextHigh}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource Border}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="RowBackground" Value="{StaticResource BgPanelAlt}"/>
+            <Setter Property="AlternatingRowBackground" Value="#23303A"/>
+            <Setter Property="GridLinesVisibility" Value="Horizontal"/>
+            <Setter Property="HeadersVisibility" Value="Column"/>
+            <Setter Property="CanUserAddRows" Value="False"/>
+            <Setter Property="CanUserDeleteRows" Value="False"/>
+            <Setter Property="CanUserResizeRows" Value="False"/>
+            <Setter Property="RowHeaderWidth" Value="0"/>
+            <Setter Property="SelectionMode" Value="Single"/>
+            <Setter Property="SelectionUnit" Value="FullRow"/>
+        </Style>
+
+        <Style TargetType="DataGridColumnHeader">
+            <Setter Property="Background" Value="#21475D"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Padding" Value="10,7"/>
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+        </Style>
+
+        <Style x:Key="StatusTextStyle" TargetType="TextBlock">
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Foreground" Value="{StaticResource TextHigh}"/>
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding Status}" Value="Ready">
+                    <Setter Property="Foreground" Value="{StaticResource StatusReady}"/>
+                </DataTrigger>
+                <DataTrigger Binding="{Binding Status}" Value="Conflict">
+                    <Setter Property="Foreground" Value="{StaticResource StatusBlocked}"/>
+                </DataTrigger>
+                <DataTrigger Binding="{Binding Status}" Value="Duplicate">
+                    <Setter Property="Foreground" Value="{StaticResource StatusError}"/>
+                </DataTrigger>
+                <DataTrigger Binding="{Binding Status}" Value="Empty">
+                    <Setter Property="Foreground" Value="{StaticResource StatusError}"/>
+                </DataTrigger>
+                <DataTrigger Binding="{Binding Status}" Value="No change">
+                    <Setter Property="Foreground" Value="{StaticResource StatusMuted}"/>
+                </DataTrigger>
+                <DataTrigger Binding="{Binding Status}" Value="Excluded">
+                    <Setter Property="Foreground" Value="{StaticResource StatusMuted}"/>
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+    </Window.Resources>
+
+    <Grid Margin="18">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="14"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="14"/>
+            <RowDefinition Height="190"/>
+            <RowDefinition Height="14"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="14"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <Border Grid.Row="0" Background="{StaticResource BgPanel}" BorderBrush="{StaticResource Border}" BorderThickness="1" CornerRadius="6" Padding="18,16">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <StackPanel Grid.Column="0">
+                    <TextBlock Text="RENAME FILTERS" FontSize="22" FontWeight="SemiBold"/>
+                    <TextBlock Text="Search Text filtra la tabla y tambien sirve como texto a reemplazar cuando activas replace."
+                               Margin="0,6,0,0" FontSize="12" Foreground="{StaticResource TextMed}" TextWrapping="Wrap"/>
+                </StackPanel>
+                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Border Background="#1B232A" BorderBrush="{StaticResource Border}" BorderThickness="1" CornerRadius="4" Padding="14,10" Margin="0,0,10,0"><StackPanel><TextBlock Text="TOTAL FILTERS" Style="{StaticResource LabelStyle}"/><TextBlock x:Name="TotalFiltersText" Text="0" FontSize="24" FontWeight="SemiBold" Foreground="{StaticResource Accent}"/></StackPanel></Border>
+                    <Border Background="#1B232A" BorderBrush="{StaticResource Border}" BorderThickness="1" CornerRadius="4" Padding="14,10" Margin="0,0,10,0"><StackPanel><TextBlock Text="VISIBLE" Style="{StaticResource LabelStyle}"/><TextBlock x:Name="MatchesText" Text="0" FontSize="24" FontWeight="SemiBold"/></StackPanel></Border>
+                    <Border Background="#1B232A" BorderBrush="{StaticResource Border}" BorderThickness="1" CornerRadius="4" Padding="14,10" Margin="0,0,10,0"><StackPanel><TextBlock Text="READY" Style="{StaticResource LabelStyle}"/><TextBlock x:Name="ReadyText" Text="0" FontSize="24" FontWeight="SemiBold" Foreground="#7DC487"/></StackPanel></Border>
+                    <Border Background="#1B232A" BorderBrush="{StaticResource Border}" BorderThickness="1" CornerRadius="4" Padding="14,10" Margin="0,0,10,0"><StackPanel><TextBlock Text="NO CHANGE" Style="{StaticResource LabelStyle}"/><TextBlock x:Name="NoChangeText" Text="0" FontSize="24" FontWeight="SemiBold" Foreground="#8B99A4"/></StackPanel></Border>
+                    <Border Background="#1B232A" BorderBrush="{StaticResource Border}" BorderThickness="1" CornerRadius="4" Padding="14,10"><StackPanel><TextBlock Text="ISSUES" Style="{StaticResource LabelStyle}"/><TextBlock x:Name="IssuesText" Text="0" FontSize="24" FontWeight="SemiBold" Foreground="#F0A96E"/></StackPanel></Border>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <Border Grid.Row="2" Background="{StaticResource BgPanel}" BorderBrush="{StaticResource Border}" BorderThickness="1" CornerRadius="6" Padding="18,16">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="12"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+                <Grid Grid.Row="0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="230"/>
+                        <ColumnDefinition Width="14"/>
+                        <ColumnDefinition Width="190"/>
+                        <ColumnDefinition Width="14"/>
+                        <ColumnDefinition Width="200"/>
+                        <ColumnDefinition Width="24"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="10"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Grid.Column="0"><TextBlock Text="SEARCH TEXT" Style="{StaticResource LabelStyle}"/><TextBox x:Name="SearchTextBox" TextChanged="SearchTextBox_TextChanged"/></StackPanel>
+                    <StackPanel Grid.Column="2"><TextBlock Text="REPLACE WITH" Style="{StaticResource LabelStyle}"/><TextBox x:Name="ReplaceTextBox" TextChanged="ReplaceTextBox_TextChanged"/></StackPanel>
+                    <StackPanel Grid.Column="4"><TextBlock Text="ROW FILTER" Style="{StaticResource LabelStyle}"/><ComboBox x:Name="RowFilterComboBox" SelectionChanged="RowFilterComboBox_SelectionChanged"/></StackPanel>
+                </Grid>
+                <Grid Grid.Row="2">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="16"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="16"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <Border Grid.Column="0" Background="#1B232A" BorderBrush="{StaticResource Border}" BorderThickness="1" CornerRadius="4" Padding="12,10">
+                        <CheckBox x:Name="EnableReplaceCheckBox" Content="ENABLE FIND + REPLACE" Click="EnableReplaceCheckBox_Click"/>
+                    </Border>
+                    <Border Grid.Column="2" Background="#1B232A" BorderBrush="{StaticResource Border}" BorderThickness="1" CornerRadius="4" Padding="12,10">
+                        <CheckBox x:Name="UseSectionTypesCheckBox" Content="USE SECTION NAMES IF SIMILAR" Click="UseSectionTypesCheckBox_Click"/>
+                    </Border>
+                    <Border Grid.Column="4" Background="#1B232A" BorderBrush="{StaticResource Border}" BorderThickness="1" CornerRadius="4" Padding="12,10">
+                        <CheckBox x:Name="UppercaseCheckBox" Content="CONVERT ALL NEW NAMES TO UPPERCASE" Click="UppercaseCheckBox_Click"/>
+                    </Border>
+                </Grid>
+            </Grid>
+        </Border>
+
+        <Border Grid.Row="4" Background="{StaticResource BgPanel}" BorderBrush="{StaticResource Border}" BorderThickness="1" CornerRadius="6" Padding="18,16">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="10"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+                <StackPanel Grid.Row="0">
+                    <TextBlock Text="VIEW TYPES DIAGNOSTIC" FontSize="16" FontWeight="SemiBold"/>
+                    <TextBlock Text="Listado directo de todos los ViewFamilyType que la API esta leyendo en este proyecto para verificar como clasifica las secciones."
+                               Margin="0,4,0,0" FontSize="11" Foreground="{StaticResource TextLow}"/>
+                </StackPanel>
+                <Border Grid.Row="2" Background="{StaticResource BgPanelAlt}" BorderBrush="{StaticResource Border}" BorderThickness="1">
+                    <DataGrid x:Name="ViewTypesDebugGrid"
+                              AutoGenerateColumns="False"
+                              IsReadOnly="True">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="TYPE NAME" Binding="{Binding TypeName}" Width="*"/>
+                            <DataGridTextColumn Header="VIEW FAMILY" Binding="{Binding ViewFamilyName}" Width="220"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </Border>
+            </Grid>
+        </Border>
+
+        <Border Grid.Row="6" Background="{StaticResource BgPanel}" BorderBrush="{StaticResource Border}" BorderThickness="1" CornerRadius="6" Padding="18,16">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="10"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+                <Grid Grid.Row="0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Grid.Column="0">
+                        <TextBlock Text="EDITABLE PREVIEW" FontSize="16" FontWeight="SemiBold"/>
+                        <TextBlock Text="Search Text filtra filas. Si activas replace, ese mismo texto se usa para generar New Name automaticamente."
+                                   Margin="0,4,0,0" FontSize="11" Foreground="{StaticResource TextLow}"/>
+                    </StackPanel>
+                    <CheckBox x:Name="CheckAllRowsCheckBox" Grid.Column="1" Content="CHECK ALL VISIBLE" Click="CheckAllRowsCheckBox_Click" Margin="12,0,0,0"/>
+                </Grid>
+                <DataGrid x:Name="PreviewGrid" Grid.Row="2" AutoGenerateColumns="False">
+                    <DataGrid.Columns>
+                        <DataGridCheckBoxColumn Header="APPLY" Binding="{Binding Include}" Width="70"/>
+                        <DataGridTextColumn Header="CURRENT NAME" Binding="{Binding CurrentName}" Width="*" IsReadOnly="True"/>
+                        <DataGridTextColumn Header="SECTION SUGGESTION" Binding="{Binding SectionSuggestion}" Width="*" IsReadOnly="True"/>
+                        <DataGridTextColumn Header="NEW NAME" Binding="{Binding ProposedName, UpdateSourceTrigger=LostFocus}" Width="*"/>
+                        <DataGridTemplateColumn Header="STATUS" Width="120" IsReadOnly="True">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding Status}" Style="{StaticResource StatusTextStyle}"/>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                    </DataGrid.Columns>
+                </DataGrid>
+            </Grid>
+        </Border>
+
+        <DockPanel Grid.Row="8" LastChildFill="False">
+            <TextBlock DockPanel.Dock="Left" VerticalAlignment="Center" Foreground="{StaticResource TextLow}" Text="Flujo: filtrar con Search Text, activar replace si hace falta, generar preview, editar y aplicar."/>
+            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                <Button x:Name="PreviewButton" Width="110" Content="PREVIEW" Click="PreviewButton_Click"/>
+                <Button x:Name="ApplyButton" Width="110" Content="APPLY" Style="{StaticResource SuccessButton}" Click="ApplyButton_Click" Margin="10,0,0,0"/>
+                <Button x:Name="CloseButton" Width="110" Content="CLOSE" Style="{StaticResource DangerButton}" Click="CloseButton_Click" Margin="10,0,0,0"/>
+            </StackPanel>
+        </DockPanel>
+    </Grid>
+</Window>
+

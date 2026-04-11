@@ -4,175 +4,255 @@ __title__ = "Sheets by Rev"
 import re
 from pyrevit import revit, DB, script, forms
 
-# --- Natural sort helper: "2" < "10", "A2" < "A10"
-def natural_key(s):
-    if s is None:
-        return []
-    s = str(s)
-    return [int(t) if t.isdigit() else t.lower() for t in re.split(r'(\d+)', s)]
 
 doc = revit.doc
 output = script.get_output()
+logger = script.get_logger()
 
-# Recopilar todas las revisiones
-revisions = DB.FilteredElementCollector(doc) \
-              .OfCategory(DB.BuiltInCategory.OST_Revisions) \
-              .WhereElementIsNotElementType() \
-              .ToElements()
 
-# Crear lista (display, id, rev_number) para ordenar bien y no perder el Id
-revision_items = []
-for rev in revisions:
-    pnum = rev.LookupParameter('Revision Number')
-    pdate = rev.LookupParameter('Revision Date')
-    pdesc = rev.LookupParameter('Revision Description')
+def natural_key(value):
+    """Sort strings naturally: 2 < 10, A2 < A10."""
+    if value is None:
+        return []
+    value = str(value)
+    return [int(token) if token.isdigit() else token.lower()
+            for token in re.split(r'(\d+)', value)]
 
-    rev_number = pnum.AsString() if pnum else ""
-    rev_date = pdate.AsString() if pdate else ""
-    rev_description = pdesc.AsString() if pdesc else ""
 
-    # Display más legible (solo UI)
-    display = "{} - {} - {}".format(rev_number, rev_description, rev_date)
-    revision_items.append((display, rev.Id, rev_number))
+def safe_as_string(param, default=""):
+    if not param:
+        return default
+    value = param.AsString()
+    return value if value is not None else default
 
-# Ordenar por número de revisión (natural)
-revision_items_sorted = sorted(revision_items, key=lambda x: natural_key(x[2]))
 
-# Mostrar formulario con la lista ya ordenada (solo textos)
-display_list = [x[0] for x in revision_items_sorted]
-selected_display = forms.SelectFromList.show(
-    display_list,
-    title='Select Revision',
-    button_name='Select',
-    multiple=False
-)
+def get_built_in_parameter(element, *parameter_names):
+    for parameter_name in parameter_names:
+        built_in_parameter = getattr(DB.BuiltInParameter, parameter_name, None)
+        if built_in_parameter is None:
+            continue
 
-if not selected_display:
-    script.exit()
+        param = element.get_Parameter(built_in_parameter)
+        if param:
+            return param
 
-# Obtener el Id correcto (desde la lista ordenada)
-selected_revision_id = next(x[1] for x in revision_items_sorted if x[0] == selected_display)
+    return None
 
-# Pre-cargar la revisión seleccionada (evita lookups repetidos)
-selected_revision = doc.GetElement(selected_revision_id)
-rev_number_param = selected_revision.LookupParameter('Revision Number') if selected_revision else None
-selected_rev_number = rev_number_param.AsString() if rev_number_param else "No Number"
 
-# Cache de sheets para evitar collectors repetidos
-all_sheets = DB.FilteredElementCollector(doc) \
-               .OfCategory(DB.BuiltInCategory.OST_Sheets) \
-               .WhereElementIsNotElementType() \
-               .ToElements()
+def get_parameter_value(element, built_in_names=None, lookup_names=None, default=""):
+    built_in_names = built_in_names or []
+    lookup_names = lookup_names or []
 
-sheet_by_number = {}
-for s in all_sheets:
-    sheet_by_number[s.SheetNumber] = s
+    param = get_built_in_parameter(element, *built_in_names)
+    if param:
+        value = param.AsString() or param.AsValueString()
+        if value:
+            return value
 
-# Recopilar todas las nubes de revisión
-revision_clouds = DB.FilteredElementCollector(doc) \
-                    .OfCategory(DB.BuiltInCategory.OST_RevisionClouds) \
-                    .WhereElementIsNotElementType() \
-                    .ToElements()
+    for lookup_name in lookup_names:
+        param = element.LookupParameter(lookup_name)
+        if param:
+            value = param.AsString() or param.AsValueString()
+            if value:
+                return value
 
-# Función para obtener el nombre y número de la hoja donde se encuentra la nube de revisión
-def get_sheet_info(revision_cloud):
-    sheet_name = "Unknown Sheet"
-    sheet_number = "Unknown Number"
+    return default
 
+
+def get_revision_number(revision):
+    if not revision:
+        return ""
+
+    number = getattr(revision, 'RevisionNumber', None)
+    if number:
+        return str(number)
+
+    return get_parameter_value(
+        revision,
+        built_in_names=['PROJECT_REVISION_REVISION_NUM'],
+        lookup_names=['Revision Number']
+    )
+
+
+def get_revision_date(revision):
+    if not revision:
+        return ""
+
+    return get_parameter_value(
+        revision,
+        built_in_names=['PROJECT_REVISION_REVISION_DATE'],
+        lookup_names=['Revision Date']
+    )
+
+
+def get_revision_description(revision):
+    if not revision:
+        return ""
+
+    return get_parameter_value(
+        revision,
+        built_in_names=['PROJECT_REVISION_DESCRIPTION'],
+        lookup_names=['Revision Description']
+    )
+
+
+def build_revision_label(revision):
+    rev_number = get_revision_number(revision)
+    rev_description = get_revision_description(revision)
+    rev_date = get_revision_date(revision)
+
+    parts = [part for part in [rev_number, rev_description, rev_date] if part]
+    return " - ".join(parts) if parts else "<Unnamed Revision>"
+
+
+def load_revisions():
+    revisions = DB.FilteredElementCollector(doc) \
+                  .OfCategory(DB.BuiltInCategory.OST_Revisions) \
+                  .WhereElementIsNotElementType() \
+                  .ToElements()
+
+    revision_items = []
+    for revision in revisions:
+        revision_items.append({
+            'name': build_revision_label(revision),
+            'revision_id': revision.Id,
+            'sort_key': natural_key(get_revision_number(revision)),
+        })
+
+    return sorted(revision_items, key=lambda item: (item['sort_key'], item['name'].lower()))
+
+
+def select_revision(revision_items):
+    if not revision_items:
+        forms.alert('No revisions found in the current project.', exitscript=True)
+
+    return forms.SelectFromList.show(
+        revision_items,
+        title='Select Revision',
+        button_name='Select',
+        name_attr='name',
+        multiselect=False
+    )
+
+
+def build_sheet_lookup():
+    all_sheets = DB.FilteredElementCollector(doc) \
+                   .OfCategory(DB.BuiltInCategory.OST_Sheets) \
+                   .WhereElementIsNotElementType() \
+                   .ToElements()
+
+    lookup = {}
+    for sheet in all_sheets:
+        lookup[sheet.SheetNumber] = sheet
+    return lookup
+
+
+def clean_sheet_name(sheet_name):
+    if not sheet_name:
+        return 'Unknown Sheet'
+
+    if ' - ' in sheet_name:
+        return sheet_name.split(' - ', 1)[-1].strip()
+
+    return sheet_name.strip()
+
+
+def get_sheet_info(revision_cloud, sheet_by_number):
     owner_view = doc.GetElement(revision_cloud.OwnerViewId)
     if not owner_view:
-        return sheet_name, sheet_number
+        return 'Unknown Sheet', 'Unknown Number', None
 
     if isinstance(owner_view, DB.ViewSheet):
-        sheet_name = owner_view.Title.replace("Sheet: ", "").strip()
-        sheet_number = owner_view.SheetNumber
+        return clean_sheet_name(owner_view.Name), owner_view.SheetNumber, owner_view
 
-    elif isinstance(owner_view, DB.View):
-        p = owner_view.LookupParameter('Sheet Number')
-        sheet_id = p.AsString() if p else None
-        if sheet_id:
-            sheet = sheet_by_number.get(sheet_id)
+    if isinstance(owner_view, DB.View):
+        sheet_number = get_parameter_value(
+            owner_view,
+            built_in_names=['VIEWER_SHEET_NUMBER'],
+            lookup_names=['Sheet Number']
+        )
+        if sheet_number:
+            sheet = sheet_by_number.get(sheet_number)
             if sheet:
-                sheet_name = sheet.Title.replace("Sheet: ", "").strip()
-                sheet_number = sheet.SheetNumber
+                return clean_sheet_name(sheet.Name), sheet.SheetNumber, owner_view
 
-    return sheet_name, sheet_number
+    return 'Unknown Sheet', 'Unknown Number', owner_view
 
-# ============================================================
-# Agrupar nubes por hoja -> vista
-# ============================================================
-data_by_sheet = {}
-# Estructura:
-# data_by_sheet[sheet_number] = {
-#   'name': sheet_name,
-#   'views': { view_name: [clouds...] }
-# }
 
-for revc in revision_clouds:
-    if revc.RevisionId != selected_revision_id:
-        continue
+def get_cloud_comment(revision_cloud):
+    comment_param = revision_cloud.get_Parameter(DB.BuiltInParameter.ALL_MODEL_INSTANCE_COMMENTS)
+    return safe_as_string(comment_param)
 
-    sheet_name, sheet_number = get_sheet_info(revc)
 
-    if " - " in sheet_name:
-        sheet_name = sheet_name.split(" - ")[-1].strip()
+def collect_clouds_by_sheet(selected_revision_id, sheet_by_number):
+    revision_clouds = DB.FilteredElementCollector(doc) \
+                        .OfCategory(DB.BuiltInCategory.OST_RevisionClouds) \
+                        .WhereElementIsNotElementType() \
+                        .ToElements()
 
-    if sheet_number not in data_by_sheet:
-        data_by_sheet[sheet_number] = {'name': sheet_name, 'views': {}}
+    data_by_sheet = {}
 
-    view = doc.GetElement(revc.OwnerViewId)
-    view_name = view.Name if view else "Unknown View"
+    for revision_cloud in revision_clouds:
+        if revision_cloud.RevisionId != selected_revision_id:
+            continue
 
-    if view_name not in data_by_sheet[sheet_number]['views']:
-        data_by_sheet[sheet_number]['views'][view_name] = []
+        sheet_name, sheet_number, owner_view = get_sheet_info(revision_cloud, sheet_by_number)
+        if sheet_number not in data_by_sheet:
+            data_by_sheet[sheet_number] = {'name': sheet_name, 'views': {}}
 
-    data_by_sheet[sheet_number]['views'][view_name].append(revc)
+        view_name = owner_view.Name if owner_view else 'Unknown View'
+        data_by_sheet[sheet_number]['views'].setdefault(view_name, []).append(revision_cloud)
 
-# Ordenar hojas por número (natural)
-sorted_sheets = sorted(data_by_sheet.items(), key=lambda x: natural_key(x[0]))
+    return data_by_sheet
 
-# ============================================================
-# Reporte
-# ============================================================
-total_clouds = 0
 
-for sheet_number, sheet_data in sorted_sheets:
-    output.print_md('### **Sheet:** {} - {}\n'.format(sheet_number, sheet_data['name']))
+def print_report(data_by_sheet):
+    total_clouds = 0
+    sorted_sheets = sorted(data_by_sheet.items(), key=lambda item: natural_key(item[0]))
 
-    # Ordenar vistas dentro de la hoja
-    view_items = list(sheet_data['views'].items())
-    view_items_sorted = sorted(view_items, key=lambda x: natural_key(x[0]))
+    for sheet_number, sheet_data in sorted_sheets:
+        output.print_md('### **Sheet:** {} - {}\n'.format(sheet_number, sheet_data['name']))
 
-    for view_name, clouds in view_items_sorted:
-        output.print_md('#### **View:** {}\n'.format(view_name))
+        view_items = sorted(sheet_data['views'].items(), key=lambda item: natural_key(item[0]))
+        for view_name, clouds in view_items:
+            output.print_md('#### **View:** {}\n'.format(view_name))
 
-        # Orden estable de clouds: por ElementId (simple y consistente)
-        try:
-            clouds.sort(key=lambda c: c.Id.IntegerValue)
-        except:
-            pass
+            try:
+                clouds.sort(key=lambda cloud: cloud.Id.IntegerValue)
+            except AttributeError as exc:
+                logger.warning('Could not sort clouds in view "%s": %s', view_name, exc)
 
-        # --- Tabla por vista (CloudId | Sheet | View | Comment)
-        rows = []
-        headers = ["CloudId", "Sheet", "View", "Comment"]
+            rows = []
+            headers = ['CloudId', 'Sheet', 'View', 'Comment']
 
-        for revc in clouds:
-            total_clouds += 1
+            for revision_cloud in clouds:
+                total_clouds += 1
+                rows.append([
+                    output.linkify([revision_cloud.Id]),
+                    sheet_number,
+                    view_name,
+                    get_cloud_comment(revision_cloud)
+                ])
 
-            cloud_id_link = output.linkify([revc.Id])
+            if rows:
+                output.print_table(table_data=rows, columns=headers)
+            else:
+                output.print_md('_No revision clouds in this view._\n')
 
-            # Leer comentario de forma segura (independiente del idioma)
-            comment_param = revc.get_Parameter(DB.BuiltInParameter.ALL_MODEL_INSTANCE_COMMENTS)
-            comment = comment_param.AsString() if comment_param else ""
-            if comment is None:
-                comment = ""
+    output.print_md('\n**SEARCH COMPLETED - {} revision clouds found.**'.format(total_clouds))
 
-            rows.append([cloud_id_link, sheet_number, view_name, comment])
 
-        # Imprimir tabla solo si hay filas
-        if rows:
-            output.print_table(table_data=rows, columns=headers)
-        else:
-            output.print_md("_No revision clouds in this view._\n")
+def main():
+    revision_items = load_revisions()
+    selected_item = select_revision(revision_items)
+    if not selected_item:
+        script.exit()
 
-output.print_md('\n**SEARCH COMPLETED — {} revision clouds found.**'.format(total_clouds))
+    selected_revision_id = selected_item['revision_id']
+    sheet_by_number = build_sheet_lookup()
+    data_by_sheet = collect_clouds_by_sheet(selected_revision_id, sheet_by_number)
+    print_report(data_by_sheet)
+
+
+if __name__ == '__main__':
+    main()

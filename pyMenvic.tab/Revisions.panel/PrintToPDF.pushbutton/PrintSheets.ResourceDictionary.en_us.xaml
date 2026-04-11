@@ -2,6 +2,8 @@
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                     xmlns:system="clr-namespace:System;assembly=mscorlib">
     <system:String x:Key="Title">Print Sheets</system:String>
+    <system:String x:Key="MainHeading">Print Sheets</system:String>
+    <system:String x:Key="MainSubheading">Manage sheet order, naming, and PDF export from one place.</system:String>
 
     <system:String x:Key="Model">Model</system:String>
     <system:String x:Key="LinkedPrefix">Linked: </system:String>
@@ -15,6 +17,8 @@
     <system:String x:Key="IndexStart">Index Start</system:String>
     <system:String x:Key="Reset">Reset</system:String>
     <system:String x:Key="SheetLookup">Sheet Lookup</system:String>
+    <system:String x:Key="QuickGuide">Quick Guide</system:String>
+    <system:String x:Key="QuickGuideText">Reverse flips the current order. Non-printable sheets can stay visible for reference or be excluded from indexing.</system:String>
 
     <system:String x:Key="SheetPrinting">Sheet Printing</system:String>
     <system:String x:Key="CombineIntoOnePDF">Combine Into One PDF</system:String>
@@ -30,7 +34,7 @@
     <system:String x:Key="PageSettings">Page Settings</system:String>
     <system:String x:Key="IncompatibleWithPrinter">Incompatible with printer</system:String>
 
-    <system:String x:Key="ListOfSheets">List of the sheets in selected sheet index</system:String>
+    <system:String x:Key="ListOfSheets">List of Sheets in Selected Sheet Index</system:String>
     <system:String x:Key="AddSheets">Add Sheets</system:String>
     <system:String x:Key="RemoveSelected">Remove Selected</system:String>
     <system:String x:Key="MoveToTop">Move to Top</system:String>
@@ -48,6 +52,16 @@
 
     <system:String x:Key="CopySheetFileNames">Copy Sheet File Name(s)</system:String>
     <system:String x:Key="CopyNamingFormat">Copy naming format</system:String>
+    <system:String x:Key="OutputSection">Output</system:String>
+    <system:String x:Key="DeviceSection">Device</system:String>
+    <system:String x:Key="PdfOutputSection">PDF Output</system:String>
+    <system:String x:Key="PdfOptions">PDF Options</system:String>
+    <system:String x:Key="VariablePaperGuideText">For variable paper size, select sheets and assign print settings.</system:String>
+    <system:String x:Key="StatusTitle">pyMENVIC Print to PDF</system:String>
+    <system:String x:Key="OutputModeUnknown">Using: Unknown</system:String>
+    <system:String x:Key="OutputModeNative">Using Native PDF Export</system:String>
+    <system:String x:Key="OutputModeNativeOverrides">Using Native PDF Export + Overrides</system:String>
+    <system:String x:Key="OutputModePrinter">Using Printer / PrintManager</system:String>
 
     <system:String x:Key="PrintIndex">Print Index</system:String>
     <system:String x:Key="SheetNumber">Sheet Number</system:String>

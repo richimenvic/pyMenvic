@@ -185,17 +185,17 @@
                     <TextBlock Text="Schedule Browser"
                                FontSize="22"
                                FontWeight="SemiBold"/>
-                    <TextBlock Text="Preview schedule fields and export selected schedules to Excel"
-                               Margin="0,4,0,0"
+                    <TextBlock Text="Preview schedule fields and export or import schedule data with Excel"
+                                Margin="0,4,0,0"
                                Foreground="{StaticResource TextSecondary}"/>
                 </StackPanel>
 
                 <TextBlock x:Name="lblStatus"
-                           Grid.Column="1"
-                           VerticalAlignment="Center"
-                           Foreground="{StaticResource TextSecondary}"
-                           FontSize="13"
-                           Text="Schedules: 0 | Checked: 0 | Fields: 0"/>
+                        Grid.Column="1"
+                        VerticalAlignment="Center"
+                        Foreground="{StaticResource TextSecondary}"
+                        FontSize="13"
+                        Text="Schedules: 0 | Fields: 0"/>
             </Grid>
         </Border>
 
@@ -225,37 +225,25 @@
                                FontWeight="SemiBold"/>
 
                     <DockPanel Grid.Row="2" LastChildFill="True">
-                        <CheckBox x:Name="chkSelectAll"
+                        <!-- <CheckBox x:Name="chkSelectAll"
                                   Content="Select all"
                                   VerticalAlignment="Center"
-                                  Margin="0,0,12,0"/>
+                                  Margin="0,0,12,0"/> -->
                         <TextBox x:Name="txtSearchSchedules"
                                  Height="32"
                                  VerticalAlignment="Center"
                                  ToolTip="Search schedules"/>
                     </DockPanel>
 
-                    <ListBox x:Name="lstSchedules"
-                             Grid.Row="4"
-                             SelectionMode="Single">
+                     <ListBox x:Name="lstSchedules"
+                            Grid.Row="4"
+                            SelectionMode="Single">
                         <ListBox.ItemTemplate>
                             <DataTemplate>
-                                <Grid Margin="0">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="26"/>
-                                        <ColumnDefinition Width="*"/>
-                                    </Grid.ColumnDefinitions>
-
-                                    <CheckBox Grid.Column="0"
-                                              IsChecked="{Binding IsChecked}"
-                                              VerticalAlignment="Center"
-                                              HorizontalAlignment="Center"/>
-
-                                    <TextBlock Grid.Column="1"
-                                               Text="{Binding Name}"
-                                               TextTrimming="CharacterEllipsis"
-                                               VerticalAlignment="Center"/>
-                                </Grid>
+                                <TextBlock Text="{Binding Name}"
+                                        TextTrimming="CharacterEllipsis"
+                                        VerticalAlignment="Center"
+                                        Margin="6,2"/>
                             </DataTemplate>
                         </ListBox.ItemTemplate>
                     </ListBox>
@@ -318,6 +306,10 @@
                             Content="Refresh"
                             Width="100"
                             Margin="0,0,6,0"/>
+                    <Button x:Name="btnImportExcel"
+                            Content="Import Excel"
+                            Width="120"
+                            Margin="0,0,6,0"/>
                     <Button x:Name="btnExport"
                             Content="Export"
                             Width="120"
@@ -326,6 +318,7 @@
                             Content="Close"
                             Width="100"/>
                 </StackPanel>
+          
             </DockPanel>
         </Border>
     </Grid>
