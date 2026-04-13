@@ -1,0 +1,31 @@
+title:
+  en_us: Filter Manager
+  es_es: Gestor de Filtros
+
+tooltip:
+  en_us: |
+    Review, rename, and clean Revit filters from one place.
+  es_es: |
+    Revisa, renombra y limpia filtros de Revit desde un solo lugar.
+
+description:
+  en_us: >
+    Filter Manager helps you audit Revit parameter filters, spot duplicates,
+    review usage in views and templates, rename filters, and purge only
+    unused filters you explicitly select.
+  es_es: >
+    Gestor de Filtros te ayuda a revisar filtros de Revit, detectar
+    duplicados, ver su uso en vistas y templates, renombrar filtros y
+    eliminar solo los filtros sin uso que selecciones.
+
+author: Ricardo J. Mendieta | pyMENVIC
+version: 1.0.0
+help_url: https://www.menvic.com
+min_revit_version: 2020
+max_revit_version: 2026
+context: doc-project
+
+engine:
+  clean: true
+  fullframe: false
+  persistent: false

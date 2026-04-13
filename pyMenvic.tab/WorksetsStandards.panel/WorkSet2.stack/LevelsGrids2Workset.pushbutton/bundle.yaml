@@ -1,50 +1,45 @@
 title:
-  en_us: Levels + Grids to Workset
-  es_es: Niveles y Rejillas a Subproyecto
+  en_us: Levels + Grids to Standard Workset
+  es_es: Niveles y Rejillas a Subproyecto Estandar
 
 tooltip:
   en_us: |
-    Quickly moves all Levels and Grids in the project to a selected user workset to maintain project organization.
-    Levels + Grids to Workset is a pyMENVIC utility designed to automate 
-    the management of reference elements.
+    Reviews Levels, Grids and Scope Boxes against the selected discipline standard workset.
+    If the target standard workset does not exist yet, the tool can create it and then continue the review.
     _______________________________________________________________
     Key features:
-    - Mass Reassignment: Identifies every Level and Grid in the model for a single-action move.
-    - Intelligent Filtering: Scans all user-defined worksets and lets you pick the target.
-    - Status Audit: Reports exactly which elements were moved, which were already correct, and any that failed.
-    - Error Handling: Includes detailed reporting of ID and Category in case of locked or read-only elements.
+    - Standard Review: Checks Levels, Grids and Scope Boxes against the discipline target.
+    - Create Missing Standard: Offers to create the standard target workset when it is missing.
+    - Guided Reassignment: Lets you review grouped rows and apply only valid changes.
+    - Status Audit: Reports moved, skipped and failed elements after apply.
 
-    Ideal for setting up new projects or fixing visibility issues related to workset management.
+    Ideal for setting up discipline standards in new projects or correcting datum placement later.
   es_es: |
-    Mueve rápidamente todos los Niveles y Rejillas del proyecto al subproyecto (workset) seleccionado para mantener la organización del modelo.
+    Revisa Niveles, Rejillas y Scope Boxes contra el subproyecto estándar de la disciplina seleccionada.
+    Si el subproyecto estándar aún no existe, la herramienta puede crearlo y continuar con la revisión.
     _______________________________________________________________
-    Niveles y Rejillas a Subproyecto es una utilidad de pyMENVIC diseñada 
-    para automatizar la gestión de elementos de referencia.
+    Estandarizar Niveles y Rejillas es una utilidad de pyMENVIC diseñada 
+    para normalizar la ubicación de elementos de referencia.
 
     Características clave:
-    - Reasignación Masiva: Identifica cada Nivel y Rejilla en el modelo para moverlos en una sola acción.
-    - Filtrado Inteligente: Escanea todos los subproyectos de usuario y permite elegir el destino.
-    - Auditoría de Estado: Informa exactamente qué elementos se movieron, cuáles ya estaban correctos y cuáles fallaron.
-    - Gestión de Errores: Incluye un reporte detallado con ID y Categoría en caso de elementos bloqueados.
+    - Revisión Estándar: Verifica Niveles, Rejillas y Scope Boxes contra el destino de disciplina.
+    - Crear Estándar Faltante: Permite crear el subproyecto objetivo cuando aún no existe.
+    - Reasignación Guiada: Permite revisar filas agrupadas y aplicar solo cambios válidos.
+    - Auditoría de Estado: Informa elementos movidos, omitidos y fallidos al finalizar.
 
-    Ideal para configurar proyectos nuevos o solucionar problemas de visibilidad relacionados con subproyectos.
+    Ideal para configurar estándares en proyectos nuevos o corregir la ubicación de datums más adelante.
 
 description:
   en_us: >
-    Levels + Grids to Workset automates a common BIM coordination task: 
-    ensuring all reference datum is on the correct workset. It scans the 
-    entire project, allows the user to select from current user worksets, 
-    and performs the migration safely. The tool provides a final MENVIC 
-    report showing a summary of actions, including counts for reassigned, 
-    skipped, and failed elements.
+    This tool reviews Levels, Grids and Scope Boxes against the standard 
+    workset for the selected discipline. When the target standard does not 
+    exist, it can create it directly from the workflow, then let the user 
+    review grouped rows and apply the required changes safely.
   es_es: >
-    Niveles y Rejillas a Subproyecto automatiza una tarea común de coordinación 
-    BIM: asegurar que todas las referencias estén en el subproyecto correcto. 
-    Escanea todo el proyecto, permite al usuario seleccionar entre los 
-    subproyectos de usuario actuales y realiza la migración de forma segura. 
-    La herramienta proporciona un reporte final de MENVIC que muestra un 
-    resumen de acciones, incluyendo conteos de elementos reasignados, 
-    omitidos y fallidos.
+    Esta herramienta revisa Niveles, Rejillas y Scope Boxes contra el 
+    subproyecto estándar de la disciplina seleccionada. Cuando el estándar 
+    objetivo no existe, puede crearlo dentro del mismo flujo, luego permite 
+    revisar filas agrupadas y aplicar los cambios necesarios de forma segura.
 
 author: Ricardo J. Mendieta | pyMENVIC
 version: 1.0.0

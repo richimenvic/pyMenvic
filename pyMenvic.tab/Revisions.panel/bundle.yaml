@@ -1,10 +1,8 @@
 title:
   en_us: Revision
-  es: Revisiones
-  fr_fr: Modifier
-  de_de: Ändern
-  ru: Изменить
+  es_es: Revisiones
 layout:
-  - Revision1
-  - Revision2
-  - RevisionSheetSet
+  - PrintToPDF.pushbutton
+  - Revision1.stack
+  - Revision2.stack
+  - RevisionSheetSet.pushbutton

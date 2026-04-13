@@ -1,15 +1,15 @@
 # -*- coding: utf-8 -*-
 
-__title__ = "Workset Inspector"
+__title__ = "Levels + Grids to Standard Workset"
 __author__ = "Ricardo J. Mendieta"
 
 __doc__ = """
-WORKSET INSPECTOR
+LEVELS + GRIDS TO STANDARD WORKSET
 _____________________________________________________
 
 Description:
 
-Audits datum placement and inspects the contents of a selected workset.
+Moves Levels, Grids and related datum elements to the selected discipline standard workset.
 
 _____________________________________________________
 What the tool does:
@@ -44,7 +44,7 @@ clr.AddReference('System')
 clr.AddReference('System.Core')
 
 from System.Collections.ObjectModel import ObservableCollection
-from System.Windows import Window, MessageBox, MessageBoxButton, MessageBoxImage
+from System.Windows import Window, MessageBox, MessageBoxButton, MessageBoxImage, MessageBoxResult
 from System.Windows.Markup import XamlReader
 from System.IO import FileStream, FileMode, FileAccess
 from System.Windows.Media.Imaging import BitmapImage
@@ -56,7 +56,7 @@ from pyrevit import revit, DB, forms, script
 doc = revit.doc
 output = script.get_output()
 
-TOOL_NAME = 'WORKSET INSPECTOR'
+TOOL_NAME = 'LEVELS + GRIDS TO STANDARD WORKSET'
 DISCIPLINE_LABELS = ['ARCHITECTURE', 'STRUCTURE', 'MECHANICAL', 'ELECTRICAL', 'PLUMBING', 'SITE']
 DISCIPLINE_CODE_BY_LABEL = {
     'ARCHITECTURE': 'ARC',
@@ -218,6 +218,20 @@ def get_target_levels_grids_name(discipline_label):
 
 def get_missing_workset_message(workset_name):
     return 'Target workset not found in this model: {}'.format(workset_name)
+
+
+def create_workset(current_doc, workset_name):
+    if not workset_name:
+        raise Exception('Workset name is empty.')
+    t = DB.Transaction(current_doc, 'MENVIC - Create Workset')
+    t.Start()
+    try:
+        workset = DB.Workset.Create(current_doc, workset_name)
+        t.Commit()
+        return workset
+    except Exception:
+        t.RollBack()
+        raise
 
 def suggest_destination_name(discipline, elem, available_names):
     if not discipline:
@@ -486,9 +500,8 @@ class InspectorWindow(Window):
         for name in [
             'logoImage', 'discipline_combo', 'inspect_workset_combo',
             'levels_out_text', 'grids_out_text', 'scopeboxes_out_text',
-            'levels_total_text', 'grids_total_text', 'scopeboxes_total_text',
-            'rows_found_text', 'elements_found_text', 'ignored_found_text',
-            'warnings_count_text', 'status_text', 'results_grid', 'footer_text', 'show_omitted_checkbox',
+            'rows_found_text', 'warnings_count_text', 'status_text', 'totals_summary_text',
+            'results_grid', 'footer_text', 'show_omitted_checkbox',
             'scan_button', 'apply_all_button', 'close_button'
         ]:
             try:
@@ -515,6 +528,58 @@ class InspectorWindow(Window):
         self.close_button.Click += self.on_close
         self.discipline_combo.SelectionChanged += self.on_discipline_changed
 
+    def activate_window(self):
+        try:
+            if self.WindowState:
+                pass
+        except:
+            pass
+        try:
+            self.Activate()
+            self.Focus()
+        except:
+            pass
+
+    def show_message(self, text, title=None, image=MessageBoxImage.Information):
+        try:
+            MessageBox.Show(self, text, title or TOOL_NAME, MessageBoxButton.OK, image)
+        except:
+            forms.alert(text, title=title or TOOL_NAME)
+        self.activate_window()
+
+    def ask_yes_no(self, text, title=None, image=MessageBoxImage.Question):
+        try:
+            result = MessageBox.Show(self, text, title or TOOL_NAME, MessageBoxButton.YesNo, image)
+            self.activate_window()
+            return result == MessageBoxResult.Yes
+        except:
+            self.activate_window()
+            return False
+
+    def ensure_target_workset(self, workset_name):
+        if not workset_name:
+            return False
+
+        self.refresh_worksets()
+        if workset_name in self.ws_by_name:
+            return True
+
+        if not self.ask_yes_no(
+            'The standard target workset does not exist yet:\n\n{}\n\nDo you want to create it now?'.format(workset_name)
+        ):
+            return False
+
+        try:
+            create_workset(doc, workset_name)
+            self.refresh_worksets()
+            if self.inspect_workset_combo is not None:
+                self.inspect_workset_combo.SelectedItem = workset_name
+            self.show_message('Created workset: {}'.format(workset_name), image=MessageBoxImage.Information)
+            return True
+        except Exception as ex:
+            self.show_message(first_line(ex), image=MessageBoxImage.Error)
+            return False
+
     def _setup_ui(self):
         if self.discipline_combo is not None:
             self.discipline_combo.ItemsSource = DISCIPLINE_LABELS
@@ -530,12 +595,12 @@ class InspectorWindow(Window):
     def clear_stats(self):
         for control in [
             self.levels_out_text, self.grids_out_text, self.scopeboxes_out_text,
-            self.levels_total_text, self.grids_total_text, self.scopeboxes_total_text,
-            self.rows_found_text, self.elements_found_text, self.ignored_found_text,
-            self.warnings_count_text
+            self.rows_found_text, self.warnings_count_text
         ]:
             if control is not None:
                 control.Text = '0'
+        if self.totals_summary_text is not None:
+            self.totals_summary_text.Text = 'Totals: Levels 0 | Grids 0 | Scope Boxes 0'
 
     def get_selected_discipline(self):
         try:
@@ -592,6 +657,9 @@ class InspectorWindow(Window):
                 self.rows.Add(row)
 
     def on_show_omitted_changed(self, sender, args):
+        if self.get_show_omitted() and not self.all_rows:
+            self.on_scan(sender, args)
+            return
         self.repopulate_rows(self.all_rows)
 
     def on_scan(self, sender, args):
@@ -601,11 +669,17 @@ class InspectorWindow(Window):
             selected_workset = self.get_selected_workset()
 
             if not discipline:
-                forms.alert('Select a discipline first.', title=TOOL_NAME)
+                self.show_message('Select a discipline first.', image=MessageBoxImage.Warning)
                 return
             if not selected_workset:
-                forms.alert('Select a workset to inspect.', title=TOOL_NAME)
+                self.show_message('Select a workset to inspect.', image=MessageBoxImage.Warning)
                 return
+
+            if selected_workset not in self.ws_by_name:
+                created = self.ensure_target_workset(selected_workset)
+                self.refresh_worksets()
+                if created:
+                    selected_workset = self.get_selected_workset()
 
             project_audit = audit_project(discipline, self.ws_names)
             scan_rows, ignored_count, warnings = inspect_workset(discipline, selected_workset, self.ws_names)
@@ -622,15 +696,10 @@ class InspectorWindow(Window):
                 else:
                     visible_rows += 1
 
-            self.levels_total_text.Text = str(project_audit['levels_total'])
-            self.grids_total_text.Text = str(project_audit['grids_total'])
-            self.scopeboxes_total_text.Text = str(project_audit['scope_boxes_total'])
             self.levels_out_text.Text = str(project_audit['levels_out'])
             self.grids_out_text.Text = str(project_audit['grids_out'])
             self.scopeboxes_out_text.Text = str(project_audit['scope_boxes_out'])
             self.rows_found_text.Text = str(visible_rows)
-            self.elements_found_text.Text = str(element_count)
-            self.ignored_found_text.Text = str(ignored_count)
             self.warnings_count_text.Text = str(len(warnings))
 
             status = 'Scan complete'
@@ -640,12 +709,18 @@ class InspectorWindow(Window):
             elif warnings:
                 status = warnings[0]
             if self.status_text is not None:
-                self.status_text.Text = status
+                self.status_text.Text = '{} | Elements: {} | Ignored: {}'.format(status, element_count, ignored_count)
+            if self.totals_summary_text is not None:
+                self.totals_summary_text.Text = 'Totals: Levels {} | Grids {} | Scope Boxes {}'.format(
+                    project_audit['levels_total'],
+                    project_audit['grids_total'],
+                    project_audit['scope_boxes_total']
+                )
             if self.footer_text is not None:
                 self.footer_text.Text = 'Discipline: {} | Workset: {} | Visible rows: {} | Omitted rows: {}'.format(discipline, selected_workset, visible_rows, omitted_rows)
 
         except Exception as ex:
-            forms.alert(first_line(ex), title=TOOL_NAME)
+            self.show_message(first_line(ex), image=MessageBoxImage.Error)
             if self.status_text is not None:
                 self.status_text.Text = 'Scan failed'
 
@@ -667,7 +742,7 @@ class InspectorWindow(Window):
 
     def apply_rows(self, rows_to_apply):
         if not rows_to_apply:
-            forms.alert('No valid Apply rows are ready to move.', title=TOOL_NAME)
+            self.show_message('No valid Apply rows are ready to move.', image=MessageBoxImage.Warning)
             return
 
         moved = 0
@@ -712,7 +787,10 @@ class InspectorWindow(Window):
             raise
 
         self.status_text.Text = 'Moved: {} | Skipped: {} | Failed: {}'.format(moved, skipped, failed)
-        forms.alert('Apply complete.\n\nMoved: {}\nSkipped: {}\nFailed: {}'.format(moved, skipped, failed), title=TOOL_NAME)
+        self.show_message(
+            'Apply complete.\n\nMoved: {}\nSkipped: {}\nFailed: {}'.format(moved, skipped, failed),
+            image=MessageBoxImage.Information
+        )
 
         if fail_rows:
             output.print_md('## Workset Inspector - Failures')
@@ -720,13 +798,16 @@ class InspectorWindow(Window):
                 table_data=fail_rows,
                 columns=['Element', 'Category', 'Type', 'Reason']
             )
+            self.activate_window()
+
+        self.on_scan(None, None)
 
     def on_apply_all(self, sender, args):
         try:
             rows_to_apply = self.collect_rows_to_apply()
             self.apply_rows(rows_to_apply)
         except Exception as ex:
-            forms.alert(first_line(ex), title=TOOL_NAME)
+            self.show_message(first_line(ex), image=MessageBoxImage.Error)
 
     def on_close(self, sender, args):
         self.Close()

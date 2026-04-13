@@ -1703,54 +1703,62 @@ def run_import_preview(xlsx_path):
         release_com_object(workbooks)
         release_com_object(excel_app)
 
+def get_schedule_field_export_value(element, field_info):
+    if element is None or field_info is None:
+        return ""
+
+    metadata = field_info.get("metadata") or {}
+    param, origin = get_parameter_from_metadata(element, metadata)
+    if param is None:
+        return ""
+
+    return get_parameter_preview_value(param)
+
+
+
+def build_export_rows_from_schedule_elements(schedule, visible_fields):
+    rows = []
+    elements = get_schedule_elements(schedule)
+
+    for element in elements:
+        if element is None:
+            continue
+
+        row = []
+
+        try:
+            row.append(safe_text(element.UniqueId))
+        except Exception:
+            row.append("")
+
+        try:
+            row.append(safe_text(element.Id.IntegerValue))
+        except Exception:
+            row.append("")
+
+        for field_info in visible_fields:
+            row.append(get_schedule_field_export_value(element, field_info))
+
+        rows.append(row)
+
+    return rows, len(elements)
+
+def row_has_schedule_payload(row_values):
+    if not row_values:
+        return False
+
+    for value in row_values[2:]:
+        if normalize_text(value):
+            return True
+
+    return False
+
+
+
 def export_schedule_to_xlsx(schedule, full_path):
-    original_visible_fields = get_visible_schedule_fields(schedule)
-    csv_path = export_schedule_to_temp_csv(schedule)
-    csv_rows = read_csv_rows(csv_path)
-
-    if not csv_rows:
-        raise Exception("The schedule export returned no rows.")
-
-    header_row_index = find_header_row(csv_rows)
-    if header_row_index < 0:
-        raise Exception("Could not detect the header row in the exported CSV.")
-
-    csv_headers = csv_rows[header_row_index]
-    csv_headers = [normalize_text(x) for x in csv_headers]
-
-    csv_data_rows = []
-    skipped_group_rows = 0
-
-    for row in csv_rows[header_row_index + 1:]:
-        cleaned = [normalize_text(x) for x in row]
-
-        if not any(cleaned):
-            continue
-
-        if not row_has_real_schedule_content(cleaned, csv_headers):
-            skipped_group_rows += 1
-            continue
-
-        csv_data_rows.append(cleaned)
-
-    if not csv_headers:
-        raise Exception("No headers were found in the exported CSV.")
-
-    element_id_csv_index = find_element_id_column_index(csv_headers)
-
-    id_source = "None"
-    schedule_element_count = 0
-    has_valid_element_ids = False
-
-    if element_id_csv_index >= 0:
-        element_id_values = build_element_id_values_from_rows(csv_data_rows, element_id_csv_index)
-        unique_id_values, has_valid_element_ids = build_unique_id_map_from_rows(csv_data_rows, element_id_csv_index)
-        id_source = "CSV"
-    else:
-        element_id_values, unique_id_values, has_valid_element_ids, schedule_element_count = build_id_data_from_schedule_elements(
-            schedule,
-            len(csv_data_rows)
-        )
+    visible_fields = get_visible_schedule_fields(schedule)
+    if not visible_fields:
+        raise Exception("No visible fields were found in the selected schedule.")
 
     final_headers = ["UniqueId", "ElementId"]
     export_columns = [
@@ -1780,58 +1788,34 @@ def export_schedule_to_xlsx(schedule, full_path):
         }
     ]
 
-    orig_index = 0
-    for i, header in enumerate(csv_headers):
-        if i == element_id_csv_index:
-            continue
+    for field_info in visible_fields:
+        md = dict(field_info.get("metadata", {}))
+        final_headers.append(field_info.get("name", ""))
+        export_columns.append({
+            "ExcelIndex": len(export_columns) + 1,
+            "Name": field_info.get("name", ""),
+            "Status": md.get("Status", "Unknown"),
+            "Origin": md.get("Origin", "Special"),
+            "Editable": md.get("Editable", "Unknown"),
+            "ScheduleId": md.get("ScheduleId", ""),
+            "UsedParams": md.get("UsedParams", []),
+            "FieldIndex": md.get("FieldIndex", ""),
+            "ColumnRole": "ScheduleField",
+            "Hidden": False
+        })
 
-        final_headers.append(header)
+    all_rows, schedule_element_count = build_export_rows_from_schedule_elements(
+        schedule,
+        visible_fields
+    )
 
-        if orig_index < len(original_visible_fields):
-            md = dict(original_visible_fields[orig_index]["metadata"])
-            export_columns.append({
-                "ExcelIndex": len(export_columns) + 1,
-                "Name": header,
-                "Status": md.get("Status", "Unknown"),
-                "Origin": md.get("Origin", "Special"),
-                "Editable": md.get("Editable", "Unknown"),
-                "ScheduleId": md.get("ScheduleId", ""),
-                "UsedParams": md.get("UsedParams", []),
-                "FieldIndex": md.get("FieldIndex", ""),
-                "ColumnRole": "ScheduleField",
-                "Hidden": False
-            })
-            orig_index += 1
-        else:
-            export_columns.append({
-                "ExcelIndex": len(export_columns) + 1,
-                "Name": header,
-                "Status": "Unknown",
-                "Origin": "Special",
-                "Editable": "Unknown",
-                "ScheduleId": "",
-                "UsedParams": [],
-                "FieldIndex": "",
-                "ColumnRole": "ScheduleField",
-                "Hidden": False
-            })
+    final_rows = [row for row in all_rows if row_has_schedule_payload(row)]
 
-    final_rows = []
-    for r, row in enumerate(csv_data_rows):
-        new_row = []
-
-        unique_id = unique_id_values[r] if r < len(unique_id_values) else ""
-        new_row.append(unique_id)
-
-        element_id_value = element_id_values[r] if r < len(element_id_values) else ""
-        new_row.append(element_id_value)
-
-        for i, cell in enumerate(row):
-            if i == element_id_csv_index:
-                continue
-            new_row.append(cell)
-
-        final_rows.append(new_row)
+    has_valid_element_ids = False
+    for row in final_rows:
+        if len(row) > 1 and normalize_text(row[1]):
+            has_valid_element_ids = True
+            break
 
     metadata_row = []
     for col in export_columns:
@@ -1846,7 +1830,6 @@ def export_schedule_to_xlsx(schedule, full_path):
             "ColumnRole": col.get("ColumnRole", ""),
             "Hidden": col.get("Hidden", False)
         }, separators=(",", ":")))
-
 
     excel_app = None
     workbooks = None
@@ -1886,7 +1869,7 @@ def export_schedule_to_xlsx(schedule, full_path):
                 if role in ("UniqueId", "ElementId"):
                     cell.Locked = True
                 else:
-                    cell.Locked = editable != "Yes"
+                    cell.Locked = editable == "No"
 
         meta_row_range = data_sheet.Range[data_sheet.Cells[1, 1], data_sheet.Cells[1, total_cols]]
         meta_row_range.Font.Color = 0x808080
@@ -1906,6 +1889,7 @@ def export_schedule_to_xlsx(schedule, full_path):
 
             header_cell = data_sheet.Cells[2, c]
             header_cell.Font.Bold = True
+            header_cell.Locked = False
 
             if role == "ElementId":
                 header_cell.Font.Color = 0x000000
@@ -1942,8 +1926,7 @@ def export_schedule_to_xlsx(schedule, full_path):
 
         used_range = data_sheet.Range[data_sheet.Cells[2, 1], data_sheet.Cells[last_data_row, total_cols]]
         used_range.Borders.LineStyle = 1
-
-        data_sheet.Rows["2:2"].AutoFilter()
+        used_range.AutoFilter()
         fit_export_columns(data_sheet, export_columns, 8, 40, last_data_row)
 
         try:
@@ -1960,7 +1943,7 @@ def export_schedule_to_xlsx(schedule, full_path):
                 False,
                 True,
                 True,
-                False,
+                True,
                 False,
                 False,
                 False,
@@ -1971,7 +1954,10 @@ def export_schedule_to_xlsx(schedule, full_path):
                 False
             )
         except Exception:
-            data_sheet.Protect("pyMenvic", True, True)
+            try:
+                data_sheet.Protect("pyMenvic", True, True, True)
+            except Exception:
+                data_sheet.Protect("pyMenvic")
 
         schema_sheet = workbook.Worksheets.Add()
         schema_sheet.Name = "Schema"
@@ -2034,12 +2020,7 @@ def export_schedule_to_xlsx(schedule, full_path):
         workbook.Close(True)
         excel_app.Quit()
 
-        try:
-            os.remove(csv_path)
-        except Exception:
-            pass
-
-        return full_path, has_valid_element_ids, id_source, len(csv_data_rows), schedule_element_count, skipped_group_rows
+        return full_path, has_valid_element_ids, "ScheduleElements", len(final_rows), schedule_element_count, 0
 
     finally:
         release_com_object(schema_sheet)
@@ -2212,10 +2193,12 @@ class ScheduleBrowserWindow(forms.WPFWindow):
         if id_source == "CSV":
             if not has_valid_ids:
                 message += "\n\nWarning:\nElementId was found in the export, but UniqueId could not be resolved from the rows."
+        elif id_source == "ScheduleElements":
+            message += "\n\nIdentifiers:\nRows were exported directly from schedule elements using the schedule field definition."
+            message += "\nExported rows: {}".format(data_row_count)
         else:
             message += "\n\nWarning:\nNo reliable ElementId / UniqueId source was found for this schedule."
             if schedule_element_count > 0:
-                message += "\nThe fallback by schedule row order was disabled to avoid assigning IDs to the wrong elements."
                 message += "\nSchedule elements detected: {}".format(schedule_element_count)
 
         try:
@@ -2245,6 +2228,9 @@ if not os.path.exists(XAML_PATH):
 
 window = ScheduleBrowserWindow(XAML_PATH)
 window.ShowDialog()
+
+
+
 
 
 
