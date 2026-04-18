@@ -1,0 +1,64 @@
+title:
+  en_us: Seed Worksets
+  es_es: Crear Worksets Base
+
+tooltip:
+  en_us: |
+    Creates missing standard worksets for the selected discipline using a Simple or Extended office profile.
+    Seed Worksets is a pyMENVIC production tool designed to initialize a clean,
+    consistent workset structure at the start of a project.
+    _______________________________________________________________
+    The tool allows you to:
+    - Choose the discipline to seed.
+    - Select between Simple and Extended profile.
+    - Optionally include Coordination and Link worksets.
+    - Preview the target list before creating anything.
+
+    The script is idempotent and only creates missing worksets.
+    Existing worksets are preserved and never duplicated.
+  es_es: |
+    Crea los worksets estándar faltantes para la disciplina seleccionada usando un perfil Simple o Extended.
+    Seed Worksets es una herramienta de producción de pyMENVIC diseñada para inicializar una estructura de worksets limpia y consistente al inicio del proyecto.
+    _______________________________________________________________
+    La herramienta permite:
+    - Elegir la disciplina a sembrar.
+    - Seleccionar entre perfil Simple o Extended.
+    - Incluir opcionalmente worksets de Coordinación y Links.
+    - Revisar la lista objetivo antes de crear.
+
+    El script es idempotente y solo crea worksets faltantes.
+    Los worksets existentes se conservan y no se duplican.
+
+description:
+  en_us: >
+    Seed Worksets is a pyMENVIC setup tool that creates missing standard
+    worksets for a selected discipline using office-defined profiles.
+
+    It provides a lightweight UI with profile selection, optional
+    coordination and link worksets, and a preview of the target list before
+    creation. The tool is intended for project startup and safe repeated use.
+  es_es: >
+    Seed Worksets es una herramienta de configuración de pyMENVIC que crea
+    los worksets estándar faltantes para una disciplina seleccionada usando
+    perfiles definidos por oficina.
+
+    Proporciona una interfaz ligera con selección de perfil, inclusión
+    opcional de worksets de coordinación y links, y una vista previa de la
+    lista objetivo antes de crear. Está pensada para el arranque del proyecto
+    y para ejecutarse de forma segura repetidas veces.
+
+author: Ricardo J. Mendieta | pyMENVIC
+version: 1.0.0
+# highlight: NEW
+
+help_url: https://www.menvic.com
+
+min_revit_version: 2020
+max_revit_version: 2026
+
+context: doc-project
+
+engine:
+  clean: true
+  fullframe: false
+  persistent: false

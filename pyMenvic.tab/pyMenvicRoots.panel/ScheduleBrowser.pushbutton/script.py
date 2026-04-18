@@ -207,6 +207,144 @@ def get_schedule_name(schedule):
 
     return "Unnamed Schedule"
 
+def get_parameter_builtin_id_value(param):
+    if param is None:
+        return None
+
+    try:
+        pid = getattr(param, "Id", None)
+        if pid is None:
+            return None
+        return pid.IntegerValue
+    except Exception:
+        return None
+
+
+
+def is_yesno_parameter_safe(param):
+    if param is None:
+        return False
+
+    try:
+        definition = getattr(param, "Definition", None)
+        if definition is None:
+            return False
+
+        get_data_type = getattr(definition, "GetDataType", None)
+        if get_data_type is None:
+            return False
+
+        data_type = get_data_type()
+        if data_type is None:
+            return False
+
+        type_id = safe_text(getattr(data_type, "TypeId", "")).lower()
+        if "yesno" in type_id or "spec.bool" in type_id or "spec.boolean" in type_id:
+            return True
+    except Exception:
+        pass
+
+    return False
+
+
+
+def try_parse_yesno_value(value):
+    text = normalize_text(value).lower()
+    if text in ("1", "true", "yes", "y", "si", "sí", "x"):
+        return 1
+    if text in ("0", "false", "no", "n", ""):
+        return 0
+    return None
+
+
+
+def get_parameter_unit_type_id(param):
+    if param is None:
+        return None
+
+    try:
+        definition = getattr(param, "Definition", None)
+        if definition is None:
+            return None
+
+        get_data_type = getattr(definition, "GetDataType", None)
+        if get_data_type is None:
+            return None
+
+        data_type = get_data_type()
+        if data_type is None:
+            return None
+
+        is_measurable_spec = getattr(DB.UnitUtils, "IsMeasurableSpec", None)
+        if is_measurable_spec is None or not is_measurable_spec(data_type):
+            return None
+
+        format_options = doc.GetUnits().GetFormatOptions(data_type)
+        if format_options is None:
+            return None
+
+        return format_options.GetUnitTypeId()
+    except Exception:
+        return None
+
+
+
+def try_resolve_workset_id(value):
+    text = normalize_text(value)
+    if not text:
+        return None
+
+    try:
+        collector = DB.FilteredWorksetCollector(doc)
+        for workset in collector:
+            try:
+                if normalize_text(workset.Name) == text:
+                    return workset.Id.IntegerValue
+            except Exception:
+                continue
+    except Exception:
+        pass
+
+    return None
+
+
+
+def try_resolve_elementid_by_name(param, value):
+    if param is None:
+        return None
+
+    text = normalize_text(value)
+    if not text:
+        return DB.ElementId.InvalidElementId
+
+    try:
+        return DB.ElementId(int(float(text)))
+    except Exception:
+        pass
+
+    try:
+        current_ref = doc.GetElement(param.AsElementId())
+        if current_ref is None:
+            return None
+
+        category = getattr(current_ref, "Category", None)
+        if category is None:
+            return None
+
+        collector = DB.FilteredElementCollector(doc).OfCategoryId(category.Id)
+        for element in collector:
+            try:
+                if normalize_text(getattr(element, "Name", "")) == text:
+                    return element.Id
+            except Exception:
+                continue
+    except Exception:
+        pass
+
+    return None
+
+
+
 def set_parameter_value(param, value):
     if param is None:
         return False
@@ -233,6 +371,18 @@ def set_parameter_value(param, value):
             if value == "":
                 return False
 
+            param_id_value = get_parameter_builtin_id_value(param)
+            if param_id_value == int(DB.BuiltInParameter.ELEM_PARTITION_PARAM):
+                workset_id_value = try_resolve_workset_id(value)
+                if workset_id_value is not None:
+                    param.Set(workset_id_value)
+                    return True
+
+            yesno_value = try_parse_yesno_value(value) if is_yesno_parameter_safe(param) else None
+            if yesno_value is not None:
+                param.Set(yesno_value)
+                return True
+
             try:
                 if param.SetValueString(value):
                     return True
@@ -252,21 +402,26 @@ def set_parameter_value(param, value):
             except Exception:
                 pass
 
+            unit_type_id = get_parameter_unit_type_id(param)
+            if unit_type_id is not None:
+                param.Set(DB.UnitUtils.ConvertToInternalUnits(float(value), unit_type_id))
+                return True
+
             param.Set(float(value))
             return True
 
         if storage_type == DB.StorageType.ElementId:
-            if value == "":
-                param.Set(DB.ElementId.InvalidElementId)
-            else:
-                param.Set(DB.ElementId(int(float(value))))
+            target_id = try_resolve_elementid_by_name(param, value)
+            if target_id is None:
+                return False
+
+            param.Set(target_id)
             return True
 
     except Exception:
         return False
 
     return False
-
 
 def run_import_apply(xlsx_path):
     excel_app = None
@@ -1356,28 +1511,99 @@ def get_parameter_preview_value(param):
     return ""
 
 
+def find_parameter_by_name(element, target_name):
+    if element is None:
+        return None
+
+    name_text = normalize_text(target_name)
+    if not name_text:
+        return None
+
+    try:
+        param = element.LookupParameter(name_text)
+        if param is not None:
+            return param
+    except Exception:
+        pass
+
+    normalized_target = normalize_header(name_text)
+
+    try:
+        for param in element.Parameters:
+            try:
+                if param is None:
+                    continue
+
+                definition = getattr(param, "Definition", None)
+                if definition is None:
+                    continue
+
+                def_name = normalize_text(getattr(definition, "Name", ""))
+                if not def_name:
+                    continue
+
+                if def_name == name_text:
+                    return param
+
+                if normalize_header(def_name) == normalized_target:
+                    return param
+            except Exception:
+                continue
+    except Exception:
+        pass
+
+    return None
+
+
+def find_parameter_from_metadata_name(element, metadata):
+    if element is None or metadata is None:
+        return None, None
+
+    candidate_names = []
+
+    try:
+        candidate_names.append(metadata.get("Name", ""))
+    except Exception:
+        pass
+
+    for candidate_name in candidate_names:
+        param = find_parameter_by_name(element, candidate_name)
+        if param is not None:
+            return param, "Instance"
+
+    type_element = get_type_element(element)
+    for candidate_name in candidate_names:
+        param = find_parameter_by_name(type_element, candidate_name)
+        if param is not None:
+            return param, "Type"
+
+    return None, None
+
+
 def get_parameter_from_metadata(element, metadata):
     if element is None or metadata is None:
         return None, None
 
     used_params = metadata.get("UsedParams", [])
-    if not used_params:
-        return None, None
+    for used_param in used_params:
+        parameter_id_value = None
+        try:
+            parameter_id_value = int(used_param)
+        except Exception:
+            continue
 
-    parameter_id_value = None
-    try:
-        parameter_id_value = int(used_params[0])
-    except Exception:
-        return None, None
+        param = find_parameter_on_element(element, parameter_id_value)
+        if param is not None:
+            return param, "Instance"
 
-    param = find_parameter_on_element(element, parameter_id_value)
+        type_element = get_type_element(element)
+        param = find_parameter_on_element(type_element, parameter_id_value)
+        if param is not None:
+            return param, "Type"
+
+    param, origin = find_parameter_from_metadata_name(element, metadata)
     if param is not None:
-        return param, "Instance"
-
-    type_element = get_type_element(element)
-    param = find_parameter_on_element(type_element, parameter_id_value)
-    if param is not None:
-        return param, "Type"
+        return param, origin
 
     return None, None
 
@@ -1934,30 +2160,7 @@ def export_schedule_to_xlsx(schedule, full_path):
         except Exception:
             pass
 
-        try:
-            data_sheet.Protect(
-                "pyMenvic",
-                True,
-                True,
-                True,
-                False,
-                True,
-                True,
-                True,
-                False,
-                False,
-                False,
-                False,
-                False,
-                True,
-                True,
-                False
-            )
-        except Exception:
-            try:
-                data_sheet.Protect("pyMenvic", True, True, True)
-            except Exception:
-                data_sheet.Protect("pyMenvic")
+        # Leave the worksheet unprotected so Excel sorting, filtering, and free-form edits work normally.
 
         schema_sheet = workbook.Worksheets.Add()
         schema_sheet.Name = "Schema"
@@ -2228,6 +2431,8 @@ if not os.path.exists(XAML_PATH):
 
 window = ScheduleBrowserWindow(XAML_PATH)
 window.ShowDialog()
+
+
 
 
 
