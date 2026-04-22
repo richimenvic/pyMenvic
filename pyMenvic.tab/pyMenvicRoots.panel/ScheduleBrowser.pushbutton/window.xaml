@@ -1,123 +1,160 @@
 <Window
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    Title="Schedule Browser"
-    Height="720"
-    Width="1180"
-    MinHeight="620"
-    MinWidth="980"
+    Title="SheetLink - pyMENVIC"
+    Height="760"
+    Width="1380"
+    MinHeight="720"
+    MinWidth="1180"
     WindowStartupLocation="CenterScreen"
     ResizeMode="CanResize"
-    Background="#252526"
-    Foreground="White">
+    Background="#ECECEC"
+    Foreground="#2E2E2E"
+    FontFamily="Segoe UI"
+    TextOptions.TextFormattingMode="Display"
+    TextOptions.TextRenderingMode="Auto"
+    UseLayoutRounding="True"
+    SnapsToDevicePixels="True">
 
     <Window.Resources>
-        <SolidColorBrush x:Key="BgMain" Color="#252526"/>
-        <SolidColorBrush x:Key="BgPanel" Color="#2D2D30"/>
-        <SolidColorBrush x:Key="BgPanel2" Color="#314854"/>
-        <SolidColorBrush x:Key="BgGrid" Color="#3B4453"/>
-        <SolidColorBrush x:Key="BorderBrushDark" Color="#3F3F46"/>
-        <SolidColorBrush x:Key="GridLineBrush" Color="#4A4A4A"/>
-        <SolidColorBrush x:Key="TextPrimary" Color="#FFFFFF"/>
-        <SolidColorBrush x:Key="TextSecondary" Color="#D7DEE3"/>
-        <SolidColorBrush x:Key="TextMuted" Color="#9A9A9A"/>
-        <SolidColorBrush x:Key="AccentBlue" Color="#6D97AE"/>
-        <SolidColorBrush x:Key="AccentBlueHover" Color="#5D8194"/>
-        <SolidColorBrush x:Key="SelectionBrush" Color="#5B8AA3"/>
-        <SolidColorBrush x:Key="HoverBrush" Color="#3E5A6B"/>
-        <SolidColorBrush x:Key="GreenBtn" Color="#74B95E"/>
-        <SolidColorBrush x:Key="GreenBtnHover" Color="#689F54"/>
-        <SolidColorBrush x:Key="DisabledBtn" Color="#555555"/>
-
-        <SolidColorBrush x:Key="EditableYesBrush" Color="#365B3A"/>
-        <SolidColorBrush x:Key="EditableNoBrush" Color="#5B3A3A"/>
-        <SolidColorBrush x:Key="EditableUnknownBrush" Color="#4D4D4D"/>
+        <SolidColorBrush x:Key="WindowBg" Color="#ECECEC"/>
+        <SolidColorBrush x:Key="PanelBg" Color="#FCFCFC"/>
+        <SolidColorBrush x:Key="BorderBrushMain" Color="#A9A9A9"/>
+        <SolidColorBrush x:Key="HeaderBg" Color="#F1F1F1"/>
+        <SolidColorBrush x:Key="TabBg" Color="#D8D8D8"/>
+        <SolidColorBrush x:Key="TabActiveBg" Color="#F8F8F8"/>
+        <SolidColorBrush x:Key="AccentGold" Color="#F3C86A"/>
+        <SolidColorBrush x:Key="AccentGoldDark" Color="#D6A84F"/>
+        <SolidColorBrush x:Key="ProgressBg" Color="#FFFFFF"/>
+        <SolidColorBrush x:Key="TextPrimary" Color="#2E2E2E"/>
+        <SolidColorBrush x:Key="TextSecondary" Color="#595959"/>
+        <SolidColorBrush x:Key="TextMuted" Color="#888888"/>
+        <SolidColorBrush x:Key="ActionBg" Color="#F5F5F5"/>
+        <SolidColorBrush x:Key="ActionHover" Color="#EBEBEB"/>
+        <SolidColorBrush x:Key="WarningBg" Color="#FFEAA8"/>
+        <SolidColorBrush x:Key="ImportBg" Color="#A6DB73"/>
+        <SolidColorBrush x:Key="ImportHover" Color="#97CD65"/>
+        <SolidColorBrush x:Key="ExportBg" Color="#9FDC71"/>
+        <SolidColorBrush x:Key="ExportHover" Color="#8ECE63"/>
+        <SolidColorBrush x:Key="SelectionBg" Color="#BFE4F8"/>
+        <SolidColorBrush x:Key="InstanceBg" Color="#EEFAD7"/>
+        <SolidColorBrush x:Key="TypeBg" Color="#F9F1C9"/>
+        <SolidColorBrush x:Key="ReadOnlyBg" Color="#F7D9D3"/>
+        <SolidColorBrush x:Key="UnknownBg" Color="#F3F3F3"/>
+        <SolidColorBrush x:Key="GridLineBrush" Color="#D6D6D6"/>
 
         <Style TargetType="TextBlock">
             <Setter Property="Foreground" Value="{StaticResource TextPrimary}"/>
             <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="TextOptions.TextFormattingMode" Value="Display"/>
+            <Setter Property="TextOptions.TextRenderingMode" Value="Auto"/>
         </Style>
 
         <Style TargetType="TextBox">
-            <Setter Property="Background" Value="#1F1F22"/>
+            <Setter Property="Background" Value="#FFFFFF"/>
             <Setter Property="Foreground" Value="{StaticResource TextPrimary}"/>
-            <Setter Property="BorderBrush" Value="{StaticResource BorderBrushDark}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource BorderBrushMain}"/>
             <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="Padding" Value="8,6"/>
-            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Padding" Value="6,3"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="TextOptions.TextFormattingMode" Value="Display"/>
+            <Setter Property="TextOptions.TextRenderingMode" Value="Auto"/>
         </Style>
 
         <Style TargetType="Button">
             <Setter Property="Foreground" Value="{StaticResource TextPrimary}"/>
-            <Setter Property="Background" Value="{StaticResource AccentBlue}"/>
-            <Setter Property="BorderBrush" Value="{StaticResource BorderBrushDark}"/>
+            <Setter Property="Background" Value="{StaticResource ActionBg}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource BorderBrushMain}"/>
             <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="Padding" Value="14,8"/>
-            <Setter Property="Margin" Value="6,0,0,0"/>
+            <Setter Property="Padding" Value="8,4"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="TextOptions.TextFormattingMode" Value="Display"/>
+            <Setter Property="TextOptions.TextRenderingMode" Value="Auto"/>
+            <Setter Property="RenderOptions.ClearTypeHint" Value="Enabled"/>
             <Setter Property="Cursor" Value="Hand"/>
-            <Setter Property="FontSize" Value="13"/>
             <Style.Triggers>
                 <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="{StaticResource AccentBlueHover}"/>
+                    <Setter Property="Background" Value="{StaticResource ActionHover}"/>
                 </Trigger>
                 <Trigger Property="IsEnabled" Value="False">
-                    <Setter Property="Background" Value="{StaticResource DisabledBtn}"/>
                     <Setter Property="Foreground" Value="{StaticResource TextMuted}"/>
+                    <Setter Property="Background" Value="#EAEAEA"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="NavButtonStyle" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+            <Setter Property="Background" Value="{StaticResource TabBg}"/>
+            <Setter Property="Padding" Value="9,3"/>
+            <Setter Property="Margin" Value="0,0,1,0"/>
+            <Setter Property="MinWidth" Value="102"/>
+            <Setter Property="Height" Value="28"/>
+        </Style>
+
+        <Style x:Key="ImportButtonStyle" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+            <Setter Property="Background" Value="{StaticResource ImportBg}"/>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="{StaticResource ImportHover}"/>
                 </Trigger>
             </Style.Triggers>
         </Style>
 
         <Style x:Key="ExportButtonStyle" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
-            <Setter Property="Background" Value="{StaticResource GreenBtn}"/>
+            <Setter Property="Background" Value="{StaticResource ExportBg}"/>
             <Style.Triggers>
                 <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="{StaticResource GreenBtnHover}"/>
-                </Trigger>
-                <Trigger Property="IsEnabled" Value="False">
-                    <Setter Property="Background" Value="{StaticResource DisabledBtn}"/>
-                    <Setter Property="Foreground" Value="{StaticResource TextMuted}"/>
+                    <Setter Property="Background" Value="{StaticResource ExportHover}"/>
                 </Trigger>
             </Style.Triggers>
         </Style>
 
+        <Style x:Key="ActionButtonStyle" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+            <Setter Property="Background" Value="#FFFFFF"/>
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="BorderBrush" Value="{StaticResource BorderBrushMain}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+        </Style>
+
         <Style TargetType="CheckBox">
             <Setter Property="Foreground" Value="{StaticResource TextPrimary}"/>
-            <Setter Property="Margin" Value="2"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="FontFamily" Value="Segoe UI"/>
             <Setter Property="VerticalAlignment" Value="Center"/>
         </Style>
 
         <Style TargetType="ListBox">
-            <Setter Property="Background" Value="{StaticResource BgPanel}"/>
-            <Setter Property="Foreground" Value="{StaticResource TextPrimary}"/>
-            <Setter Property="BorderBrush" Value="{StaticResource BorderBrushDark}"/>
+            <Setter Property="Background" Value="#FFFFFF"/>
+            <Setter Property="BorderBrush" Value="{StaticResource BorderBrushMain}"/>
             <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="Padding" Value="4"/>
+            <Setter Property="Foreground" Value="{StaticResource TextPrimary}"/>
+            <Setter Property="Padding" Value="0"/>
         </Style>
 
         <Style TargetType="ListBoxItem">
-            <Setter Property="Padding" Value="6"/>
-            <Setter Property="Margin" Value="0,0,0,2"/>
-            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Padding" Value="6,3"/>
             <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+            <Setter Property="Background" Value="Transparent"/>
             <Style.Triggers>
                 <Trigger Property="IsSelected" Value="True">
-                    <Setter Property="Background" Value="{StaticResource SelectionBrush}"/>
+                    <Setter Property="Background" Value="{StaticResource SelectionBg}"/>
                 </Trigger>
                 <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="{StaticResource HoverBrush}"/>
+                    <Setter Property="Background" Value="#EEF7FD"/>
                 </Trigger>
             </Style.Triggers>
         </Style>
 
         <Style TargetType="DataGrid">
-            <Setter Property="Background" Value="{StaticResource BgPanel}"/>
+            <Setter Property="Background" Value="#FFFFFF"/>
             <Setter Property="Foreground" Value="{StaticResource TextPrimary}"/>
-            <Setter Property="BorderBrush" Value="{StaticResource BorderBrushDark}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource BorderBrushMain}"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="HeadersVisibility" Value="Column"/>
             <Setter Property="GridLinesVisibility" Value="Horizontal"/>
-            <Setter Property="RowBackground" Value="{StaticResource BgPanel}"/>
-            <Setter Property="AlternatingRowBackground" Value="{StaticResource BgGrid}"/>
             <Setter Property="HorizontalGridLinesBrush" Value="{StaticResource GridLineBrush}"/>
             <Setter Property="VerticalGridLinesBrush" Value="{StaticResource GridLineBrush}"/>
             <Setter Property="CanUserAddRows" Value="False"/>
@@ -132,194 +169,2189 @@
         </Style>
 
         <Style TargetType="DataGridColumnHeader">
-            <Setter Property="Background" Value="{StaticResource BgPanel2}"/>
+            <Setter Property="Background" Value="#F5F5F5"/>
             <Setter Property="Foreground" Value="{StaticResource TextPrimary}"/>
-            <Setter Property="BorderBrush" Value="{StaticResource BorderBrushDark}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource BorderBrushMain}"/>
             <Setter Property="BorderThickness" Value="0,0,0,1"/>
-            <Setter Property="Padding" Value="8,6"/>
+            <Setter Property="Padding" Value="6,5"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="HorizontalContentAlignment" Value="Center"/>
         </Style>
 
         <Style x:Key="DataGridTextStyle" TargetType="TextBlock">
-            <Setter Property="Margin" Value="8,4"/>
-            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="Margin" Value="8,3"/>
             <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
         </Style>
 
         <Style x:Key="ParameterRowStyle" TargetType="DataGridRow">
             <Style.Triggers>
                 <DataTrigger Binding="{Binding Editable}" Value="Yes">
-                    <Setter Property="Background" Value="{StaticResource EditableYesBrush}"/>
+                    <Setter Property="Background" Value="{StaticResource InstanceBg}"/>
+                </DataTrigger>
+                <DataTrigger Binding="{Binding Origin}" Value="Type">
+                    <Setter Property="Background" Value="{StaticResource TypeBg}"/>
                 </DataTrigger>
                 <DataTrigger Binding="{Binding Editable}" Value="No">
-                    <Setter Property="Background" Value="{StaticResource EditableNoBrush}"/>
+                    <Setter Property="Background" Value="{StaticResource ReadOnlyBg}"/>
                 </DataTrigger>
                 <DataTrigger Binding="{Binding Editable}" Value="Unknown">
-                    <Setter Property="Background" Value="{StaticResource EditableUnknownBrush}"/>
+                    <Setter Property="Background" Value="{StaticResource UnknownBg}"/>
                 </DataTrigger>
             </Style.Triggers>
         </Style>
+
+        <Style x:Key="ParameterListItemStyle" TargetType="ListBoxItem">
+            <Setter Property="Padding" Value="6,3"/>
+            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding Editable}" Value="Yes">
+                    <Setter Property="Background" Value="{StaticResource InstanceBg}"/>
+                </DataTrigger>
+                <DataTrigger Binding="{Binding Origin}" Value="Type">
+                    <Setter Property="Background" Value="{StaticResource TypeBg}"/>
+                </DataTrigger>
+                <DataTrigger Binding="{Binding Editable}" Value="No">
+                    <Setter Property="Background" Value="{StaticResource ReadOnlyBg}"/>
+                </DataTrigger>
+                <DataTrigger Binding="{Binding Editable}" Value="Unknown">
+                    <Setter Property="Background" Value="{StaticResource UnknownBg}"/>
+                </DataTrigger>
+                <Trigger Property="IsSelected" Value="True">
+                    <Setter Property="Background" Value="{StaticResource SelectionBg}"/>
+                </Trigger>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#EEF7FD"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="ParameterSquareStyle" TargetType="Rectangle">
+            <Setter Property="Visibility" Value="Collapsed"/>
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding SymbolKind}" Value="Instance">
+                    <Setter Property="Visibility" Value="Visible"/>
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="ParameterTriangleStyle" TargetType="Polygon">
+            <Setter Property="Visibility" Value="Collapsed"/>
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding SymbolKind}" Value="Type">
+                    <Setter Property="Visibility" Value="Visible"/>
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="ParameterCircleStyle" TargetType="Ellipse">
+            <Setter Property="Visibility" Value="Collapsed"/>
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding SymbolKind}" Value="ReadOnly">
+                    <Setter Property="Visibility" Value="Visible"/>
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="SearchIconPathStyle" TargetType="Path">
+            <Setter Property="Stroke" Value="#8A9BB2"/>
+            <Setter Property="StrokeThickness" Value="1.8"/>
+            <Setter Property="StrokeStartLineCap" Value="Round"/>
+            <Setter Property="StrokeEndLineCap" Value="Round"/>
+            <Setter Property="Stretch" Value="Uniform"/>
+            <Setter Property="Width" Value="18"/>
+            <Setter Property="Height" Value="18"/>
+            <Setter Property="HorizontalAlignment" Value="Center"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
     </Window.Resources>
 
-    <Grid Margin="14">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="14"/>
-            <RowDefinition Height="*"/>
-            <RowDefinition Height="14"/>
-            <RowDefinition Height="Auto"/>
-        </Grid.RowDefinitions>
+    <Border Background="{StaticResource WindowBg}"
+            BorderBrush="{StaticResource BorderBrushMain}"
+            BorderThickness="1"
+            Margin="2">
+        <Grid Margin="5">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="0"/>
+                <RowDefinition Height="2"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="2"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="2"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="2"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="2"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
 
-        <Border Grid.Row="0"
-                Background="{StaticResource BgPanel}"
-                BorderBrush="{StaticResource BorderBrushDark}"
-                BorderThickness="1"
-                Padding="14">
-            <Grid>
+            <Border Grid.Row="0"
+                    Background="{StaticResource HeaderBg}"
+                    BorderBrush="{StaticResource BorderBrushMain}"
+                    BorderThickness="1"
+                    Padding="8,5">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <Image x:Name="imgLogo"
+                            Width="64"
+                            Height="36"
+                            Stretch="Uniform"
+                            VerticalAlignment="Center"
+                            HorizontalAlignment="Left"/>
+
+                    <StackPanel Grid.Column="1"
+                                HorizontalAlignment="Center">
+                        <TextBlock x:Name="lblHeaderTitle"
+                                   HorizontalAlignment="Center"
+                                   FontSize="13"
+                                   FontWeight="Medium"
+                                   Text="SheetLink 1.5.0.0"/>
+                        <TextBlock x:Name="lblHeaderSubtitle"
+                                   Margin="0,2,0,0"
+                                   HorizontalAlignment="Center"
+                                   Foreground="{StaticResource TextSecondary}"
+                                   FontSize="10"
+                                   Text="pyMENVIC Excel-first workflow"/>
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="2"
+                            Width="410"
+                                HorizontalAlignment="Right">
+                        <Border Background="{StaticResource PanelBg}"
+                                BorderBrush="{StaticResource BorderBrushMain}"
+                                BorderThickness="1"
+                                CornerRadius="4"
+                                Padding="7,3">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="Status:"
+                                           FontWeight="SemiBold"/>
+                                <TextBlock x:Name="lblStatus"
+                                           Margin="6,0,0,0"
+                                           Foreground="{StaticResource TextSecondary}"
+                                           TextWrapping="Wrap"
+                                           Text="Schedules: 0 | Fields: 0"/>
+                            </StackPanel>
+                        </Border>
+
+                        <Border Margin="0,5,0,0"
+                                Background="{StaticResource ProgressBg}"
+                                BorderBrush="{StaticResource BorderBrushMain}"
+                                BorderThickness="1"
+                                CornerRadius="4"
+                                Padding="7,2">
+                            <StackPanel>
+                                <TextBlock x:Name="lblHeaderProgress"
+                                           HorizontalAlignment="Left"
+                                           FontSize="10"
+                                           Foreground="{StaticResource TextSecondary}"
+                                           Text="Completed   0%"/>
+                                <ProgressBar x:Name="prgHeaderProgress"
+                                             Margin="0,4,0,0"
+                                             Height="7"
+                                             Minimum="0"
+                                             Maximum="100"
+                                             Value="0"
+                                             Foreground="{StaticResource ExportBg}"
+                                             Background="#E9E9E9"
+                                             BorderThickness="0"/>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <ScrollViewer Grid.Row="2"
+                          HorizontalScrollBarVisibility="Auto"
+                          VerticalScrollBarVisibility="Disabled">
+                <StackPanel Orientation="Horizontal">
+                    <Button x:Name="btnNavModelCategories"
+                            Content="Model Categories"
+                            Tag="Model Categories"
+                            Style="{StaticResource NavButtonStyle}"/>
+                    <Button x:Name="btnNavAnnotationCategories"
+                            Content="Annotation Categories"
+                            Tag="Annotation Categories"
+                            Style="{StaticResource NavButtonStyle}"/>
+                    <Button x:Name="btnNavElements"
+                            Content="Elements"
+                            Tag="Elements"
+                            Style="{StaticResource NavButtonStyle}"/>
+                    <Button x:Name="btnNavSchedules"
+                            Content="Schedules"
+                            Tag="Schedules"
+                            Style="{StaticResource NavButtonStyle}"/>
+                    <Button x:Name="btnNavSpatial"
+                            Content="Spatial"
+                            Tag="Spatial"
+                            Style="{StaticResource NavButtonStyle}"/>
+                    <Button x:Name="btnNavPreviewEdit"
+                            Content="Preview/Edit"
+                            Tag="Preview/Edit"
+                            Style="{StaticResource NavButtonStyle}"/>
+                </StackPanel>
+            </ScrollViewer>
+
+            <Grid Grid.Row="4">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
 
-                <StackPanel Orientation="Vertical">
-                    <TextBlock Text="Schedule Browser"
-                               FontSize="22"
-                               FontWeight="SemiBold"/>
-                    <TextBlock Text="Preview schedule fields and export or import schedule data with Excel"
-                                Margin="0,4,0,0"
-                               Foreground="{StaticResource TextSecondary}"/>
-                </StackPanel>
+                <TextBlock x:Name="lblIntroText"
+                           Text="Select one schedule, review its parameters, then export or import Excel changes."
+                           Foreground="{StaticResource TextSecondary}"
+                           FontSize="10"
+                           TextWrapping="Wrap"/>
 
-                <TextBlock x:Name="lblStatus"
-                        Grid.Column="1"
-                        VerticalAlignment="Center"
-                        Foreground="{StaticResource TextSecondary}"
-                        FontSize="13"
-                        Text="Schedules: 0 | Fields: 0"/>
-            </Grid>
-        </Border>
-
-        <Grid Grid.Row="2">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="0.95*"/>
-                <ColumnDefinition Width="14"/>
-                <ColumnDefinition Width="1.15*"/>
-            </Grid.ColumnDefinitions>
-
-            <Border Grid.Column="0"
-                    Background="{StaticResource BgPanel}"
-                    BorderBrush="{StaticResource BorderBrushDark}"
-                    BorderThickness="1"
-                    Padding="12">
-                <Grid>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="12"/>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="12"/>
-                        <RowDefinition Height="*"/>
-                    </Grid.RowDefinitions>
-
-                    <TextBlock Text="Schedules"
-                               FontSize="16"
-                               FontWeight="SemiBold"/>
-
-                    <DockPanel Grid.Row="2" LastChildFill="True">
-                        <!-- <CheckBox x:Name="chkSelectAll"
-                                  Content="Select all"
-                                  VerticalAlignment="Center"
-                                  Margin="0,0,12,0"/> -->
-                        <TextBox x:Name="txtSearchSchedules"
-                                 Height="32"
-                                 VerticalAlignment="Center"
-                                 ToolTip="Search schedules"/>
-                    </DockPanel>
-
-                     <ListBox x:Name="lstSchedules"
-                            Grid.Row="4"
-                            SelectionMode="Single">
-                        <ListBox.ItemTemplate>
-                            <DataTemplate>
-                                <TextBlock Text="{Binding Name}"
-                                        TextTrimming="CharacterEllipsis"
-                                        VerticalAlignment="Center"
-                                        Margin="6,2"/>
-                            </DataTemplate>
-                        </ListBox.ItemTemplate>
-                    </ListBox>
-                </Grid>
-            </Border>
-
-            <Border Grid.Column="2"
-                    Background="{StaticResource BgPanel}"
-                    BorderBrush="{StaticResource BorderBrushDark}"
-                    BorderThickness="1"
-                    Padding="12">
-                <Grid>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="12"/>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="12"/>
-                        <RowDefinition Height="*"/>
-                    </Grid.RowDefinitions>
-
-                    <TextBlock Text="Parameters"
-                               FontSize="16"
-                               FontWeight="SemiBold"/>
-
-                    <TextBox x:Name="txtSearchParameters"
-                             Grid.Row="2"
-                             Height="32"
-                             ToolTip="Search parameters"/>
-
-                    <DataGrid x:Name="dgParameters"
-                              Grid.Row="4"
-                              AlternationCount="2"
-                              RowStyle="{StaticResource ParameterRowStyle}">
-                        <DataGrid.Columns>
-                            <DataGridTextColumn Header="Name"
-                                                Binding="{Binding Name}"
-                                                Width="*"
-                                                MinWidth="260"
-                                                ElementStyle="{StaticResource DataGridTextStyle}"/>
-
-                            <DataGridTextColumn Header="Status"
-                                                Binding="{Binding Status}"
-                                                Width="190"
-                                                MinWidth="170"
-                                                ElementStyle="{StaticResource DataGridTextStyle}"/>
-                        </DataGrid.Columns>
-                    </DataGrid>
-                </Grid>
-            </Border>
-        </Grid>
-
-        <Border Grid.Row="4"
-                Background="{StaticResource BgPanel}"
-                BorderBrush="{StaticResource BorderBrushDark}"
-                BorderThickness="1"
-                Padding="12">
-            <DockPanel LastChildFill="False">
-                <StackPanel Orientation="Horizontal" DockPanel.Dock="Right">
+                <StackPanel Grid.Column="1"
+                            Orientation="Horizontal"
+                            HorizontalAlignment="Right">
                     <Button x:Name="btnRefresh"
-                            Content="Refresh"
-                            Width="100"
-                            Margin="0,0,6,0"/>
+                            Width="98"
+                            Height="26"
+                            Margin="0,0,8,0">
+                        <TextBlock Text="Refresh"
+                                   FontFamily="Arial"
+                                   FontSize="12"
+                                   TextOptions.TextFormattingMode="Display"
+                                   TextOptions.TextRenderingMode="ClearType"
+                                   SnapsToDevicePixels="True"/>
+                    </Button>
+                    <Button x:Name="btnClose"
+                            Width="98"
+                            Height="26"
+                            Margin="0,0,0,0">
+                        <TextBlock Text="Close"
+                                   FontFamily="Arial"
+                                   FontSize="12"
+                                   TextOptions.TextFormattingMode="Display"
+                                   TextOptions.TextRenderingMode="ClearType"
+                                   SnapsToDevicePixels="True"/>
+                    </Button>
+                </StackPanel>
+            </Grid>
+
+            <Grid Grid.Row="6">
+                <Border x:Name="panelSchedules"
+                        Background="{StaticResource WindowBg}"
+                        Visibility="Visible">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="0.72*"/>
+                            <ColumnDefinition Width="8"/>
+                            <ColumnDefinition Width="1*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <Border Grid.Column="0"
+                                Background="{StaticResource PanelBg}"
+                                BorderBrush="{StaticResource BorderBrushMain}"
+                                BorderThickness="1">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="40"/>
+                                    <RowDefinition Height="46"/>
+                                    <RowDefinition Height="*"/>
+                                    <RowDefinition Height="40"/>
+                                </Grid.RowDefinitions>
+
+                                <Border Background="#F5F5F5"
+                                        BorderBrush="{StaticResource BorderBrushMain}"
+                                        BorderThickness="0,0,0,1"
+                                        Grid.Row="0">
+                                    <TextBlock Text="Select Schedule"
+                                               FontSize="14"
+                                               HorizontalAlignment="Center"
+                                               FontWeight="SemiBold"/>
+                                </Border>
+
+                                <Border Grid.Row="1"
+                                        Background="#FFFFFF"
+                                        BorderBrush="{StaticResource BorderBrushMain}"
+                                        BorderThickness="0,0,0,1"
+                                        Padding="8">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBox x:Name="txtSearchSchedules"
+                                                 Height="30"
+                                                 VerticalAlignment="Center"/>
+                                         <Viewbox Grid.Column="1"
+                                                  Width="18"
+                                                  Height="18"
+                                                  Margin="10,0,0,0"
+                                                  Stretch="Uniform">
+                                             <Canvas Width="18" Height="18">
+                                                 <Ellipse Canvas.Left="2.5"
+                                                          Canvas.Top="2.5"
+                                                          Width="9"
+                                                          Height="9"
+                                                          Stroke="#8A9BB2"
+                                                          StrokeThickness="1.8"/>
+                                                 <Line X1="10.5"
+                                                       Y1="10.5"
+                                                       X2="15"
+                                                       Y2="15"
+                                                       Stroke="#8A9BB2"
+                                                       StrokeThickness="1.8"
+                                                       StrokeStartLineCap="Round"
+                                                       StrokeEndLineCap="Round"/>
+                                             </Canvas>
+                                         </Viewbox>
+                                    </Grid>
+                                </Border>
+
+                                <ListBox x:Name="lstSchedules"
+                                         Grid.Row="2"
+                                         BorderThickness="0"
+                                         SelectionMode="Single">
+                                    <ListBox.ItemTemplate>
+                                        <DataTemplate>
+                                            <DockPanel LastChildFill="True">
+                                                <CheckBox Margin="0,0,8,0"
+                                                          IsChecked="{Binding RelativeSource={RelativeSource AncestorType=ListBoxItem}, Path=IsSelected}"/>
+                                                <TextBlock Text="{Binding Name}"
+                                                           TextTrimming="CharacterEllipsis"/>
+                                            </DockPanel>
+                                        </DataTemplate>
+                                    </ListBox.ItemTemplate>
+                                </ListBox>
+
+                                <Grid Grid.Row="3"
+                                      Margin="8,6,8,6">
+                                    <TextBlock Text="Selection drives the parameter list and Excel workflow."
+                                               Foreground="{StaticResource TextSecondary}"
+                                               FontSize="12"/>
+                                </Grid>
+                            </Grid>
+                        </Border>
+
+                        <Border Grid.Column="2"
+                                Background="{StaticResource PanelBg}"
+                                BorderBrush="{StaticResource BorderBrushMain}"
+                                BorderThickness="1">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="40"/>
+                                    <RowDefinition Height="40"/>
+                                    <RowDefinition Height="46"/>
+                                    <RowDefinition Height="*"/>
+                                    <RowDefinition Height="52"/>
+                                </Grid.RowDefinitions>
+
+                                <Border Background="#F5F5F5"
+                                        BorderBrush="{StaticResource BorderBrushMain}"
+                                        BorderThickness="0,0,0,1"
+                                        Grid.Row="0">
+                                    <TextBlock Text="Parameters"
+                                               HorizontalAlignment="Center"
+                                               FontWeight="SemiBold"
+                                               FontSize="14"/>
+                                </Border>
+
+                                <Border Grid.Row="1"
+                                        Background="#FFFFFF"
+                                        BorderBrush="{StaticResource BorderBrushMain}"
+                                        BorderThickness="0,0,0,1"
+                                        Padding="12,0">
+                                    <DockPanel>
+                                        <TextBlock Text="Instance, Type, Read-only"
+                                                   Foreground="{StaticResource TextSecondary}"/>
+                                        <TextBlock DockPanel.Dock="Right"
+                                                   Foreground="{StaticResource TextMuted}"
+                                                   FontSize="18"
+                                                   Text="⌄"/>
+                                    </DockPanel>
+                                </Border>
+
+                                <Border Grid.Row="2"
+                                        Background="#FFFFFF"
+                                        BorderBrush="{StaticResource BorderBrushMain}"
+                                        BorderThickness="0,0,0,1"
+                                        Padding="8">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBox x:Name="txtSearchParameters"
+                                                 Height="30"
+                                                 VerticalAlignment="Center"/>
+                                         <Viewbox Grid.Column="1"
+                                                  Width="18"
+                                                  Height="18"
+                                                  Margin="10,0,0,0"
+                                                  Stretch="Uniform">
+                                             <Canvas Width="18" Height="18">
+                                                 <Ellipse Canvas.Left="2.5"
+                                                          Canvas.Top="2.5"
+                                                          Width="9"
+                                                          Height="9"
+                                                          Stroke="#8A9BB2"
+                                                          StrokeThickness="1.8"/>
+                                                 <Line X1="10.5"
+                                                       Y1="10.5"
+                                                       X2="15"
+                                                       Y2="15"
+                                                       Stroke="#8A9BB2"
+                                                       StrokeThickness="1.8"
+                                                       StrokeStartLineCap="Round"
+                                                       StrokeEndLineCap="Round"/>
+                                             </Canvas>
+                                         </Viewbox>
+                                    </Grid>
+                                </Border>
+
+                                <DataGrid x:Name="dgParameters"
+                                          Grid.Row="3"
+                                          BorderThickness="0"
+                                          RowStyle="{StaticResource ParameterRowStyle}">
+                                    <DataGrid.Columns>
+                                        <DataGridTemplateColumn Header="Parameter"
+                                                                Width="*"
+                                                                MinWidth="280">
+                                            <DataGridTemplateColumn.CellTemplate>
+                                                <DataTemplate>
+                                                    <Grid Margin="10,4">
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="Auto"/>
+                                                            <ColumnDefinition Width="*"/>
+                                                        </Grid.ColumnDefinitions>
+                                                        <Grid Width="16"
+                                                              Height="16"
+                                                              Margin="0,0,8,0"
+                                                              VerticalAlignment="Center">
+                                                            <Rectangle Width="13"
+                                                                       Height="13"
+                                                                       Fill="#8E8E8E"
+                                                                       HorizontalAlignment="Center"
+                                                                       VerticalAlignment="Center"
+                                                                       Style="{StaticResource ParameterSquareStyle}"/>
+                                                            <Polygon Width="14"
+                                                                     Height="14"
+                                                                     Fill="#8E8E8E"
+                                                                     Stretch="Fill"
+                                                                     Points="7,0 14,14 0,14"
+                                                                     HorizontalAlignment="Center"
+                                                                     VerticalAlignment="Center"
+                                                                     Style="{StaticResource ParameterTriangleStyle}"/>
+                                                            <Ellipse Width="15"
+                                                                     Height="15"
+                                                                     Fill="#8E8E8E"
+                                                                     HorizontalAlignment="Center"
+                                                                     VerticalAlignment="Center"
+                                                                     Style="{StaticResource ParameterCircleStyle}"/>
+                                                        </Grid>
+                                                        <TextBlock Grid.Column="1"
+                                                                   Text="{Binding Name}"
+                                                                   TextTrimming="CharacterEllipsis"
+                                                                   VerticalAlignment="Center"/>
+                                                    </Grid>
+                                                </DataTemplate>
+                                            </DataGridTemplateColumn.CellTemplate>
+                                        </DataGridTemplateColumn>
+                                        <DataGridTextColumn Header="Status"
+                                                            Binding="{Binding Status}"
+                                                            Width="220"
+                                                            MinWidth="180"
+                                                            ElementStyle="{StaticResource DataGridTextStyle}"/>
+                                    </DataGrid.Columns>
+                                </DataGrid>
+
+                                <Grid Grid.Row="4"
+                                      Margin="6,8,6,8">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+
+                                    <Border Grid.Column="0"
+                                            Background="{StaticResource InstanceBg}"
+                                            BorderBrush="{StaticResource BorderBrushMain}"
+                                            BorderThickness="1"
+                                            CornerRadius="3"
+                                            Margin="0,0,4,0"
+                                            Padding="8,6">
+                                        <StackPanel Orientation="Horizontal">
+                                            <Rectangle Width="13"
+                                                       Height="13"
+                                                       Fill="#B1B1B1"/>
+                                            <TextBlock Margin="8,0,0,0"
+                                                       Text="Instance"/>
+                                        </StackPanel>
+                                    </Border>
+
+                                    <Border Grid.Column="1"
+                                            Background="{StaticResource TypeBg}"
+                                            BorderBrush="{StaticResource BorderBrushMain}"
+                                            BorderThickness="1"
+                                            CornerRadius="3"
+                                            Margin="2,0,2,0"
+                                            Padding="8,6">
+                                        <StackPanel Orientation="Horizontal">
+                                            <Polygon Width="15"
+                                                     Height="15"
+                                                     Fill="#B1B1B1"
+                                                     Stretch="Fill"
+                                                     Points="7.5,0 15,15 0,15"/>
+                                            <TextBlock Margin="8,0,0,0"
+                                                       Text="Type"/>
+                                        </StackPanel>
+                                    </Border>
+
+                                    <Border Grid.Column="2"
+                                            Background="{StaticResource ReadOnlyBg}"
+                                            BorderBrush="{StaticResource BorderBrushMain}"
+                                            BorderThickness="1"
+                                            CornerRadius="3"
+                                            Margin="4,0,0,0"
+                                            Padding="8,6">
+                                        <StackPanel Orientation="Horizontal">
+                                            <Ellipse Width="16"
+                                                     Height="16"
+                                                     Fill="#B1B1B1"/>
+                                            <TextBlock Margin="8,0,0,0"
+                                                       Text="Read-only"/>
+                                        </StackPanel>
+                                    </Border>
+                                </Grid>
+                            </Grid>
+                        </Border>
+                    </Grid>
+                </Border>
+
+                <Border x:Name="panelModelCategories"
+                        Background="{StaticResource PanelBg}"
+                        BorderBrush="{StaticResource BorderBrushMain}"
+                        BorderThickness="1"
+                        Visibility="Collapsed">
+                    <Grid Margin="8">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="4"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+
+                        <TextBlock x:Name="lblModelCategoriesInfo"
+                                   Text="Select one model category, review its parameters, then export or import Excel changes."
+                                   TextWrapping="Wrap"
+                                   Foreground="{StaticResource TextSecondary}"
+                                   FontSize="12"/>
+
+                        <Grid Grid.Row="2">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="0.34*"/>
+                                <ColumnDefinition Width="6"/>
+                                <ColumnDefinition Width="0.31*"/>
+                                <ColumnDefinition Width="42"/>
+                                <ColumnDefinition Width="0.31*"/>
+                            </Grid.ColumnDefinitions>
+
+                            <Border Grid.Column="0"
+                                    Background="#FFFFFF"
+                                    BorderBrush="{StaticResource BorderBrushMain}"
+                                    BorderThickness="1">
+                                <Grid>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="*"/>
+                                        <RowDefinition Height="Auto"/>
+                                    </Grid.RowDefinitions>
+
+                                    <Border Grid.Row="0"
+                                            BorderBrush="{StaticResource BorderBrushMain}"
+                                            BorderThickness="0,0,0,1"
+                                              Padding="8,4">
+                                        <TextBlock Text="Select Model Category"
+                                                    FontSize="12"
+                                                    FontWeight="SemiBold"
+                                                    HorizontalAlignment="Center"/>
+                                      </Border>
+
+                                      <Grid Grid.Row="1"
+                                            Margin="8,5,8,4">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                          <TextBox x:Name="txtSearchModelCategories"
+                                                   Height="26"
+                                                   VerticalContentAlignment="Center"
+                                                   BorderBrush="{StaticResource BorderBrushMain}"
+                                                   BorderThickness="1"
+                                                   Padding="6,0"/>
+                                            <Viewbox Grid.Column="1"
+                                                     Width="16"
+                                                     Height="16"
+                                                     Margin="6,0,0,0"
+                                                     Stretch="Uniform">
+                                                <Canvas Width="18" Height="18">
+                                                    <Ellipse Canvas.Left="2.5"
+                                                             Canvas.Top="2.5"
+                                                             Width="9"
+                                                             Height="9"
+                                                             Stroke="#8A9BB2"
+                                                             StrokeThickness="1.8"/>
+                                                    <Line X1="10.5"
+                                                          Y1="10.5"
+                                                          X2="15"
+                                                          Y2="15"
+                                                          Stroke="#8A9BB2"
+                                                          StrokeThickness="1.8"
+                                                          StrokeStartLineCap="Round"
+                                                          StrokeEndLineCap="Round"/>
+                                                </Canvas>
+                                            </Viewbox>
+                                    </Grid>
+
+                                    <ListBox x:Name="lstModelCategories"
+                                             Grid.Row="2"
+                                             Margin="4,0,4,0"
+                                             BorderThickness="0"
+                                             SelectionMode="Single">
+                                        <ListBox.ItemTemplate>
+                                            <DataTemplate>
+                                                <DockPanel LastChildFill="True">
+                                                    <CheckBox Margin="0,0,8,0"
+                                                              VerticalAlignment="Center"
+                                                              IsChecked="{Binding RelativeSource={RelativeSource AncestorType=ListBoxItem}, Path=IsSelected}"/>
+                                                    <TextBlock VerticalAlignment="Center"
+                                                               Text="{Binding Name}"
+                                                               TextTrimming="CharacterEllipsis"/>
+                                                    <TextBlock DockPanel.Dock="Right"
+                                                               Margin="8,0,0,0"
+                                                               VerticalAlignment="Center"
+                                                               Foreground="{StaticResource TextMuted}"
+                                                               Text="{Binding ElementCount}"/>
+                                                </DockPanel>
+                                            </DataTemplate>
+                                        </ListBox.ItemTemplate>
+                                    </ListBox>
+
+                                    <Border Grid.Row="3"
+                                            BorderBrush="{StaticResource BorderBrushMain}"
+                                            BorderThickness="0,1,0,0"
+                                              Padding="8,4">
+                                        <TextBlock x:Name="lblModelCategoryHint"
+                                                     Foreground="{StaticResource TextSecondary}"
+                                                    FontSize="11"
+                                                    TextWrapping="Wrap"
+                                                    Text="Selection drives the parameter list and category-based Excel workflow."/>
+                                      </Border>
+                                </Grid>
+                            </Border>
+
+                            <Border Grid.Column="2"
+                                    Background="#FFFFFF"
+                                    BorderBrush="{StaticResource BorderBrushMain}"
+                                    BorderThickness="1">
+                                <Grid>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="*"/>
+                                        <RowDefinition Height="Auto"/>
+                                    </Grid.RowDefinitions>
+
+                                    <Border Grid.Row="0"
+                                            BorderBrush="{StaticResource BorderBrushMain}"
+                                            BorderThickness="0,0,0,1"
+                                              Padding="8,4">
+                                        <TextBlock Text="Available Parameters"
+                                                    FontSize="12"
+                                                    FontWeight="SemiBold"
+                                                    HorizontalAlignment="Center"/>
+                                      </Border>
+
+                                    <Border Grid.Row="1"
+                                            BorderBrush="{StaticResource BorderBrushMain}"
+                                            BorderThickness="0,0,0,1"
+                                              Padding="8,4">
+                                        <TextBlock Text="Instance, Type, Read-only"
+                                                    FontSize="12"
+                                                    Foreground="{StaticResource TextSecondary}"/>
+                                      </Border>
+
+                                      <Grid Grid.Row="2"
+                                            Margin="8,5,8,4">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                          <TextBox x:Name="txtSearchModelParameters"
+                                                   Height="26"
+                                                   VerticalContentAlignment="Center"
+                                                   BorderBrush="{StaticResource BorderBrushMain}"
+                                                   BorderThickness="1"
+                                                   Padding="6,0"/>
+                                            <Viewbox Grid.Column="1"
+                                                     Width="16"
+                                                     Height="16"
+                                                     Margin="6,0,0,0"
+                                                     Stretch="Uniform">
+                                                <Canvas Width="18" Height="18">
+                                                    <Ellipse Canvas.Left="2.5"
+                                                             Canvas.Top="2.5"
+                                                             Width="9"
+                                                             Height="9"
+                                                             Stroke="#8A9BB2"
+                                                             StrokeThickness="1.8"/>
+                                                    <Line X1="10.5"
+                                                          Y1="10.5"
+                                                          X2="15"
+                                                          Y2="15"
+                                                          Stroke="#8A9BB2"
+                                                          StrokeThickness="1.8"
+                                                          StrokeStartLineCap="Round"
+                                                          StrokeEndLineCap="Round"/>
+                                                </Canvas>
+                                            </Viewbox>
+                                    </Grid>
+
+                                    <ListBox x:Name="lstModelAvailableParameters"
+                                             Grid.Row="3"
+                                             BorderThickness="0"
+                                             SelectionMode="Extended"
+                                            ItemContainerStyle="{StaticResource ParameterListItemStyle}">
+                                        <ListBox.ItemTemplate>
+                                            <DataTemplate>
+                                                <Grid Margin="6,0">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                        <ColumnDefinition Width="*"/>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    <Grid Width="16"
+                                                          Height="16"
+                                                          Margin="0,0,8,0"
+                                                          VerticalAlignment="Center">
+                                                        <Rectangle Width="13"
+                                                                   Height="13"
+                                                                   Fill="#8E8E8E"
+                                                                   HorizontalAlignment="Center"
+                                                                   VerticalAlignment="Center"
+                                                                   Style="{StaticResource ParameterSquareStyle}"/>
+                                                        <Polygon Width="14"
+                                                                 Height="14"
+                                                                 Fill="#8E8E8E"
+                                                                 Stretch="Fill"
+                                                                 Points="7,0 14,14 0,14"
+                                                                 HorizontalAlignment="Center"
+                                                                 VerticalAlignment="Center"
+                                                                 Style="{StaticResource ParameterTriangleStyle}"/>
+                                                        <Ellipse Width="15"
+                                                                 Height="15"
+                                                                 Fill="#8E8E8E"
+                                                                 HorizontalAlignment="Center"
+                                                                 VerticalAlignment="Center"
+                                                                 Style="{StaticResource ParameterCircleStyle}"/>
+                                                    </Grid>
+                                                    <TextBlock Grid.Column="1"
+                                                               Text="{Binding Name}"
+                                                               TextTrimming="CharacterEllipsis"
+                                                               VerticalAlignment="Center"/>
+                                                    <TextBlock Grid.Column="2"
+                                                               Margin="12,0,0,0"
+                                                               Text="{Binding Status}"
+                                                               Foreground="{StaticResource TextSecondary}"
+                                                               VerticalAlignment="Center"/>
+                                                </Grid>
+                                            </DataTemplate>
+                                        </ListBox.ItemTemplate>
+                                    </ListBox>
+
+                                    <Grid Grid.Row="4"
+                                          Margin="6,5,6,5">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+
+                                        <Border Grid.Column="0"
+                                                Margin="0,0,4,0"
+                                                Background="#EEF8D0"
+                                                BorderBrush="#C3D495"
+                                                BorderThickness="1"
+                                                CornerRadius="4"
+                                                Padding="7,4">
+                                            <StackPanel Orientation="Horizontal">
+                                                <Rectangle Width="13"
+                                                           Height="13"
+                                                           Fill="#B1B1B1"/>
+                                                <TextBlock Margin="8,0,0,0"
+                                                           Text="Instance"/>
+                                            </StackPanel>
+                                        </Border>
+
+                                        <Border Grid.Column="1"
+                                                Margin="4,0,4,0"
+                                                Background="#FFF5C6"
+                                                BorderBrush="#D2C689"
+                                                BorderThickness="1"
+                                                CornerRadius="4"
+                                                Padding="7,4">
+                                            <StackPanel Orientation="Horizontal">
+                                                <Polygon Width="15"
+                                                         Height="15"
+                                                         Fill="#B1B1B1"
+                                                         Stretch="Fill"
+                                                         Points="7.5,0 15,15 0,15"/>
+                                                <TextBlock Margin="8,0,0,0"
+                                                           Text="Type"/>
+                                            </StackPanel>
+                                        </Border>
+
+                                        <Border Grid.Column="2"
+                                                Margin="4,0,0,0"
+                                                Background="#F8D9D1"
+                                                BorderBrush="#D3A9A0"
+                                                BorderThickness="1"
+                                                CornerRadius="4"
+                                                Padding="7,4">
+                                            <StackPanel Orientation="Horizontal">
+                                                <Ellipse Width="16"
+                                                         Height="16"
+                                                         Fill="#B1B1B1"/>
+                                                <TextBlock Margin="8,0,0,0"
+                                                           Text="Read-only"/>
+                                            </StackPanel>
+                                        </Border>
+                                    </Grid>
+                                </Grid>
+                            </Border>
+
+                            <StackPanel Grid.Column="3"
+                                        VerticalAlignment="Center"
+                                        HorizontalAlignment="Center">
+                                <Button x:Name="btnModelAddParameter"
+                                        Width="34"
+                                        Height="34"
+                                          Margin="0,0,0,6"
+                                          FontSize="18"
+                                          Content="▶"
+                                          Style="{StaticResource ActionButtonStyle}"/>
+                                <Button x:Name="btnModelRemoveParameter"
+                                        Width="34"
+                                        Height="34"
+                                        FontSize="18"
+                                        Content="◀"
+                                        Style="{StaticResource ActionButtonStyle}"/>
+                            </StackPanel>
+
+                            <Border Grid.Column="4"
+                                    Background="#FFFFFF"
+                                    BorderBrush="{StaticResource BorderBrushMain}"
+                                    BorderThickness="1">
+                                <Grid>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="*"/>
+                                        <RowDefinition Height="Auto"/>
+                                    </Grid.RowDefinitions>
+
+                                    <Border Grid.Row="0"
+                                            BorderBrush="{StaticResource BorderBrushMain}"
+                                            BorderThickness="0,0,0,1"
+                                              Padding="8,4">
+                                        <TextBlock Text="Selected Parameters"
+                                                    FontSize="12"
+                                                    FontWeight="SemiBold"
+                                                    HorizontalAlignment="Center"/>
+                                      </Border>
+
+                                    <Border Grid.Row="1"
+                                            BorderBrush="{StaticResource BorderBrushMain}"
+                                            BorderThickness="0,0,0,1"
+                                              Padding="8,4">
+                                        <TextBlock Text="Instance, Type, Read-only"
+                                                    FontSize="12"
+                                                    Foreground="{StaticResource TextSecondary}"/>
+                                      </Border>
+
+                                      <Grid Grid.Row="2"
+                                            Margin="8,5,8,4">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                          <TextBox x:Name="txtSearchModelSelectedParameters"
+                                                   Height="26"
+                                                   VerticalContentAlignment="Center"
+                                                   BorderBrush="{StaticResource BorderBrushMain}"
+                                                   BorderThickness="1"
+                                                   Padding="6,0"/>
+                                            <Viewbox Grid.Column="1"
+                                                     Width="16"
+                                                     Height="16"
+                                                     Margin="6,0,0,0"
+                                                     Stretch="Uniform">
+                                                <Canvas Width="18" Height="18">
+                                                    <Ellipse Canvas.Left="2.5"
+                                                             Canvas.Top="2.5"
+                                                             Width="9"
+                                                             Height="9"
+                                                             Stroke="#8A9BB2"
+                                                             StrokeThickness="1.8"/>
+                                                    <Line X1="10.5"
+                                                          Y1="10.5"
+                                                          X2="15"
+                                                          Y2="15"
+                                                          Stroke="#8A9BB2"
+                                                          StrokeThickness="1.8"
+                                                          StrokeStartLineCap="Round"
+                                                          StrokeEndLineCap="Round"/>
+                                                </Canvas>
+                                            </Viewbox>
+                                    </Grid>
+
+                                    <ListBox x:Name="lstModelSelectedParameters"
+                                             Grid.Row="3"
+                                             BorderThickness="0"
+                                             SelectionMode="Extended"
+                                             ItemContainerStyle="{StaticResource ParameterListItemStyle}">
+                                        <ListBox.ItemTemplate>
+                                            <DataTemplate>
+                                                <Grid Margin="6,0">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                        <ColumnDefinition Width="*"/>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    <Grid Width="16"
+                                                          Height="16"
+                                                          Margin="0,0,8,0"
+                                                          VerticalAlignment="Center">
+                                                        <Rectangle Width="13"
+                                                                   Height="13"
+                                                                   Fill="#8E8E8E"
+                                                                   HorizontalAlignment="Center"
+                                                                   VerticalAlignment="Center"
+                                                                   Style="{StaticResource ParameterSquareStyle}"/>
+                                                        <Polygon Width="14"
+                                                                 Height="14"
+                                                                 Fill="#8E8E8E"
+                                                                 Stretch="Fill"
+                                                                 Points="7,0 14,14 0,14"
+                                                                 HorizontalAlignment="Center"
+                                                                 VerticalAlignment="Center"
+                                                                 Style="{StaticResource ParameterTriangleStyle}"/>
+                                                        <Ellipse Width="15"
+                                                                 Height="15"
+                                                                 Fill="#8E8E8E"
+                                                                 HorizontalAlignment="Center"
+                                                                 VerticalAlignment="Center"
+                                                                 Style="{StaticResource ParameterCircleStyle}"/>
+                                                    </Grid>
+                                                    <TextBlock Grid.Column="1"
+                                                               Text="{Binding Name}"
+                                                               TextTrimming="CharacterEllipsis"
+                                                               VerticalAlignment="Center"/>
+                                                    <TextBlock Grid.Column="2"
+                                                               Margin="12,0,0,0"
+                                                               Text="{Binding Status}"
+                                                               Foreground="{StaticResource TextSecondary}"
+                                                               VerticalAlignment="Center"/>
+                                                </Grid>
+                                            </DataTemplate>
+                                        </ListBox.ItemTemplate>
+                                    </ListBox>
+
+                                    <Border Grid.Row="4"
+                                            BorderBrush="{StaticResource BorderBrushMain}"
+                                            BorderThickness="0,1,0,0"
+                                              Padding="8,4">
+                                        <TextBlock x:Name="lblModelSelectedHint"
+                                                     Foreground="{StaticResource TextSecondary}"
+                                                    FontSize="11"
+                                                    TextWrapping="Wrap"
+                                                    Text="Only selected parameters will be used for Preview/Edit and Excel export."/>
+                                      </Border>
+                                </Grid>
+                            </Border>
+                        </Grid>
+                    </Grid>
+                </Border>
+
+                <Border x:Name="panelAnnotationCategories"
+                        Background="{StaticResource PanelBg}"
+                        BorderBrush="{StaticResource BorderBrushMain}"
+                        BorderThickness="1"
+                        Visibility="Collapsed">
+                    <Grid Margin="8">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="4"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+
+                        <TextBlock x:Name="lblAnnotationCategoriesInfo"
+                                   Text="Select one annotation category, review its parameters, then export or import Excel changes."
+                                   TextWrapping="Wrap"
+                                   Foreground="{StaticResource TextSecondary}"
+                                   FontSize="12"/>
+
+                        <Grid Grid.Row="2">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="0.34*"/>
+                                <ColumnDefinition Width="6"/>
+                                <ColumnDefinition Width="0.31*"/>
+                                <ColumnDefinition Width="42"/>
+                                <ColumnDefinition Width="0.31*"/>
+                            </Grid.ColumnDefinitions>
+
+                            <Border Grid.Column="0"
+                                    Background="#FFFFFF"
+                                    BorderBrush="{StaticResource BorderBrushMain}"
+                                    BorderThickness="1">
+                                <Grid>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="*"/>
+                                        <RowDefinition Height="Auto"/>
+                                    </Grid.RowDefinitions>
+
+                                    <Border Grid.Row="0"
+                                            BorderBrush="{StaticResource BorderBrushMain}"
+                                            BorderThickness="0,0,0,1"
+                                            Padding="8,4">
+                                        <TextBlock Text="Select Annotation Category"
+                                                   FontSize="12"
+                                                   FontWeight="SemiBold"
+                                                   HorizontalAlignment="Center"/>
+                                    </Border>
+
+                                    <Grid Grid.Row="1"
+                                          Margin="8,5,8,4">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBox x:Name="txtSearchAnnotationCategories"
+                                                 Height="26"
+                                                 VerticalContentAlignment="Center"
+                                                 BorderBrush="{StaticResource BorderBrushMain}"
+                                                 BorderThickness="1"
+                                                 Padding="10,0"/>
+                                        <Viewbox Grid.Column="1"
+                                                 Width="18"
+                                                 Height="18"
+                                                 Margin="10,0,0,0"
+                                                 Stretch="Uniform">
+                                            <Canvas Width="18" Height="18">
+                                                <Ellipse Canvas.Left="2.5"
+                                                         Canvas.Top="2.5"
+                                                         Width="9"
+                                                         Height="9"
+                                                         Stroke="#8A9BB2"
+                                                         StrokeThickness="1.8"/>
+                                                <Line X1="10.5"
+                                                      Y1="10.5"
+                                                      X2="15"
+                                                      Y2="15"
+                                                      Stroke="#8A9BB2"
+                                                      StrokeThickness="1.8"
+                                                      StrokeStartLineCap="Round"
+                                                      StrokeEndLineCap="Round"/>
+                                            </Canvas>
+                                        </Viewbox>
+                                    </Grid>
+
+                                    <ListBox x:Name="lstAnnotationCategories"
+                                             Grid.Row="2"
+                                             Margin="4,0,4,0"
+                                             BorderThickness="0"
+                                             SelectionMode="Single">
+                                        <ListBox.ItemTemplate>
+                                            <DataTemplate>
+                                                <DockPanel LastChildFill="True">
+                                                    <CheckBox Margin="0,0,8,0"
+                                                              VerticalAlignment="Center"
+                                                              IsChecked="{Binding RelativeSource={RelativeSource AncestorType=ListBoxItem}, Path=IsSelected}"/>
+                                                    <TextBlock VerticalAlignment="Center"
+                                                               Text="{Binding Name}"
+                                                               TextTrimming="CharacterEllipsis"/>
+                                                    <TextBlock DockPanel.Dock="Right"
+                                                               Margin="8,0,0,0"
+                                                               VerticalAlignment="Center"
+                                                               Foreground="{StaticResource TextMuted}"
+                                                               Text="{Binding ElementCount}"/>
+                                                </DockPanel>
+                                            </DataTemplate>
+                                        </ListBox.ItemTemplate>
+                                    </ListBox>
+
+                                    <Border Grid.Row="3"
+                                            BorderBrush="{StaticResource BorderBrushMain}"
+                                            BorderThickness="0,1,0,0"
+                                            Padding="8,4">
+                                        <TextBlock x:Name="lblAnnotationCategoryHint"
+                                                   Foreground="{StaticResource TextSecondary}"
+                                                   FontSize="11"
+                                                   TextWrapping="Wrap"
+                                                   Text="Selection drives the parameter list and annotation-based Excel workflow."/>
+                                    </Border>
+                                </Grid>
+                            </Border>
+
+                            <Border Grid.Column="2"
+                                    Background="#FFFFFF"
+                                    BorderBrush="{StaticResource BorderBrushMain}"
+                                    BorderThickness="1">
+                                <Grid>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="*"/>
+                                        <RowDefinition Height="Auto"/>
+                                    </Grid.RowDefinitions>
+
+                                    <Border Grid.Row="0"
+                                            BorderBrush="{StaticResource BorderBrushMain}"
+                                            BorderThickness="0,0,0,1"
+                                            Padding="8,4">
+                                        <TextBlock Text="Available Parameters"
+                                                   FontSize="12"
+                                                   FontWeight="SemiBold"
+                                                   HorizontalAlignment="Center"/>
+                                    </Border>
+
+                                    <Border Grid.Row="1"
+                                            BorderBrush="{StaticResource BorderBrushMain}"
+                                            BorderThickness="0,0,0,1"
+                                            Padding="8,4">
+                                        <TextBlock Text="Instance, Type, Read-only"
+                                                   FontSize="12"
+                                                   Foreground="{StaticResource TextSecondary}"/>
+                                    </Border>
+
+                                    <Grid Grid.Row="2"
+                                          Margin="8,5,8,4">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBox x:Name="txtSearchAnnotationParameters"
+                                                 Height="26"
+                                                 VerticalContentAlignment="Center"
+                                                 BorderBrush="{StaticResource BorderBrushMain}"
+                                                 BorderThickness="1"
+                                                 Padding="10,0"/>
+                                        <Viewbox Grid.Column="1"
+                                                 Width="18"
+                                                 Height="18"
+                                                 Margin="10,0,0,0"
+                                                 Stretch="Uniform">
+                                            <Canvas Width="18" Height="18">
+                                                <Ellipse Canvas.Left="2.5"
+                                                         Canvas.Top="2.5"
+                                                         Width="9"
+                                                         Height="9"
+                                                         Stroke="#8A9BB2"
+                                                         StrokeThickness="1.8"/>
+                                                <Line X1="10.5"
+                                                      Y1="10.5"
+                                                      X2="15"
+                                                      Y2="15"
+                                                      Stroke="#8A9BB2"
+                                                      StrokeThickness="1.8"
+                                                      StrokeStartLineCap="Round"
+                                                      StrokeEndLineCap="Round"/>
+                                            </Canvas>
+                                        </Viewbox>
+                                    </Grid>
+
+                                    <ListBox x:Name="lstAnnotationAvailableParameters"
+                                             Grid.Row="3"
+                                             BorderThickness="0"
+                                             SelectionMode="Extended"
+                                             ItemContainerStyle="{StaticResource ParameterListItemStyle}">
+                                        <ListBox.ItemTemplate>
+                                            <DataTemplate>
+                                                <Grid Margin="6,0">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                        <ColumnDefinition Width="*"/>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    <Grid Width="16"
+                                                          Height="16"
+                                                          Margin="0,0,8,0"
+                                                          VerticalAlignment="Center">
+                                                        <Rectangle Width="13"
+                                                                   Height="13"
+                                                                   Fill="#8E8E8E"
+                                                                   HorizontalAlignment="Center"
+                                                                   VerticalAlignment="Center"
+                                                                   Style="{StaticResource ParameterSquareStyle}"/>
+                                                        <Polygon Width="14"
+                                                                 Height="14"
+                                                                 Fill="#8E8E8E"
+                                                                 Stretch="Fill"
+                                                                 Points="7,0 14,14 0,14"
+                                                                 HorizontalAlignment="Center"
+                                                                 VerticalAlignment="Center"
+                                                                 Style="{StaticResource ParameterTriangleStyle}"/>
+                                                        <Ellipse Width="15"
+                                                                 Height="15"
+                                                                 Fill="#8E8E8E"
+                                                                 HorizontalAlignment="Center"
+                                                                 VerticalAlignment="Center"
+                                                                 Style="{StaticResource ParameterCircleStyle}"/>
+                                                    </Grid>
+                                                    <TextBlock Grid.Column="1"
+                                                               Text="{Binding Name}"
+                                                               TextTrimming="CharacterEllipsis"
+                                                               VerticalAlignment="Center"/>
+                                                    <TextBlock Grid.Column="2"
+                                                               Margin="12,0,0,0"
+                                                               Text="{Binding Status}"
+                                                               Foreground="{StaticResource TextSecondary}"
+                                                               VerticalAlignment="Center"/>
+                                                </Grid>
+                                            </DataTemplate>
+                                        </ListBox.ItemTemplate>
+                                    </ListBox>
+
+                                    <Grid Grid.Row="4"
+                                          Margin="6,5,6,5">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+
+                                        <Border Grid.Column="0"
+                                                Margin="0,0,4,0"
+                                                Background="#EEF8D0"
+                                                BorderBrush="#C3D495"
+                                                BorderThickness="1"
+                                                CornerRadius="4"
+                                                Padding="8,6">
+                                            <StackPanel Orientation="Horizontal">
+                                                <Rectangle Width="13"
+                                                           Height="13"
+                                                           Fill="#B1B1B1"/>
+                                                <TextBlock Margin="8,0,0,0"
+                                                           Text="Instance"/>
+                                            </StackPanel>
+                                        </Border>
+
+                                        <Border Grid.Column="1"
+                                                Margin="4,0,4,0"
+                                                Background="#FFF5C6"
+                                                BorderBrush="#D2C689"
+                                                BorderThickness="1"
+                                                CornerRadius="4"
+                                                Padding="8,6">
+                                            <StackPanel Orientation="Horizontal">
+                                                <Polygon Width="15"
+                                                         Height="15"
+                                                         Fill="#B1B1B1"
+                                                         Stretch="Fill"
+                                                         Points="7.5,0 15,15 0,15"/>
+                                                <TextBlock Margin="8,0,0,0"
+                                                           Text="Type"/>
+                                            </StackPanel>
+                                        </Border>
+
+                                        <Border Grid.Column="2"
+                                                Margin="4,0,0,0"
+                                                Background="#F8D9D1"
+                                                BorderBrush="#D3A9A0"
+                                                BorderThickness="1"
+                                                CornerRadius="4"
+                                                Padding="8,6">
+                                            <StackPanel Orientation="Horizontal">
+                                                <Ellipse Width="16"
+                                                         Height="16"
+                                                         Fill="#B1B1B1"/>
+                                                <TextBlock Margin="8,0,0,0"
+                                                           Text="Read-only"/>
+                                            </StackPanel>
+                                        </Border>
+                                    </Grid>
+                                </Grid>
+                            </Border>
+
+                            <StackPanel Grid.Column="3"
+                                        VerticalAlignment="Center"
+                                        HorizontalAlignment="Center">
+                                <Button x:Name="btnAnnotationAddParameter"
+                                        Width="34"
+                                        Height="34"
+                                        Margin="0,0,0,6"
+                                        FontSize="18"
+                                        Content="▶"
+                                        Style="{StaticResource ActionButtonStyle}"/>
+                                <Button x:Name="btnAnnotationRemoveParameter"
+                                        Width="34"
+                                        Height="34"
+                                        FontSize="18"
+                                        Content="◀"
+                                        Style="{StaticResource ActionButtonStyle}"/>
+                            </StackPanel>
+
+                            <Border Grid.Column="4"
+                                    Background="#FFFFFF"
+                                    BorderBrush="{StaticResource BorderBrushMain}"
+                                    BorderThickness="1">
+                                <Grid>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="*"/>
+                                        <RowDefinition Height="Auto"/>
+                                    </Grid.RowDefinitions>
+
+                                    <Border Grid.Row="0"
+                                            BorderBrush="{StaticResource BorderBrushMain}"
+                                            BorderThickness="0,0,0,1"
+                                            Padding="8,4">
+                                        <TextBlock Text="Selected Parameters"
+                                                   FontSize="12"
+                                                   FontWeight="SemiBold"
+                                                   HorizontalAlignment="Center"/>
+                                    </Border>
+
+                                    <Border Grid.Row="1"
+                                            BorderBrush="{StaticResource BorderBrushMain}"
+                                            BorderThickness="0,0,0,1"
+                                            Padding="8,4">
+                                        <TextBlock Text="Instance, Type, Read-only"
+                                                   FontSize="12"
+                                                   Foreground="{StaticResource TextSecondary}"/>
+                                    </Border>
+
+                                    <Grid Grid.Row="2"
+                                          Margin="8,5,8,4">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBox x:Name="txtSearchAnnotationSelectedParameters"
+                                                 Height="26"
+                                                 VerticalContentAlignment="Center"
+                                                 BorderBrush="{StaticResource BorderBrushMain}"
+                                                 BorderThickness="1"
+                                                 Padding="10,0"/>
+                                        <Viewbox Grid.Column="1"
+                                                 Width="18"
+                                                 Height="18"
+                                                 Margin="10,0,0,0"
+                                                 Stretch="Uniform">
+                                            <Canvas Width="18" Height="18">
+                                                <Ellipse Canvas.Left="2.5"
+                                                         Canvas.Top="2.5"
+                                                         Width="9"
+                                                         Height="9"
+                                                         Stroke="#8A9BB2"
+                                                         StrokeThickness="1.8"/>
+                                                <Line X1="10.5"
+                                                      Y1="10.5"
+                                                      X2="15"
+                                                      Y2="15"
+                                                      Stroke="#8A9BB2"
+                                                      StrokeThickness="1.8"
+                                                      StrokeStartLineCap="Round"
+                                                      StrokeEndLineCap="Round"/>
+                                            </Canvas>
+                                        </Viewbox>
+                                    </Grid>
+
+                                    <ListBox x:Name="lstAnnotationSelectedParameters"
+                                             Grid.Row="3"
+                                             BorderThickness="0"
+                                             SelectionMode="Extended"
+                                             ItemContainerStyle="{StaticResource ParameterListItemStyle}">
+                                        <ListBox.ItemTemplate>
+                                            <DataTemplate>
+                                                <Grid Margin="6,0">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                        <ColumnDefinition Width="*"/>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    <Grid Width="16"
+                                                          Height="16"
+                                                          Margin="0,0,8,0"
+                                                          VerticalAlignment="Center">
+                                                        <Rectangle Width="13"
+                                                                   Height="13"
+                                                                   Fill="#8E8E8E"
+                                                                   HorizontalAlignment="Center"
+                                                                   VerticalAlignment="Center"
+                                                                   Style="{StaticResource ParameterSquareStyle}"/>
+                                                        <Polygon Width="14"
+                                                                 Height="14"
+                                                                 Fill="#8E8E8E"
+                                                                 Stretch="Fill"
+                                                                 Points="7,0 14,14 0,14"
+                                                                 HorizontalAlignment="Center"
+                                                                 VerticalAlignment="Center"
+                                                                 Style="{StaticResource ParameterTriangleStyle}"/>
+                                                        <Ellipse Width="15"
+                                                                 Height="15"
+                                                                 Fill="#8E8E8E"
+                                                                 HorizontalAlignment="Center"
+                                                                 VerticalAlignment="Center"
+                                                                 Style="{StaticResource ParameterCircleStyle}"/>
+                                                    </Grid>
+                                                    <TextBlock Grid.Column="1"
+                                                               Text="{Binding Name}"
+                                                               TextTrimming="CharacterEllipsis"
+                                                               VerticalAlignment="Center"/>
+                                                    <TextBlock Grid.Column="2"
+                                                               Margin="12,0,0,0"
+                                                               Text="{Binding Status}"
+                                                               Foreground="{StaticResource TextSecondary}"
+                                                               VerticalAlignment="Center"/>
+                                                </Grid>
+                                            </DataTemplate>
+                                        </ListBox.ItemTemplate>
+                                    </ListBox>
+
+                                    <Border Grid.Row="4"
+                                            BorderBrush="{StaticResource BorderBrushMain}"
+                                            BorderThickness="0,1,0,0"
+                                            Padding="8,4">
+                                        <TextBlock x:Name="lblAnnotationSelectedHint"
+                                                   Foreground="{StaticResource TextSecondary}"
+                                                   FontSize="11"
+                                                   TextWrapping="Wrap"
+                                                   Text="Only selected parameters will be used for Preview/Edit and Excel export."/>
+                                    </Border>
+                                </Grid>
+                            </Border>
+                        </Grid>
+                    </Grid>
+                </Border>
+
+                <Border x:Name="panelElements"
+                        Background="{StaticResource PanelBg}"
+                        BorderBrush="{StaticResource BorderBrushMain}"
+                        BorderThickness="1"
+                        Visibility="Collapsed">
+                    <Grid Margin="8">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="4"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+
+                        <TextBlock x:Name="lblElementsInfo"
+                                   TextWrapping="Wrap"
+                                   Foreground="{StaticResource TextSecondary}"
+                                   FontSize="12"
+                                   Text="Select one category, choose elements, review parameters, then export or import Excel changes."/>
+
+                        <Grid Grid.Row="2">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="0.34*"/>
+                                <ColumnDefinition Width="6"/>
+                                <ColumnDefinition Width="0.31*"/>
+                                <ColumnDefinition Width="42"/>
+                                <ColumnDefinition Width="0.31*"/>
+                            </Grid.ColumnDefinitions>
+
+                            <Border Grid.Column="0"
+                                    Background="#FFFFFF"
+                                    BorderBrush="{StaticResource BorderBrushMain}"
+                                    BorderThickness="1">
+                                <Grid>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="0.43*"/>
+                                        <RowDefinition Height="8"/>
+                                        <RowDefinition Height="0.57*"/>
+                                        <RowDefinition Height="Auto"/>
+                                    </Grid.RowDefinitions>
+
+                                    <Grid Grid.Row="0">
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="*"/>
+                                        </Grid.RowDefinitions>
+
+                                        <Border Grid.Row="0"
+                                                BorderBrush="{StaticResource BorderBrushMain}"
+                                                BorderThickness="0,0,0,1"
+                                                Padding="8,4">
+                                            <TextBlock Text="Select Category"
+                                                       FontSize="12"
+                                                       FontWeight="SemiBold"
+                                                       HorizontalAlignment="Center"/>
+                                        </Border>
+
+                                        <Grid Grid.Row="1"
+                                              Margin="8,5,8,4">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <TextBox x:Name="txtSearchElementCategories"
+                                                     Height="26"
+                                                     VerticalContentAlignment="Center"
+                                                     BorderBrush="{StaticResource BorderBrushMain}"
+                                                     BorderThickness="1"
+                                                     Padding="6,0"/>
+                                            <Viewbox Grid.Column="1"
+                                                     Width="16"
+                                                     Height="16"
+                                                     Margin="6,0,0,0"
+                                                     Stretch="Uniform">
+                                                <Canvas Width="18" Height="18">
+                                                    <Ellipse Canvas.Left="2.5"
+                                                             Canvas.Top="2.5"
+                                                             Width="9"
+                                                             Height="9"
+                                                             Stroke="#8A9BB2"
+                                                             StrokeThickness="1.8"/>
+                                                    <Line X1="10.5"
+                                                          Y1="10.5"
+                                                          X2="15"
+                                                          Y2="15"
+                                                          Stroke="#8A9BB2"
+                                                          StrokeThickness="1.8"
+                                                          StrokeStartLineCap="Round"
+                                                          StrokeEndLineCap="Round"/>
+                                                </Canvas>
+                                            </Viewbox>
+                                        </Grid>
+
+                                        <ListBox x:Name="lstElementCategories"
+                                                 Grid.Row="2"
+                                                 Margin="4,0,4,0"
+                                                 BorderThickness="0"
+                                                 SelectionMode="Single">
+                                            <ListBox.ItemTemplate>
+                                                <DataTemplate>
+                                                    <DockPanel LastChildFill="True">
+                                                        <CheckBox Margin="0,0,8,0"
+                                                                  VerticalAlignment="Center"
+                                                                  IsChecked="{Binding RelativeSource={RelativeSource AncestorType=ListBoxItem}, Path=IsSelected}"/>
+                                                        <TextBlock VerticalAlignment="Center"
+                                                                   Text="{Binding Name}"
+                                                                   TextTrimming="CharacterEllipsis"/>
+                                                        <TextBlock DockPanel.Dock="Right"
+                                                                   Margin="8,0,0,0"
+                                                                   VerticalAlignment="Center"
+                                                                   Foreground="{StaticResource TextMuted}"
+                                                                   Text="{Binding ElementCount}"/>
+                                                    </DockPanel>
+                                                </DataTemplate>
+                                            </ListBox.ItemTemplate>
+                                        </ListBox>
+                                    </Grid>
+
+                                    <Border Grid.Row="1"
+                                            Background="{StaticResource PanelBg}"/>
+
+                                    <Grid Grid.Row="2">
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="*"/>
+                                        </Grid.RowDefinitions>
+
+                                        <Border Grid.Row="0"
+                                                BorderBrush="{StaticResource BorderBrushMain}"
+                                                BorderThickness="0,1,0,1"
+                                                Padding="8,4">
+                                            <TextBlock Text="Select Elements"
+                                                       FontSize="12"
+                                                       FontWeight="SemiBold"
+                                                       HorizontalAlignment="Center"/>
+                                        </Border>
+
+                                        <Grid Grid.Row="1"
+                                              Margin="8,5,8,4">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <TextBox x:Name="txtSearchElementItems"
+                                                     Height="26"
+                                                     VerticalContentAlignment="Center"
+                                                     BorderBrush="{StaticResource BorderBrushMain}"
+                                                     BorderThickness="1"
+                                                     Padding="6,0"/>
+                                            <Viewbox Grid.Column="1"
+                                                     Width="16"
+                                                     Height="16"
+                                                     Margin="6,0,0,0"
+                                                     Stretch="Uniform">
+                                                <Canvas Width="18" Height="18">
+                                                    <Ellipse Canvas.Left="2.5"
+                                                             Canvas.Top="2.5"
+                                                             Width="9"
+                                                             Height="9"
+                                                             Stroke="#8A9BB2"
+                                                             StrokeThickness="1.8"/>
+                                                    <Line X1="10.5"
+                                                          Y1="10.5"
+                                                          X2="15"
+                                                          Y2="15"
+                                                          Stroke="#8A9BB2"
+                                                          StrokeThickness="1.8"
+                                                          StrokeStartLineCap="Round"
+                                                          StrokeEndLineCap="Round"/>
+                                                </Canvas>
+                                            </Viewbox>
+                                        </Grid>
+
+                                        <ListBox x:Name="lstElementItems"
+                                                 Grid.Row="2"
+                                                 Margin="4,0,4,0"
+                                                 BorderThickness="0"
+                                                 SelectionMode="Extended">
+                                            <ListBox.ItemTemplate>
+                                                <DataTemplate>
+                                                    <DockPanel LastChildFill="True">
+                                                        <CheckBox Margin="0,0,8,0"
+                                                                  VerticalAlignment="Center"
+                                                                  IsChecked="{Binding RelativeSource={RelativeSource AncestorType=ListBoxItem}, Path=IsSelected}"/>
+                                                        <TextBlock VerticalAlignment="Center"
+                                                                   Text="{Binding Name}"
+                                                                   TextTrimming="CharacterEllipsis"/>
+                                                        <TextBlock DockPanel.Dock="Right"
+                                                                   Margin="8,0,0,0"
+                                                                   VerticalAlignment="Center"
+                                                                   Foreground="{StaticResource TextMuted}"
+                                                                   Text="{Binding ElementId}"/>
+                                                    </DockPanel>
+                                                </DataTemplate>
+                                            </ListBox.ItemTemplate>
+                                        </ListBox>
+                                    </Grid>
+
+                                    <Border Grid.Row="3"
+                                            BorderBrush="{StaticResource BorderBrushMain}"
+                                            BorderThickness="0,1,0,0"
+                                            Padding="8,4">
+                                        <TextBlock x:Name="lblElementCategoryHint"
+                                                   Foreground="{StaticResource TextSecondary}"
+                                                   FontSize="11"
+                                                   TextWrapping="Wrap"
+                                                   Text="Pick a category first, then choose exact elements."/>
+                                    </Border>
+                                </Grid>
+                            </Border>
+
+                            <Border Grid.Column="2"
+                                    Background="#FFFFFF"
+                                    BorderBrush="{StaticResource BorderBrushMain}"
+                                    BorderThickness="1">
+                                <Grid>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="*"/>
+                                        <RowDefinition Height="Auto"/>
+                                    </Grid.RowDefinitions>
+
+                                    <Border Grid.Row="0"
+                                            BorderBrush="{StaticResource BorderBrushMain}"
+                                            BorderThickness="0,0,0,1"
+                                            Padding="8,4">
+                                        <TextBlock Text="Available Parameters"
+                                                   FontSize="12"
+                                                   FontWeight="SemiBold"
+                                                   HorizontalAlignment="Center"/>
+                                    </Border>
+
+                                    <Border Grid.Row="1"
+                                            BorderBrush="{StaticResource BorderBrushMain}"
+                                            BorderThickness="0,0,0,1"
+                                            Padding="8,4">
+                                        <TextBlock Text="Instance, Type, Read-only"
+                                                   FontSize="12"
+                                                   Foreground="{StaticResource TextSecondary}"/>
+                                    </Border>
+
+                                    <Grid Grid.Row="2"
+                                          Margin="8,5,8,4">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBox x:Name="txtSearchElementParameters"
+                                                 Height="26"
+                                                 VerticalContentAlignment="Center"
+                                                 BorderBrush="{StaticResource BorderBrushMain}"
+                                                 BorderThickness="1"
+                                                 Padding="6,0"/>
+                                        <Viewbox Grid.Column="1"
+                                                 Width="16"
+                                                 Height="16"
+                                                 Margin="6,0,0,0"
+                                                 Stretch="Uniform">
+                                            <Canvas Width="18" Height="18">
+                                                <Ellipse Canvas.Left="2.5"
+                                                         Canvas.Top="2.5"
+                                                         Width="9"
+                                                         Height="9"
+                                                         Stroke="#8A9BB2"
+                                                         StrokeThickness="1.8"/>
+                                                <Line X1="10.5"
+                                                      Y1="10.5"
+                                                      X2="15"
+                                                      Y2="15"
+                                                      Stroke="#8A9BB2"
+                                                      StrokeThickness="1.8"
+                                                      StrokeStartLineCap="Round"
+                                                      StrokeEndLineCap="Round"/>
+                                            </Canvas>
+                                        </Viewbox>
+                                    </Grid>
+
+                                    <ListBox x:Name="lstElementAvailableParameters"
+                                             Grid.Row="3"
+                                             BorderThickness="0"
+                                             SelectionMode="Extended"
+                                             ItemContainerStyle="{StaticResource ParameterListItemStyle}">
+                                        <ListBox.ItemTemplate>
+                                            <DataTemplate>
+                                                <Grid Margin="6,0">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                        <ColumnDefinition Width="*"/>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    <Grid Width="16"
+                                                          Height="16"
+                                                          Margin="0,0,8,0"
+                                                          VerticalAlignment="Center">
+                                                        <Rectangle Width="13"
+                                                                   Height="13"
+                                                                   Fill="#8E8E8E"
+                                                                   HorizontalAlignment="Center"
+                                                                   VerticalAlignment="Center"
+                                                                   Style="{StaticResource ParameterSquareStyle}"/>
+                                                        <Polygon Width="14"
+                                                                 Height="14"
+                                                                 Fill="#8E8E8E"
+                                                                 Stretch="Fill"
+                                                                 Points="7,0 14,14 0,14"
+                                                                 HorizontalAlignment="Center"
+                                                                 VerticalAlignment="Center"
+                                                                 Style="{StaticResource ParameterTriangleStyle}"/>
+                                                        <Ellipse Width="15"
+                                                                 Height="15"
+                                                                 Fill="#8E8E8E"
+                                                                 HorizontalAlignment="Center"
+                                                                 VerticalAlignment="Center"
+                                                                 Style="{StaticResource ParameterCircleStyle}"/>
+                                                    </Grid>
+                                                    <TextBlock Grid.Column="1"
+                                                               Text="{Binding Name}"
+                                                               TextTrimming="CharacterEllipsis"
+                                                               VerticalAlignment="Center"/>
+                                                    <TextBlock Grid.Column="2"
+                                                               Margin="12,0,0,0"
+                                                               Text="{Binding Status}"
+                                                               Foreground="{StaticResource TextSecondary}"
+                                                               VerticalAlignment="Center"/>
+                                                </Grid>
+                                            </DataTemplate>
+                                        </ListBox.ItemTemplate>
+                                    </ListBox>
+
+                                    <Grid Grid.Row="4"
+                                          Margin="6,5,6,5">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+
+                                        <Border Grid.Column="0"
+                                                Margin="0,0,4,0"
+                                                Background="#EEF8D0"
+                                                BorderBrush="#C3D495"
+                                                BorderThickness="1"
+                                                CornerRadius="4"
+                                                Padding="7,4">
+                                            <StackPanel Orientation="Horizontal">
+                                                <Rectangle Width="13"
+                                                           Height="13"
+                                                           Fill="#B1B1B1"/>
+                                                <TextBlock Margin="8,0,0,0"
+                                                           Text="Instance"/>
+                                            </StackPanel>
+                                        </Border>
+
+                                        <Border Grid.Column="1"
+                                                Margin="4,0,4,0"
+                                                Background="#FFF5C6"
+                                                BorderBrush="#D2C689"
+                                                BorderThickness="1"
+                                                CornerRadius="4"
+                                                Padding="7,4">
+                                            <StackPanel Orientation="Horizontal">
+                                                <Polygon Width="15"
+                                                         Height="15"
+                                                         Fill="#B1B1B1"
+                                                         Stretch="Fill"
+                                                         Points="7.5,0 15,15 0,15"/>
+                                                <TextBlock Margin="8,0,0,0"
+                                                           Text="Type"/>
+                                            </StackPanel>
+                                        </Border>
+
+                                        <Border Grid.Column="2"
+                                                Margin="4,0,0,0"
+                                                Background="#F8D9D1"
+                                                BorderBrush="#D3A9A0"
+                                                BorderThickness="1"
+                                                CornerRadius="4"
+                                                Padding="7,4">
+                                            <StackPanel Orientation="Horizontal">
+                                                <Ellipse Width="16"
+                                                         Height="16"
+                                                         Fill="#B1B1B1"/>
+                                                <TextBlock Margin="8,0,0,0"
+                                                           Text="Read-only"/>
+                                            </StackPanel>
+                                        </Border>
+                                    </Grid>
+                                </Grid>
+                            </Border>
+
+                            <StackPanel Grid.Column="3"
+                                        VerticalAlignment="Center"
+                                        HorizontalAlignment="Center">
+                                <Button x:Name="btnElementAddParameter"
+                                        Width="34"
+                                        Height="34"
+                                        Margin="0,0,0,6"
+                                        FontSize="18"
+                                        Content="▶"
+                                        Style="{StaticResource ActionButtonStyle}"/>
+                                <Button x:Name="btnElementRemoveParameter"
+                                        Width="34"
+                                        Height="34"
+                                        FontSize="18"
+                                        Content="◀"
+                                        Style="{StaticResource ActionButtonStyle}"/>
+                            </StackPanel>
+
+                            <Border Grid.Column="4"
+                                    Background="#FFFFFF"
+                                    BorderBrush="{StaticResource BorderBrushMain}"
+                                    BorderThickness="1">
+                                <Grid>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="*"/>
+                                        <RowDefinition Height="Auto"/>
+                                    </Grid.RowDefinitions>
+
+                                    <Border Grid.Row="0"
+                                            BorderBrush="{StaticResource BorderBrushMain}"
+                                            BorderThickness="0,0,0,1"
+                                            Padding="8,4">
+                                        <TextBlock Text="Selected Parameters"
+                                                   FontSize="12"
+                                                   FontWeight="SemiBold"
+                                                   HorizontalAlignment="Center"/>
+                                    </Border>
+
+                                    <Border Grid.Row="1"
+                                            BorderBrush="{StaticResource BorderBrushMain}"
+                                            BorderThickness="0,0,0,1"
+                                            Padding="8,4">
+                                        <TextBlock Text="Instance, Type, Read-only"
+                                                   FontSize="12"
+                                                   Foreground="{StaticResource TextSecondary}"/>
+                                    </Border>
+
+                                    <Grid Grid.Row="2"
+                                          Margin="8,5,8,4">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBox x:Name="txtSearchElementSelectedParameters"
+                                                 Height="26"
+                                                 VerticalContentAlignment="Center"
+                                                 BorderBrush="{StaticResource BorderBrushMain}"
+                                                 BorderThickness="1"
+                                                 Padding="6,0"/>
+                                        <Viewbox Grid.Column="1"
+                                                 Width="16"
+                                                 Height="16"
+                                                 Margin="6,0,0,0"
+                                                 Stretch="Uniform">
+                                            <Canvas Width="18" Height="18">
+                                                <Ellipse Canvas.Left="2.5"
+                                                         Canvas.Top="2.5"
+                                                         Width="9"
+                                                         Height="9"
+                                                         Stroke="#8A9BB2"
+                                                         StrokeThickness="1.8"/>
+                                                <Line X1="10.5"
+                                                      Y1="10.5"
+                                                      X2="15"
+                                                      Y2="15"
+                                                      Stroke="#8A9BB2"
+                                                      StrokeThickness="1.8"
+                                                      StrokeStartLineCap="Round"
+                                                      StrokeEndLineCap="Round"/>
+                                            </Canvas>
+                                        </Viewbox>
+                                    </Grid>
+
+                                    <ListBox x:Name="lstElementSelectedParameters"
+                                             Grid.Row="3"
+                                             BorderThickness="0"
+                                             SelectionMode="Extended"
+                                             ItemContainerStyle="{StaticResource ParameterListItemStyle}">
+                                        <ListBox.ItemTemplate>
+                                            <DataTemplate>
+                                                <Grid Margin="6,0">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                        <ColumnDefinition Width="*"/>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    <Grid Width="16"
+                                                          Height="16"
+                                                          Margin="0,0,8,0"
+                                                          VerticalAlignment="Center">
+                                                        <Rectangle Width="13"
+                                                                   Height="13"
+                                                                   Fill="#8E8E8E"
+                                                                   HorizontalAlignment="Center"
+                                                                   VerticalAlignment="Center"
+                                                                   Style="{StaticResource ParameterSquareStyle}"/>
+                                                        <Polygon Width="14"
+                                                                 Height="14"
+                                                                 Fill="#8E8E8E"
+                                                                 Stretch="Fill"
+                                                                 Points="7,0 14,14 0,14"
+                                                                 HorizontalAlignment="Center"
+                                                                 VerticalAlignment="Center"
+                                                                 Style="{StaticResource ParameterTriangleStyle}"/>
+                                                        <Ellipse Width="15"
+                                                                 Height="15"
+                                                                 Fill="#8E8E8E"
+                                                                 HorizontalAlignment="Center"
+                                                                 VerticalAlignment="Center"
+                                                                 Style="{StaticResource ParameterCircleStyle}"/>
+                                                    </Grid>
+                                                    <TextBlock Grid.Column="1"
+                                                               Text="{Binding Name}"
+                                                               TextTrimming="CharacterEllipsis"
+                                                               VerticalAlignment="Center"/>
+                                                    <TextBlock Grid.Column="2"
+                                                               Margin="12,0,0,0"
+                                                               Text="{Binding Status}"
+                                                               Foreground="{StaticResource TextSecondary}"
+                                                               VerticalAlignment="Center"/>
+                                                </Grid>
+                                            </DataTemplate>
+                                        </ListBox.ItemTemplate>
+                                    </ListBox>
+
+                                    <Border Grid.Row="4"
+                                            BorderBrush="{StaticResource BorderBrushMain}"
+                                            BorderThickness="0,1,0,0"
+                                            Padding="8,4">
+                                        <TextBlock x:Name="lblElementSelectedHint"
+                                                   Foreground="{StaticResource TextSecondary}"
+                                                   FontSize="11"
+                                                   TextWrapping="Wrap"
+                                                   Text="Only selected parameters will be used for Preview/Edit and Excel export."/>
+                                    </Border>
+                                </Grid>
+                            </Border>
+                        </Grid>
+                    </Grid>
+                </Border>
+
+                <Border x:Name="panelSpatial"
+                        Background="{StaticResource PanelBg}"
+                        BorderBrush="{StaticResource BorderBrushMain}"
+                        BorderThickness="1"
+                        Visibility="Collapsed">
+                    <Grid Margin="22">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="14"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="18"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+
+                        <TextBlock Text="Spatial"
+                                   FontSize="22"
+                                   FontWeight="SemiBold"/>
+                        <TextBlock Grid.Row="2"
+                                   x:Name="lblSpatialInfo"
+                                   TextWrapping="Wrap"
+                                   Foreground="{StaticResource TextSecondary}"
+                                   FontSize="14"
+                                   Text="Spatial workflows for rooms and spaces can be staged here with their own import/export rules."/>
+
+                        <Border Grid.Row="4"
+                                Background="#FFFFFF"
+                                BorderBrush="{StaticResource BorderBrushMain}"
+                                BorderThickness="1"
+                                Padding="18">
+                            <StackPanel>
+                                <TextBlock FontWeight="SemiBold"
+                                           FontSize="14"
+                                           Text="Room and space path"/>
+                                <TextBlock Margin="0,10,0,0"
+                                           TextWrapping="Wrap"
+                                           Foreground="{StaticResource TextSecondary}"
+                                           Text="This section is now reachable and ready to become the place for room and space parameter exchange."/>
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+                </Border>
+
+                <Border x:Name="panelPreviewEdit"
+                        Background="{StaticResource PanelBg}"
+                        BorderBrush="{StaticResource BorderBrushMain}"
+                        BorderThickness="1"
+                        Visibility="Collapsed">
+                    <Grid Margin="10">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="8"/>
+                            <RowDefinition Height="*"/>
+                            <RowDefinition Height="8"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="14"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+
+                            <TextBlock Grid.Column="0"
+                                       Text="Preview/Edit"
+                                       FontSize="15"
+                                       FontWeight="SemiBold"
+                                       VerticalAlignment="Center"/>
+
+                            <StackPanel Grid.Column="2"
+                                        Orientation="Horizontal"
+                                        VerticalAlignment="Center">
+                                <TextBlock x:Name="lblPreviewSchedule"
+                                           FontWeight="SemiBold"
+                                           Text="No selection"/>
+                                <TextBlock Text="  |  "
+                                           Foreground="{StaticResource TextSecondary}"/>
+                                <TextBlock x:Name="lblPreviewParameterCount"
+                                           Foreground="{StaticResource TextSecondary}"
+                                           Text="Parameters ready: 0"/>
+                            </StackPanel>
+
+                            <StackPanel Grid.Column="3"
+                                        Orientation="Horizontal"
+                                        HorizontalAlignment="Right">
+                                <Button x:Name="btnGoSchedules"
+                                        Content="Back to Schedules"
+                                        Width="130"
+                                        Height="30"
+                                        Margin="0,0,6,0"/>
+                                <Button x:Name="btnPreviewImport"
+                                        Content="Update Model"
+                                        Width="125"
+                                        Height="30"
+                                        Style="{StaticResource ImportButtonStyle}"
+                                        Margin="0,0,6,0"/>
+                                <Button x:Name="btnPreviewExport"
+                                        Content="Export"
+                                        Width="100"
+                                        Height="30"
+                                        Style="{StaticResource ExportButtonStyle}"/>
+                            </StackPanel>
+                        </Grid>
+
+                        <Border Grid.Row="2"
+                                Background="#FFFFFF"
+                                BorderBrush="{StaticResource BorderBrushMain}"
+                                BorderThickness="1">
+                            <DataGrid x:Name="dgPreviewEdit"
+                                      AutoGenerateColumns="True"
+                                      CanUserAddRows="False"
+                                      CanUserDeleteRows="False"
+                                      IsReadOnly="False"
+                                      HeadersVisibility="Column"
+                                      GridLinesVisibility="All"
+                                      SelectionUnit="Cell"
+                                      BorderThickness="0"/>
+                        </Border>
+
+                        <TextBlock Grid.Row="4"
+                                   x:Name="lblPreviewWorkflow"
+                                   Foreground="{StaticResource TextSecondary}"
+                                   TextWrapping="Wrap"
+                                   Text="Preview the selected Revit data in a spreadsheet-like grid before exporting or importing Excel changes."/>
+                    </Grid>
+                </Border>
+            </Grid>
+
+            <Grid Grid.Row="10">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <TextBlock Grid.Column="0"
+                           VerticalAlignment="Center"
+                           Foreground="{StaticResource TextSecondary}"
+                           FontSize="12"
+                           x:Name="lblFooterSummary"
+                           Text="Total number of selected schedules and detected parameters"/>
+
+                <StackPanel Grid.Column="1"
+                            Orientation="Horizontal"
+                            HorizontalAlignment="Right">
+                    <Button x:Name="btnResetValues"
+                            Content="Reset Values"
+                            Width="138"
+                            Height="38"
+                            IsEnabled="False"
+                            Margin="0,0,8,0"/>
                     <Button x:Name="btnImportExcel"
-                            Content="Import Excel"
-                            Width="120"
-                            Margin="0,0,6,0"/>
+                            Content="Import ▾"
+                            Width="138"
+                            Height="38"
+                            Style="{StaticResource ImportButtonStyle}"
+                            Margin="0,0,8,0"/>
                     <Button x:Name="btnExport"
                             Content="Export"
-                            Width="120"
+                            Width="138"
+                            Height="38"
                             Style="{StaticResource ExportButtonStyle}"/>
-                    <Button x:Name="btnClose"
-                            Content="Close"
-                            Width="100"/>
                 </StackPanel>
-          
-            </DockPanel>
-        </Border>
-    </Grid>
+            </Grid>
+        </Grid>
+    </Border>
 </Window>

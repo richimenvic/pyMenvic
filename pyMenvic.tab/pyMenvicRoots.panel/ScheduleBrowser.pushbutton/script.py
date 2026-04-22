@@ -1,11 +1,11 @@
-# -*- coding: utf-8 -*-
+﻿# -*- coding: utf-8 -*-
 
-__title__ = "Schedule Browser"
+__title__ = "SheetLink - pyMENVIC"
 __author__ = "Ricardo J. Mendieta"
 
 __doc__ = """
 ==========================================================
-pyMENVIC | SCHEDULE BROWSER
+pyMENVIC | SHEETLINK
 Revit + pyRevit
 
 Descripción
@@ -19,8 +19,7 @@ Capacidades
 - Lista schedules disponibles en el proyecto
 - Muestra campos visibles con origen y estado editable
 - Exporta schedules a Excel con las hojas Data y Schema
-- Escribe UniqueId y ElementId en columnas técnicas cuando es posible
-- Soporta fallback por elementos reales del schedule si el CSV no trae ElementId
+- Escribe UniqueId y ElementId en columnas técnicas cuando hay una referencia fiable
 - Permite previsualizar cambios antes de importar desde Excel
 - Permite importar cambios desde Excel a Revit
 - Detecta conflictos de unicidad en campos conocidos durante el preview y la importación
@@ -47,7 +46,6 @@ Reglas importantes
 - Compatible con IronPython 2.7
 - Cambios mínimos sobre la lógica original
 - No usa librerías externas fuera de Interop Excel
-- Si el CSV no trae ElementId, intenta resolver IDs desde los elementos reales del schedule
 - El import usa UniqueId y ElementId como referencias técnicas principales
 - El orden de las filas en Excel no se usa como referencia de importación
 
@@ -64,6 +62,7 @@ import time
 import csv
 import json
 import subprocess
+import io
 
 from pyrevit import forms
 from pyrevit import script
@@ -72,12 +71,16 @@ from Autodesk.Revit.UI import TaskDialog
 
 import clr
 clr.AddReference("Microsoft.Office.Interop.Excel")
+clr.AddReference("System")
+clr.AddReference("System.Data")
+clr.AddReference("System.Windows.Forms")
 from Microsoft.Office.Interop import Excel
+from System import Array, Object
+from System.Data import DataTable
 from System.Runtime.InteropServices import Marshal
 from Microsoft.Win32 import SaveFileDialog, OpenFileDialog
-
-
-
+from System.Windows import Visibility, FontWeights
+from System.Windows.Forms import Application
 logger = script.get_logger()
 
 uidoc = __revit__.ActiveUIDocument
@@ -91,6 +94,23 @@ TEMP_FOLDER = os.path.expandvars("%temp%")
 MAX_SAMPLE_ELEMENTS = 20
 EXPORT_DELIMITER = ","
 
+MODEL_CATEGORY_VISIBLE_NAMES = set([
+    "hvac zones",
+    "zonas hvac",
+    "lines",
+    "lineas",
+    "líneas",
+    "materials",
+    "materiales",
+    "pipe segments",
+    "segmentos de tuberia",
+    "segmentos de tubería",
+    "sheets",
+    "hojas",
+    "views",
+    "vistas",
+])
+
 class ScheduleItem(object):
     def __init__(self, schedule):
         self.Schedule = schedule
@@ -98,11 +118,36 @@ class ScheduleItem(object):
 
 
 class ParameterItem(object):
-    def __init__(self, name, origin, editable):
+    def __init__(self, name, origin, editable, metadata=None):
         self.Name = name
         self.Origin = origin
         self.Editable = editable
         self.Status = build_status(origin, editable)
+        self.SymbolKind = get_parameter_symbol_kind(origin, editable)
+        self.SymbolGlyph = get_parameter_symbol(origin, editable)
+        self.DisplayName = u"{} {}".format(self.SymbolGlyph, self.Name)
+        self.Metadata = metadata or {}
+
+
+class CategoryItem(object):
+    def __init__(self, category, element_count):
+        self.Category = category
+        self.Name = safe_text(getattr(category, "Name", ""))
+        self.ElementCount = element_count
+
+
+class ElementItem(object):
+    def __init__(self, element):
+        self.Element = element
+        self.Name = get_element_display_name(element)
+        try:
+            self.ElementId = safe_text(element.Id.IntegerValue)
+        except Exception:
+            self.ElementId = ""
+        try:
+            self.UniqueId = safe_text(element.UniqueId)
+        except Exception:
+            self.UniqueId = ""
 
 
 def safe_text(value):
@@ -146,6 +191,36 @@ def build_status(origin, editable):
     return "{} / Unknown".format(origin_text)
 
 
+def is_editable_metadata_value(value):
+    return normalize_text(value) == "Yes"
+
+
+def get_parameter_symbol(origin, editable):
+    editable_text = safe_text(editable).strip()
+    origin_text = safe_text(origin).strip()
+
+    if editable_text == "No":
+        return u"\u25CF"
+
+    if origin_text == "Type":
+        return u"\u25B2"
+
+    return u"\u25A0"
+
+
+def get_parameter_symbol_kind(origin, editable):
+    editable_text = safe_text(editable).strip()
+    origin_text = safe_text(origin).strip()
+
+    if editable_text == "No":
+        return "ReadOnly"
+
+    if origin_text == "Type":
+        return "Type"
+
+    return "Instance"
+
+
 def sanitize_filename(text):
     if not text:
         return "Schedule"
@@ -161,13 +236,13 @@ def sanitize_filename(text):
 
     return result.replace(" ", "_")
 
-def ask_output_xlsx_path(schedule):
-    schedule_name = sanitize_filename(get_schedule_name(schedule))
+def ask_output_xlsx_path_for_name(default_name):
+    file_name = sanitize_filename(default_name)
 
     dialog = SaveFileDialog()
     dialog.Title = "Save Excel Export"
     dialog.Filter = "Excel Workbook (*.xlsx)|*.xlsx"
-    dialog.FileName = "{}.xlsx".format(schedule_name)
+    dialog.FileName = "{}.xlsx".format(file_name)
     dialog.DefaultExt = ".xlsx"
     dialog.AddExtension = True
     dialog.OverwritePrompt = True
@@ -250,10 +325,31 @@ def is_yesno_parameter_safe(param):
 
 def try_parse_yesno_value(value):
     text = normalize_text(value).lower()
+    if text == "":
+        return None
     if text in ("1", "true", "yes", "y", "si", "sí", "x"):
         return 1
-    if text in ("0", "false", "no", "n", ""):
+    if text in ("0", "false", "no", "n"):
         return 0
+    return None
+
+
+def try_parse_float_value(value):
+    text = normalize_text(value)
+    if text == "":
+        return None
+
+    try:
+        return float(text)
+    except Exception:
+        pass
+
+    try:
+        if "," in text and "." not in text:
+            return float(text.replace(",", "."))
+    except Exception:
+        pass
+
     return None
 
 
@@ -306,6 +402,9 @@ def try_resolve_workset_id(value):
         pass
 
     return None
+
+def ask_output_xlsx_path(schedule):
+    return ask_output_xlsx_path_for_name(get_schedule_name(schedule))
 
 
 
@@ -389,7 +488,11 @@ def set_parameter_value(param, value):
             except Exception:
                 pass
 
-            param.Set(int(float(value)))
+            numeric_value = try_parse_float_value(value)
+            if numeric_value is None:
+                return False
+
+            param.Set(int(numeric_value))
             return True
 
         if storage_type == DB.StorageType.Double:
@@ -404,10 +507,14 @@ def set_parameter_value(param, value):
 
             unit_type_id = get_parameter_unit_type_id(param)
             if unit_type_id is not None:
-                param.Set(DB.UnitUtils.ConvertToInternalUnits(float(value), unit_type_id))
-                return True
+                # For measurable specs, falling back to raw internal doubles is unsafe.
+                return False
 
-            param.Set(float(value))
+            numeric_value = try_parse_float_value(value)
+            if numeric_value is None:
+                return False
+
+            param.Set(numeric_value)
             return True
 
         if storage_type == DB.StorageType.ElementId:
@@ -431,6 +538,8 @@ def run_import_apply(xlsx_path):
 
     updated = 0
     skipped = 0
+    skipped_unresolved = 0
+    skipped_unchanged = 0
     failed = 0
     duplicate_count = 0
     unresolved_count = 0
@@ -461,6 +570,7 @@ def run_import_apply(xlsx_path):
 
             if element is None:
                 skipped += 1
+                skipped_unresolved += 1
                 unresolved_count += 1
 
                 if len(unresolved_lines) < 10:
@@ -529,6 +639,7 @@ def run_import_apply(xlsx_path):
 
             if not row_changed:
                 skipped += 1
+                skipped_unchanged += 1
 
         t.Commit()
 
@@ -537,6 +648,8 @@ def run_import_apply(xlsx_path):
         message.append("")
         message.append("Updated values: {}".format(updated))
         message.append("Skipped: {}".format(skipped))
+        message.append("Skipped unresolved: {}".format(skipped_unresolved))
+        message.append("Skipped unchanged: {}".format(skipped_unchanged))
         message.append("Failed: {}".format(failed))
         message.append("Duplicate conflicts: {}".format(duplicate_count))
         message.append("Unresolved rows: {}".format(unresolved_count))
@@ -603,6 +716,439 @@ def collect_schedules():
             logger.warning("Skipping schedule. %s", safe_text(ex))
 
     return sorted(items, key=lambda x: x.Name.lower())
+
+
+def get_category_element_count(category):
+    if category is None:
+        return 0
+
+    try:
+        collector = DB.FilteredElementCollector(doc).OfCategoryId(category.Id).WhereElementIsNotElementType()
+        return collector.GetElementCount()
+    except Exception:
+        return 0
+
+
+def collect_model_categories():
+    results = []
+    excluded_category_names = set([
+        "project information",
+        "informacion del proyecto",
+        "información del proyecto",
+    ])
+
+    try:
+        categories = doc.Settings.Categories
+    except Exception:
+        return results
+
+    for category in categories:
+        try:
+            if category is None:
+                continue
+            if getattr(category, "IsTagCategory", False):
+                continue
+
+            category_name = normalize_text(getattr(category, "Name", ""))
+            if not category_name:
+                continue
+            category_key = category_name.strip().lower()
+
+            if category_key in excluded_category_names:
+                continue
+
+            if category_key not in MODEL_CATEGORY_VISIBLE_NAMES:
+                continue
+
+            if category.CategoryType != DB.CategoryType.Model and category_key not in ("views", "vistas", "sheets", "hojas"):
+                continue
+
+            element_count = get_category_element_count(category)
+            if element_count <= 0:
+                continue
+
+            results.append(CategoryItem(category, element_count))
+        except Exception:
+            continue
+
+    return sorted(results, key=lambda x: x.Name.lower())
+
+
+def collect_annotation_categories():
+    results = []
+
+    try:
+        categories = doc.Settings.Categories
+    except Exception:
+        return results
+
+    for category in categories:
+        try:
+            if category is None:
+                continue
+
+            category_name = normalize_text(getattr(category, "Name", ""))
+            if not category_name:
+                continue
+
+            if category.CategoryType != DB.CategoryType.Annotation:
+                continue
+
+            element_count = get_category_element_count(category)
+            if element_count <= 0:
+                continue
+
+            results.append(CategoryItem(category, element_count))
+        except Exception:
+            continue
+
+    return sorted(results, key=lambda x: x.Name.lower())
+
+
+def merge_category_items(category_items):
+    by_key = {}
+
+    for category_item in category_items or []:
+        key = normalize_text(category_item.Name).lower()
+        if key and key not in by_key:
+            by_key[key] = category_item
+
+    return sorted(by_key.values(), key=lambda x: x.Name.lower())
+
+
+def collect_element_categories():
+    return merge_category_items(collect_model_categories() + collect_annotation_categories())
+
+
+def collect_spatial_categories():
+    spatial_categories = []
+    spatial_defs = [
+        ("Rooms", "OST_Rooms"),
+        ("Spaces", "OST_MEPSpaces"),
+    ]
+
+    for display_name, built_in_category_name in spatial_defs:
+        built_in_category = getattr(DB.BuiltInCategory, built_in_category_name, None)
+        if built_in_category is None:
+            continue
+
+        try:
+            category = DB.Category.GetCategory(doc, built_in_category)
+        except Exception:
+            category = None
+
+        if category is None:
+            try:
+                category = doc.Settings.Categories.get_Item(built_in_category)
+            except Exception:
+                category = None
+
+        if category is None:
+            continue
+
+        element_count = get_category_element_count(category)
+        if element_count <= 0:
+            continue
+
+        item = CategoryItem(category, element_count)
+        item.Name = display_name
+        spatial_categories.append(item)
+
+    return spatial_categories
+
+
+def get_element_display_name(element):
+    if element is None:
+        return ""
+
+    try:
+        value = normalize_text(getattr(element, "Name", ""))
+        if value:
+            return value
+    except Exception:
+        pass
+
+    try:
+        value = normalize_text(get_type_name_from_element(element))
+        if value:
+            return value
+    except Exception:
+        pass
+
+    try:
+        value = normalize_text(get_family_name_from_element(element))
+        if value:
+            return value
+    except Exception:
+        pass
+
+    try:
+        category_name = safe_text(element.Category.Name)
+        if category_name:
+            return "{} {}".format(category_name, safe_text(element.Id.IntegerValue))
+    except Exception:
+        pass
+
+    try:
+        return "Element {}".format(safe_text(element.Id.IntegerValue))
+    except Exception:
+        return "Element"
+
+
+def get_element_items_for_category(category):
+    items = []
+
+    for element in get_category_elements(category):
+        if element is not None:
+            items.append(ElementItem(element))
+
+    return sorted(items, key=lambda x: (safe_text(x.Name).lower(), safe_text(x.ElementId)))
+
+
+def get_category_elements(category):
+    elements = []
+    if category is None:
+        return elements
+
+    try:
+        collector = DB.FilteredElementCollector(doc).OfCategoryId(category.Id).WhereElementIsNotElementType()
+        for element in collector:
+            try:
+                if element is not None:
+                    elements.append(element)
+            except Exception:
+                pass
+    except Exception:
+        pass
+
+    return elements
+
+
+def get_category_sample_elements(category, limit_count):
+    elements = get_category_elements(category)
+    if limit_count <= 0:
+        return elements
+    return elements[:limit_count]
+
+
+def build_category_parameter_metadata(name, parameter_id_value, origin, editable):
+    return {
+        "Name": name,
+        "Status": build_status(origin, editable),
+        "Origin": origin,
+        "Editable": editable,
+        "ScheduleId": "",
+        "UsedParams": [parameter_id_value] if parameter_id_value is not None else [],
+        "FieldIndex": "",
+        "ColumnRole": "CategoryField",
+        "Hidden": False
+    }
+
+
+MODEL_CATEGORY_ALLOWED_DUPLICATE_NAMES = set([
+    "detail number",
+    "reference label",
+    "sheet number",
+    "type",
+])
+
+MODEL_CATEGORY_FULL_SCAN_NAMES = set([
+    "views",
+])
+
+MODEL_CATEGORY_EXCLUDED_PARAMETER_NAMES = {
+    "views": set([
+        "depth cueing",
+    ]),
+}
+
+
+def get_category_name_key(category):
+    if category is None:
+        return ""
+    return normalize_text(getattr(category, "Name", "")).lower()
+
+
+def get_category_parameter_scan_elements(category):
+    category_name_key = get_category_name_key(category)
+    if category_name_key in MODEL_CATEGORY_FULL_SCAN_NAMES:
+        return get_category_elements(category)
+    return get_category_sample_elements(category, MAX_SAMPLE_ELEMENTS)
+
+
+def should_skip_category_parameter(category, parameter_name):
+    category_name_key = get_category_name_key(category)
+    excluded_names = MODEL_CATEGORY_EXCLUDED_PARAMETER_NAMES.get(category_name_key, set())
+    return normalize_text(parameter_name).lower() in excluded_names
+
+
+def get_parameter_nonempty_count(elements, parameter_id_value):
+    nonempty_count = 0
+    metadata = build_category_parameter_metadata("", parameter_id_value, "", "")
+
+    for element in elements:
+        try:
+            value = normalize_text(get_export_value_from_metadata(element, metadata))
+            if value:
+                nonempty_count += 1
+        except Exception:
+            continue
+
+    return nonempty_count
+
+
+def get_parameter_used_param_id(parameter_item):
+    metadata = getattr(parameter_item, "Metadata", {}) or {}
+    used_params = metadata.get("UsedParams", [])
+    if not used_params:
+        return 0
+
+    try:
+        return int(used_params[0])
+    except Exception:
+        return 0
+
+
+def get_category_parameter_sort_key(parameter_item):
+    metadata = getattr(parameter_item, "Metadata", {}) or {}
+    nonempty_count = metadata.get("NonEmptyCount", 0)
+    name_text = normalize_text(getattr(parameter_item, "Name", ""))
+    origin_text = safe_text(getattr(parameter_item, "Origin", ""))
+    used_param_id = abs(get_parameter_used_param_id(parameter_item))
+
+    origin_rank = 2
+    if origin_text == "Instance":
+        origin_rank = 0
+    elif origin_text == "Type":
+        origin_rank = 1
+
+    return (-nonempty_count, origin_rank, used_param_id, name_text.lower())
+
+
+def dedupe_category_parameter_items(parameter_items):
+    grouped = {}
+
+    for item in parameter_items:
+        name_key = normalize_text(getattr(item, "Name", "")).lower()
+        if not name_key:
+            continue
+        grouped.setdefault(name_key, []).append(item)
+
+    deduped = []
+
+    for name_key, items in grouped.items():
+        ranked_items = sorted(items, key=get_category_parameter_sort_key)
+        max_items = 2 if name_key in MODEL_CATEGORY_ALLOWED_DUPLICATE_NAMES else 1
+        deduped.extend(ranked_items[:max_items])
+
+    return sorted(deduped, key=lambda x: x.Name.lower())
+
+
+def get_category_parameters(category):
+    sample_elements = get_category_parameter_scan_elements(category)
+    if not sample_elements:
+        return []
+
+    candidates = {}
+
+    for element in sample_elements:
+        if element is None:
+            continue
+
+        scan_targets = [
+            ("Instance", element),
+            ("Type", get_type_element(element))
+        ]
+        for target_origin, target in scan_targets:
+            if target is None:
+                continue
+
+            try:
+                for param in target.Parameters:
+                    try:
+                        if param is None:
+                            continue
+
+                        definition = getattr(param, "Definition", None)
+                        if definition is None:
+                            continue
+
+                        param_name = normalize_text(getattr(definition, "Name", ""))
+                        if not param_name:
+                            continue
+
+                        if should_skip_category_parameter(category, param_name):
+                            continue
+
+                        pid = get_parameter_builtin_id_value(param)
+                        if pid is None:
+                            continue
+
+                        candidate_info = candidates.get(pid)
+                        if candidate_info is None:
+                            candidate_info = {
+                                "Name": param_name,
+                                "HasInstance": False,
+                                "HasType": False,
+                                "EditableYesCount": 0,
+                                "EditableNoCount": 0,
+                                "NonEmptyCount": 0
+                            }
+                            candidates[pid] = candidate_info
+
+                        if target_origin == "Type":
+                            candidate_info["HasType"] = True
+                        else:
+                            candidate_info["HasInstance"] = True
+
+                        if getattr(param, "IsReadOnly", True):
+                            candidate_info["EditableNoCount"] += 1
+                        else:
+                            candidate_info["EditableYesCount"] += 1
+
+                        try:
+                            if normalize_text(get_parameter_preview_value(param)):
+                                candidate_info["NonEmptyCount"] += 1
+                        except Exception:
+                            pass
+                    except Exception:
+                        continue
+            except Exception:
+                pass
+
+    parameter_items = []
+
+    for parameter_id_value, candidate_info in candidates.items():
+        has_instance = candidate_info.get("HasInstance", False)
+        has_type = candidate_info.get("HasType", False)
+        editable_yes_count = candidate_info.get("EditableYesCount", 0)
+        editable_no_count = candidate_info.get("EditableNoCount", 0)
+
+        if not has_instance and not has_type:
+            continue
+
+        if has_instance and has_type:
+            origin = "Mixed"
+        elif has_type:
+            origin = "Type"
+        else:
+            origin = "Instance"
+
+        if editable_yes_count and editable_no_count:
+            editable = "Unknown"
+        elif editable_yes_count:
+            editable = "Yes"
+        elif editable_no_count:
+            editable = "No"
+        else:
+            editable = "Unknown"
+
+        param_name = candidate_info.get("Name", "")
+        metadata = build_category_parameter_metadata(param_name, parameter_id_value, origin, editable)
+        metadata["NonEmptyCount"] = candidate_info.get("NonEmptyCount", 0)
+        parameter_items.append(ParameterItem(param_name, origin, editable, metadata))
+
+    return dedupe_category_parameter_items(parameter_items)
 
 
 def get_field_name(field):
@@ -986,7 +1532,17 @@ def get_schedule_parameters(schedule):
     for item in visible_fields:
         results.append(ParameterItem(item["name"], item["origin"], item["editable"]))
 
-    return sorted(results, key=lambda x: (x.Editable, x.Name.lower()))
+    def schedule_parameter_sort_key(item):
+        editable = safe_text(getattr(item, "Editable", ""))
+        if editable == "Yes":
+            editable_rank = 0
+        elif editable == "Unknown":
+            editable_rank = 1
+        else:
+            editable_rank = 2
+        return (editable_rank, getattr(item, "Name", "").lower())
+
+    return sorted(results, key=schedule_parameter_sort_key)
 
 
 def build_schedule_export_options():
@@ -1000,7 +1556,7 @@ def build_schedule_export_options():
 
 def read_csv_rows(csv_path):
     rows = []
-    with open(csv_path, "r") as fp:
+    with io.open(csv_path, "r", encoding="utf-8-sig") as fp:
         reader = csv.reader(fp, delimiter=EXPORT_DELIMITER)
         for row in reader:
             rows.append([normalize_text(x) for x in row])
@@ -1413,6 +1969,78 @@ def build_schema_rows(export_columns):
 
     return rows
 
+
+def make_excel_sheet_name(name, fallback_name):
+    invalid_chars = ['\\', '/', '?', '*', '[', ']', ':']
+    sheet_name = normalize_text(name)
+
+    if not sheet_name:
+        sheet_name = fallback_name
+
+    for invalid_char in invalid_chars:
+        sheet_name = sheet_name.replace(invalid_char, "_")
+
+    sheet_name = sheet_name.strip()
+    if not sheet_name:
+        sheet_name = fallback_name
+
+    return sheet_name[:31]
+
+
+def write_matrix_to_range(worksheet, start_row, start_col, matrix):
+    if worksheet is None or not matrix:
+        return
+
+    row_count = len(matrix)
+    if row_count == 0:
+        return
+
+    col_count = len(matrix[0])
+    if col_count == 0:
+        return
+
+    values = Array.CreateInstance(Object, row_count, col_count)
+
+    for row_index in range(row_count):
+        row_vals = matrix[row_index]
+        for col_index in range(col_count):
+            cell_value = None
+            if col_index < len(row_vals):
+                cell_value = row_vals[col_index]
+            values[row_index, col_index] = cell_value
+
+    target_range = worksheet.Range[
+        worksheet.Cells[start_row, start_col],
+        worksheet.Cells[start_row + row_count - 1, start_col + col_count - 1]
+    ]
+    target_range.Value2 = values
+
+
+def ensure_workbook_sheet_count(workbook, required_count):
+    if workbook is None:
+        return
+
+    try:
+        worksheets = workbook.Worksheets
+        while worksheets.Count < required_count:
+            worksheets.Add()
+    except Exception:
+        pass
+
+
+def open_path_with_default_app(full_path):
+    try:
+        os.startfile(full_path)
+        return True
+    except Exception:
+        pass
+
+    try:
+        subprocess.Popen([full_path], shell=False)
+        return True
+    except Exception:
+        return False
+
 def get_cell_value(worksheet, row, col):
     try:
         return worksheet.Cells[row, col].Value2
@@ -1466,6 +2094,34 @@ def parse_metadata_cell(value):
     return None
 
 
+def get_metadata_column_by_role(metadata_by_col, role_name):
+    role_text = normalize_text(role_name)
+    if not role_text:
+        return None
+
+    for col_index, metadata in metadata_by_col.items():
+        try:
+            if metadata is None:
+                continue
+            if normalize_text(metadata.get("ColumnRole", "")) == role_text:
+                return col_index
+        except Exception:
+            continue
+
+    return None
+
+
+def get_import_row_reference_value(row_info, role_name, fallback_col):
+    values = row_info.get("Values", {})
+    metadata_by_col = row_info.get("MetadataByCol", {})
+    col_index = get_metadata_column_by_role(metadata_by_col, role_name)
+
+    if col_index is None:
+        col_index = fallback_col
+
+    return normalize_text(values.get(col_index, ""))
+
+
 def get_parameter_preview_value(param):
     if param is None:
         return ""
@@ -1504,7 +2160,80 @@ def get_parameter_preview_value(param):
         if storage_type == DB.StorageType.ElementId:
             eid = param.AsElementId()
             if eid is not None:
+                try:
+                    if eid.IntegerValue < 0:
+                        return "None"
+                except Exception:
+                    pass
                 return safe_text(eid.IntegerValue)
+    except Exception:
+        pass
+
+    return ""
+
+
+def is_annotation_element(element):
+    try:
+        category = getattr(element, "Category", None)
+        if category is None:
+            return False
+        return category.CategoryType == DB.CategoryType.Annotation
+    except Exception:
+        return False
+
+
+def is_zero_number_text(value):
+    text = normalize_text(value)
+    if not text:
+        return False
+
+    try:
+        return abs(float(text)) < 0.0000001
+    except Exception:
+        return False
+
+
+def get_type_name_from_element(element):
+    type_element = get_type_element(element)
+    if type_element is None:
+        return ""
+
+    try:
+        type_param = find_parameter_by_name(type_element, "Type")
+        type_value = get_parameter_preview_value(type_param)
+        if normalize_text(type_value):
+            return normalize_text(type_value)
+    except Exception:
+        pass
+
+    try:
+        return normalize_text(type_element.Name)
+    except Exception:
+        pass
+
+    try:
+        return normalize_text(getattr(type_element, "Name", ""))
+    except Exception:
+        return ""
+
+
+def get_family_name_from_element(element):
+    type_element = get_type_element(element)
+    if type_element is None:
+        return ""
+
+    try:
+        family_name = normalize_text(getattr(type_element, "FamilyName", ""))
+        if family_name:
+            return family_name
+    except Exception:
+        pass
+
+    try:
+        family = getattr(type_element, "Family", None)
+        family_name = normalize_text(getattr(family, "Name", ""))
+        if family_name:
+            return family_name
     except Exception:
         pass
 
@@ -1609,13 +2338,13 @@ def get_parameter_from_metadata(element, metadata):
 
 
 def read_data_sheet_for_import_preview(workbook):
-    worksheet = get_worksheet_by_name(workbook, "Data")
+    worksheet = get_primary_data_worksheet(workbook)
     if worksheet is None:
-        raise Exception("Missing worksheet: Data")
+        raise Exception("Missing worksheet with import data.")
 
     last_row, last_col = get_last_used_row_col(worksheet)
     if last_row < 3 or last_col < 2:
-        raise Exception("Worksheet 'Data' does not contain valid rows.")
+        raise Exception("The worksheet does not contain valid rows.")
 
     metadata_by_col = {}
     for c in range(1, last_col + 1):
@@ -1635,7 +2364,8 @@ def read_data_sheet_for_import_preview(workbook):
         if has_any_data:
             data_rows.append({
                 "ExcelRow": r,
-                "Values": row_values
+                "Values": row_values,
+                "MetadataByCol": metadata_by_col
             })
 
     return {
@@ -1645,6 +2375,36 @@ def read_data_sheet_for_import_preview(workbook):
         "MetadataByCol": metadata_by_col,
         "Rows": data_rows
     }
+
+
+def get_primary_data_worksheet(workbook):
+    worksheet = get_worksheet_by_name(workbook, "Data")
+    if worksheet is not None:
+        return worksheet
+
+    try:
+        worksheets = workbook.Worksheets
+        total = worksheets.Count
+    except Exception:
+        return None
+
+    for index in range(1, total + 1):
+        try:
+            candidate = worksheets[index]
+            last_row, last_col = get_last_used_row_col(candidate)
+            if last_row < 2 or last_col < 2:
+                continue
+
+            metadata1 = parse_metadata_cell(get_cell_value(candidate, 1, 1)) or {}
+            metadata2 = parse_metadata_cell(get_cell_value(candidate, 1, 2)) or {}
+            role1 = normalize_text(metadata1.get("ColumnRole", ""))
+            role2 = normalize_text(metadata2.get("ColumnRole", ""))
+            if role1 == "UniqueId" and role2 == "ElementId":
+                return candidate
+        except Exception:
+            continue
+
+    return None
 
 
 def get_editable_columns_for_import_preview(data_info):
@@ -1673,9 +2433,8 @@ def get_editable_columns_for_import_preview(data_info):
 
 
 def resolve_element_from_import_row(row_info):
-    values = row_info.get("Values", {})
-    unique_id_text = normalize_text(values.get(1, ""))
-    element_id_text = normalize_text(values.get(2, ""))
+    unique_id_text = get_import_row_reference_value(row_info, "UniqueId", 1)
+    element_id_text = get_import_row_reference_value(row_info, "ElementId", 2)
 
     if unique_id_text:
         try:
@@ -1980,6 +2739,330 @@ def row_has_schedule_payload(row_values):
     return False
 
 
+def get_export_value_from_metadata(element, metadata):
+    if element is None or metadata is None:
+        return ""
+
+    param, _ = get_parameter_from_metadata(element, metadata)
+    parameter_name = normalize_text(metadata.get("Name", ""))
+    parameter_key = parameter_name.lower()
+
+    if param is None:
+        if parameter_key == "family name":
+            return get_family_name_from_element(element)
+        if parameter_key == "type name":
+            return get_type_name_from_element(element)
+        return ""
+
+    value = get_parameter_preview_value(param)
+
+    if parameter_key in ("area", "volume") and is_annotation_element(element) and is_zero_number_text(value):
+        return ""
+
+    if not normalize_text(value):
+        if parameter_key == "family name":
+            return get_family_name_from_element(element)
+        if parameter_key == "type name":
+            return get_type_name_from_element(element)
+
+    if parameter_key in ("design option", "host id", "level"):
+        value_text = normalize_text(value)
+        if value_text == "-1":
+            return "None"
+        if value_text.lower() == "none":
+            return "None"
+
+    return value
+
+
+def build_export_rows_from_elements(elements, parameter_items):
+    rows = []
+    elements = list(elements or [])
+
+    for element in elements:
+        if element is None:
+            continue
+
+        row = []
+
+        try:
+            row.append(safe_text(element.UniqueId))
+        except Exception:
+            row.append("")
+
+        try:
+            row.append(safe_text(element.Id.IntegerValue))
+        except Exception:
+            row.append("")
+
+        for param_item in parameter_items:
+            metadata = getattr(param_item, "Metadata", {}) or {}
+            row.append(get_export_value_from_metadata(element, metadata))
+
+        rows.append(row)
+
+    return rows, len(elements)
+
+
+def build_export_rows_from_category_elements(category, parameter_items):
+    return build_export_rows_from_elements(get_category_elements(category), parameter_items)
+
+
+def export_category_to_xlsx(category_item, parameter_items, full_path, source_elements=None, sheet_suffix="ModelCategory", keep_empty_rows=False):
+    if category_item is None:
+        raise Exception("No model category selected.")
+
+    if not parameter_items:
+        raise Exception("No parameters were found in the selected category.")
+
+    final_headers = ["GUID", "Element ID"]
+    export_columns = [
+        {
+            "ExcelIndex": 1,
+            "Name": "UniqueId",
+            "Status": "Technical",
+            "Origin": "Technical",
+            "Editable": "Hidden",
+            "ScheduleId": "",
+            "UsedParams": [],
+            "FieldIndex": "",
+            "ColumnRole": "UniqueId",
+            "Hidden": True
+        },
+        {
+            "ExcelIndex": 2,
+            "Name": "ElementId",
+            "Status": "Technical",
+            "Origin": "Technical",
+            "Editable": "Visible",
+            "ScheduleId": "",
+            "UsedParams": [],
+            "FieldIndex": "",
+            "ColumnRole": "ElementId",
+            "Hidden": False
+        }
+    ]
+
+    for param_item in parameter_items:
+        metadata = dict(getattr(param_item, "Metadata", {}) or {})
+
+        final_headers.append(param_item.Name)
+        export_columns.append({
+            "ExcelIndex": len(export_columns) + 1,
+            "Name": param_item.Name,
+            "Status": metadata.get("Status", param_item.Status),
+            "Origin": metadata.get("Origin", param_item.Origin),
+            "Editable": metadata.get("Editable", param_item.Editable),
+            "ScheduleId": "",
+            "UsedParams": metadata.get("UsedParams", []),
+            "FieldIndex": "",
+            "ColumnRole": "CategoryField",
+            "Hidden": False
+        })
+
+    if source_elements is None:
+        all_rows, category_element_count = build_export_rows_from_category_elements(category_item.Category, parameter_items)
+    else:
+        all_rows, category_element_count = build_export_rows_from_elements(source_elements, parameter_items)
+
+    if keep_empty_rows:
+        final_rows = list(all_rows)
+    else:
+        final_rows = [row for row in all_rows if row_has_schedule_payload(row)]
+    metadata_row = [json.dumps(column_info, separators=(",", ":")) for column_info in export_columns]
+
+    excel_app = None
+    workbooks = None
+    workbook = None
+    data_sheet = None
+    instructions_sheet = None
+    paramvalues_sheet = None
+
+    try:
+        excel_app = Excel.ApplicationClass()
+        excel_app.Visible = False
+        excel_app.DisplayAlerts = False
+        workbooks = excel_app.Workbooks
+        workbook = workbooks.Add()
+        ensure_workbook_sheet_count(workbook, 3)
+
+        data_sheet = workbook.Worksheets[1]
+        instructions_sheet = workbook.Worksheets[2]
+        paramvalues_sheet = workbook.Worksheets[3]
+
+        data_sheet.Name = make_excel_sheet_name(category_item.Name, sheet_suffix)
+        instructions_sheet.Name = "Instructions"
+        paramvalues_sheet.Name = "ParamValues"
+
+        write_matrix_to_range(data_sheet, 1, 1, [metadata_row, final_headers])
+
+        metadata_range = data_sheet.Range[data_sheet.Cells[1, 1], data_sheet.Cells[1, len(final_headers)]]
+        metadata_range.Font.Color = 0xFFFFFF
+        metadata_range.Interior.Color = 0x404040
+        metadata_range.RowHeight = 18
+        data_sheet.Rows[1].Hidden = True
+
+        header_range = data_sheet.Range[data_sheet.Cells[2, 1], data_sheet.Cells[2, len(final_headers)]]
+        header_range.Font.Bold = True
+        header_range.Font.Color = 0xFFFFFF
+        header_range.Interior.Color = 0xC9951A
+        header_range.VerticalAlignment = -4108
+        header_range.WrapText = True
+        header_range.RowHeight = 36
+
+        if final_rows:
+            write_matrix_to_range(data_sheet, 3, 1, final_rows)
+
+        last_data_row = max(2, len(final_rows) + 2)
+        used_range = data_sheet.Range[data_sheet.Cells[2, 1], data_sheet.Cells[last_data_row, len(final_headers)]]
+        used_range.Borders.LineStyle = 1
+        used_range.VerticalAlignment = -4108
+
+        try:
+            used_range.AutoFilter()
+        except Exception:
+            pass
+
+        total_cols = len(final_headers)
+        for c in range(1, total_cols + 1):
+            role = export_columns[c - 1].get("ColumnRole", "")
+            hidden = export_columns[c - 1].get("Hidden", False)
+            editable = export_columns[c - 1].get("Editable", "Unknown")
+            origin = export_columns[c - 1].get("Origin", "Unknown")
+
+            if hidden:
+                data_sheet.Columns[c].Hidden = True
+
+            header_cell = data_sheet.Cells[2, c]
+            header_cell.Font.Bold = True
+            header_cell.Locked = False
+
+            if role == "ElementId":
+                header_cell.Font.Color = 0xFFFFFF
+                header_cell.Interior.Color = 0x1450BE
+            elif editable == "No":
+                header_cell.Font.Color = 0x000000
+                header_cell.Interior.Color = 0xD3D9F7
+            elif origin == "Type":
+                header_cell.Font.Color = 0x000000
+                header_cell.Interior.Color = 0xC9F1F9
+            else:
+                header_cell.Font.Color = 0x000000
+                header_cell.Interior.Color = 0xD5E2FB
+
+            if last_data_row < 3:
+                continue
+
+            data_range = data_sheet.Range[
+                data_sheet.Cells[3, c],
+                data_sheet.Cells[last_data_row, c]
+            ]
+            data_range.Font.Color = 0x000000
+
+            if role == "UniqueId":
+                data_range.Interior.Color = 0xF2F2F2
+            elif role == "ElementId":
+                data_range.Interior.Pattern = -4142
+            elif editable == "No":
+                data_range.Interior.Color = 0xF7D9D3
+            elif origin == "Type":
+                data_range.Interior.Color = 0xF9F1C9
+            else:
+                data_range.Interior.Color = 0xEEFAD7
+
+        fit_export_columns(data_sheet, export_columns, 8, 40, last_data_row)
+
+        instruction_rows = [
+            [None, None, None],
+            [None, "Cell Fill Colour", "Description"],
+            [None, None, "Type value"],
+            [None, None, "Read-only value"],
+            [None, None, "Parameter does not exist for this element"],
+            [None, None, None],
+            [None, "Note:", None],
+            [None, "If you are altering the value of 'Type Parameters', ensure that you have the same value for all elements with the same 'Type ID'", None],
+            [None, None, None]
+        ]
+
+        instruction_fill_colors = {
+            3: 0xC9F1F9,
+            4: 0xD3D9F7,
+            5: 0xF2F2F2
+        }
+
+        write_matrix_to_range(instructions_sheet, 1, 1, instruction_rows)
+
+        instructions_sheet.Columns[1].ColumnWidth = 3
+        instructions_sheet.Columns[2].ColumnWidth = 20
+        instructions_sheet.Columns[3].ColumnWidth = 65
+        instructions_sheet.Rows[8].RowHeight = 52
+
+        for row_index, fill_color in instruction_fill_colors.items():
+            try:
+                instructions_sheet.Cells[row_index, 2].Interior.Color = fill_color
+                instructions_sheet.Cells[row_index, 2].Borders.LineStyle = 1
+            except Exception:
+                pass
+
+        try:
+            instructions_sheet.Cells[2, 2].Font.Bold = True
+            instructions_sheet.Cells[2, 3].Font.Bold = True
+            instructions_sheet.Cells[7, 2].Font.Bold = True
+            instructions_sheet.Range[instructions_sheet.Cells[8, 2], instructions_sheet.Cells[8, 3]].Merge()
+            instructions_sheet.Range[instructions_sheet.Cells[2, 2], instructions_sheet.Cells[8, 3]].WrapText = True
+            instructions_sheet.Range[instructions_sheet.Cells[2, 2], instructions_sheet.Cells[8, 3]].VerticalAlignment = -4108
+        except Exception:
+            pass
+
+        param_value_rows = [
+            ["Yes", "Undefined", "Architectural", "Grids and Levels", "Wireframe"],
+            ["No", "Coarse", "Structural", "Views Overall", "Hidden Line"],
+            ["", "Medium", "Mechanical", "None", None],
+            [None, "Fine", "Electrical", None, None],
+            [None, None, "Plumbing", None, None],
+            [None, None, "Coordination", None, None]
+        ]
+
+        write_matrix_to_range(paramvalues_sheet, 1, 1, param_value_rows)
+
+        for col_index in range(1, 6):
+            try:
+                paramvalues_sheet.Columns[col_index].AutoFit()
+                if paramvalues_sheet.Columns[col_index].ColumnWidth < 12:
+                    paramvalues_sheet.Columns[col_index].ColumnWidth = 12
+            except Exception:
+                pass
+
+        try:
+            paramvalues_sheet.Visible = 0
+        except Exception:
+            pass
+
+        try:
+            while workbook.Worksheets.Count > 3:
+                workbook.Worksheets[workbook.Worksheets.Count].Delete()
+        except Exception:
+            pass
+
+        try:
+            data_sheet.Activate()
+        except Exception:
+            pass
+
+        workbook.SaveAs(full_path)
+        workbook.Close(True)
+        excel_app.Quit()
+
+        return full_path, len(final_rows), category_element_count
+
+    finally:
+        release_com_object(paramvalues_sheet)
+        release_com_object(instructions_sheet)
+        release_com_object(data_sheet)
+        release_com_object(workbook)
+        release_com_object(workbooks)
+        release_com_object(excel_app)
+
 
 def export_schedule_to_xlsx(schedule, full_path):
     visible_fields = get_visible_schedule_fields(schedule)
@@ -2076,26 +3159,9 @@ def export_schedule_to_xlsx(schedule, full_path):
 
         total_cols = len(final_headers)
 
-        for c in range(1, total_cols + 1):
-            data_sheet.Cells[1, c].Value2 = metadata_row[c - 1]
-            data_sheet.Cells[2, c].Value2 = final_headers[c - 1]
-
-        for r in range(0, len(final_rows)):
-            excel_row = r + 3
-            row_vals = final_rows[r]
-
-            for c in range(1, total_cols + 1):
-                value = row_vals[c - 1] if c - 1 < len(row_vals) else ""
-                cell = data_sheet.Cells[excel_row, c]
-                cell.Value2 = value
-
-                editable = export_columns[c - 1].get("Editable", "Unknown")
-                role = export_columns[c - 1].get("ColumnRole", "")
-
-                if role in ("UniqueId", "ElementId"):
-                    cell.Locked = True
-                else:
-                    cell.Locked = editable == "No"
+        write_matrix_to_range(data_sheet, 1, 1, [metadata_row, final_headers])
+        if final_rows:
+            write_matrix_to_range(data_sheet, 3, 1, final_rows)
 
         meta_row_range = data_sheet.Range[data_sheet.Cells[1, 1], data_sheet.Cells[1, total_cols]]
         meta_row_range.Font.Color = 0x808080
@@ -2135,10 +3201,15 @@ def export_schedule_to_xlsx(schedule, full_path):
                 data_sheet.Cells[last_data_row, c]
             ]
 
+            if role in ("UniqueId", "ElementId"):
+                data_range.Locked = True
+            else:
+                data_range.Locked = editable == "No"
+
             data_range.Font.Color = 0x000000
 
             if role == "ElementId":
-                data_range.Interior.Color = 0x1450BE
+                data_range.Interior.Pattern = -4142
             elif role == "UniqueId":
                 data_range.Interior.Color = 0xF2F2F2
             elif editable == "Yes":
@@ -2235,30 +3306,1001 @@ class ScheduleBrowserWindow(forms.WPFWindow):
     def __init__(self, xaml_path):
         forms.WPFWindow.__init__(self, xaml_path)
 
+        self.active_view = "Model Categories"
+        self.preview_source_view = "Model Categories"
+        self._set_progress(5, "Starting")
         self.all_schedules = collect_schedules()
+        self._set_progress(30, "Schedules loaded")
         self.filtered_schedules = list(self.all_schedules)
         self.current_parameters = []
         self.filtered_parameters = []
+        self.all_model_categories = collect_model_categories()
+        self._set_progress(55, "Categories loaded")
+        self.filtered_model_categories = list(self.all_model_categories)
+        self.current_model_parameters = []
+        self.filtered_model_parameters = []
+        self.selected_model_parameters = []
+        self.filtered_selected_model_parameters = []
+        self.annotation_categories_loaded = False
+        self.element_categories_loaded = False
+        self.spatial_categories_loaded = False
+        self.all_annotation_categories = []
+        self.filtered_annotation_categories = []
+        self.current_annotation_parameters = []
+        self.filtered_annotation_parameters = []
+        self.selected_annotation_parameters = []
+        self.filtered_selected_annotation_parameters = []
+        self.all_element_categories = []
+        self.filtered_element_categories = []
+        self.current_element_items = []
+        self.filtered_element_items = []
+        self.current_element_parameters = []
+        self.filtered_element_parameters = []
+        self.selected_element_parameters = []
+        self.filtered_selected_element_parameters = []
+        self.all_spatial_categories = []
+        self.filtered_spatial_categories = []
+        self.current_spatial_items = []
+        self.filtered_spatial_items = []
+        self.current_spatial_parameters = []
+        self.filtered_spatial_parameters = []
+        self.selected_spatial_parameters = []
+        self.filtered_selected_spatial_parameters = []
+        self.preview_table = None
+        self.preview_row_elements = []
+        self.preview_column_map = {}
+        self.preview_original_values = {}
 
+        self._configure_branding()
+        self._setup_navigation()
         self._bind_events()
         self._configure_export_state()
+        self._set_progress(75, "Preparing interface")
         self._refresh_schedule_list()
         self._refresh_parameter_grid([])
+        self._refresh_model_category_list()
+        self._refresh_model_parameter_grid([])
+        self._refresh_model_selected_parameter_list([])
+        self._clear_preview_grid()
+        self._set_active_view("Model Categories")
         self._update_status()
+        self._set_progress(100, "Ready")
+
+    def _refresh_progress_ui(self):
+        try:
+            self.UpdateLayout()
+        except Exception:
+            pass
+
+        try:
+            Application.DoEvents()
+        except Exception:
+            pass
+
+    def _set_progress(self, value, message=None):
+        try:
+            progress_value = int(value)
+        except Exception:
+            progress_value = 0
+
+        if progress_value < 0:
+            progress_value = 0
+        if progress_value > 100:
+            progress_value = 100
+
+        try:
+            self.prgHeaderProgress.Value = progress_value
+        except Exception:
+            pass
+
+        label = safe_text(message).strip()
+        if not label:
+            label = "Completed"
+
+        try:
+            self.lblHeaderProgress.Text = "{}   {}%".format(label, progress_value)
+        except Exception:
+            pass
+
+        self._refresh_progress_ui()
+
+    def _set_completed_export_summary(self, label, rows_written, fields_exported):
+        try:
+            summary_text = "{} | Rows: {} | Fields: {}".format(
+                safe_text(label),
+                safe_text(rows_written),
+                safe_text(fields_exported)
+            )
+            self.lblHeaderProgress.Text = summary_text
+            self.prgHeaderProgress.Value = 100
+        except Exception:
+            pass
+
+        self._refresh_progress_ui()
+
+    def _configure_branding(self):
+        logo_path = os.path.join(THIS_DIR, "logo.png")
+        if not os.path.exists(logo_path):
+            return
+
+        try:
+            self.set_image_source(self.imgLogo, logo_path)
+        except Exception:
+            logger.debug("Could not load logo image from %s", logo_path)
+
+    def _setup_navigation(self):
+        self.nav_buttons = {
+            "Model Categories": self.btnNavModelCategories,
+            "Annotation Categories": self.btnNavAnnotationCategories,
+            "Elements": self.btnNavElements,
+            "Schedules": self.btnNavSchedules,
+            "Spatial": self.btnNavSpatial,
+            "Preview/Edit": self.btnNavPreviewEdit,
+        }
+
+        self.view_panels = {
+            "Model Categories": self.panelModelCategories,
+            "Annotation Categories": self.panelAnnotationCategories,
+            "Elements": self.panelElements,
+            "Schedules": self.panelSchedules,
+            "Spatial": self.panelElements,
+            "Preview/Edit": self.panelPreviewEdit,
+        }
 
     def _bind_events(self):
+        for nav_button in self.nav_buttons.values():
+            nav_button.Click += self.on_nav_clicked
+
         self.txtSearchSchedules.TextChanged += self.on_schedule_search_changed
         self.txtSearchParameters.TextChanged += self.on_parameter_search_changed
+        self.txtSearchModelCategories.TextChanged += self.on_model_category_search_changed
+        self.txtSearchModelParameters.TextChanged += self.on_model_parameter_search_changed
+        self.txtSearchModelSelectedParameters.TextChanged += self.on_model_selected_parameter_search_changed
+        self.txtSearchAnnotationCategories.TextChanged += self.on_annotation_category_search_changed
+        self.txtSearchAnnotationParameters.TextChanged += self.on_annotation_parameter_search_changed
+        self.txtSearchAnnotationSelectedParameters.TextChanged += self.on_annotation_selected_parameter_search_changed
+        self.txtSearchElementCategories.TextChanged += self.on_element_category_search_changed
+        self.txtSearchElementItems.TextChanged += self.on_element_item_search_changed
+        self.txtSearchElementParameters.TextChanged += self.on_element_parameter_search_changed
+        self.txtSearchElementSelectedParameters.TextChanged += self.on_element_selected_parameter_search_changed
         self.lstSchedules.SelectionChanged += self.on_schedule_selection_changed
-        self.lstSchedules.MouseUp += self.on_schedule_list_mouse_up
+        self.lstModelCategories.SelectionChanged += self.on_model_category_selection_changed
+        self.lstAnnotationCategories.SelectionChanged += self.on_annotation_category_selection_changed
+        self.lstElementCategories.SelectionChanged += self.on_element_category_selection_changed
+        self.lstElementItems.SelectionChanged += self.on_element_item_selection_changed
+        self.btnModelAddParameter.Click += self.on_model_add_parameter_clicked
+        self.btnModelRemoveParameter.Click += self.on_model_remove_parameter_clicked
+        self.btnAnnotationAddParameter.Click += self.on_annotation_add_parameter_clicked
+        self.btnAnnotationRemoveParameter.Click += self.on_annotation_remove_parameter_clicked
+        self.btnElementAddParameter.Click += self.on_element_add_parameter_clicked
+        self.btnElementRemoveParameter.Click += self.on_element_remove_parameter_clicked
         self.btnRefresh.Click += self.on_refresh_clicked
         self.btnImportExcel.Click += self.on_import_excel_clicked
         self.btnExport.Click += self.on_export_clicked
         self.btnClose.Click += self.on_close_clicked
+        self.btnPreviewImport.Click += self.on_preview_update_clicked
+        self.btnPreviewExport.Click += self.on_export_clicked
+        self.btnGoSchedules.Click += self.on_go_schedules_clicked
+        self.dgPreviewEdit.AutoGeneratingColumn += self.on_preview_auto_generating_column
 
     def _configure_export_state(self):
         self.btnExport.IsEnabled = True
-        self.btnExport.ToolTip = "Export selected schedule to Excel"
+        self.btnExport.ToolTip = "Export the current selection to Excel"
+        self.btnImportExcel.ToolTip = "Preview or import Excel changes back into Revit"
+        self.btnRefresh.ToolTip = "Reload schedules from the current model"
+        self.btnClose.ToolTip = "Close SheetLink - pyMENVIC"
+        self.btnPreviewImport.ToolTip = "Apply editable Preview/Edit cell changes to Revit"
+        self.btnPreviewExport.ToolTip = "Export the selected schedule to Excel"
+        self.btnGoSchedules.ToolTip = "Go back to the schedules workspace"
+
+    def _ensure_annotation_categories_loaded(self):
+        if self.annotation_categories_loaded:
+            return
+
+        self._set_progress(20, "Loading annotation categories")
+        self.all_annotation_categories = collect_annotation_categories()
+        self.filtered_annotation_categories = list(self.all_annotation_categories)
+        self.annotation_categories_loaded = True
+        self._set_progress(100, "Ready")
+
+    def _ensure_element_categories_loaded(self):
+        if self.element_categories_loaded:
+            return
+
+        self._ensure_annotation_categories_loaded()
+        self._set_progress(25, "Loading element categories")
+        self.all_element_categories = merge_category_items(self.all_model_categories + self.all_annotation_categories)
+        self.filtered_element_categories = list(self.all_element_categories)
+        self.element_categories_loaded = True
+        self._set_progress(100, "Ready")
+
+    def _ensure_spatial_categories_loaded(self):
+        if self.spatial_categories_loaded:
+            return
+
+        self._set_progress(25, "Loading rooms/spaces")
+        self.all_spatial_categories = collect_spatial_categories()
+        self.filtered_spatial_categories = list(self.all_spatial_categories)
+        self.spatial_categories_loaded = True
+        self._set_progress(100, "Ready")
+
+    def _ensure_view_data_loaded(self, view_name):
+        if view_name == "Annotation Categories":
+            self._ensure_annotation_categories_loaded()
+        elif view_name == "Elements":
+            self._ensure_element_categories_loaded()
+        elif view_name == "Spatial":
+            self._ensure_spatial_categories_loaded()
+
+    def _set_active_view(self, view_name):
+        if view_name not in self.view_panels:
+            return
+
+        if view_name != "Preview/Edit":
+            self.preview_source_view = view_name
+
+        self.active_view = view_name
+        self._ensure_view_data_loaded(view_name)
+
+        active_panel = self.view_panels[view_name]
+        handled_panels = []
+        for panel_name, panel in self.view_panels.items():
+            if panel in handled_panels:
+                continue
+            handled_panels.append(panel)
+            panel.Visibility = Visibility.Visible if panel is active_panel else Visibility.Collapsed
+
+        for button_name, button in self.nav_buttons.items():
+            is_active = button_name == view_name
+            button.Background = self.Resources["TabActiveBg"] if is_active else self.Resources["TabBg"]
+            button.FontWeight = FontWeights.SemiBold if is_active else FontWeights.Normal
+
+        intro_text = {
+            "Model Categories": "Select one model category, review its parameters, then export or import Excel changes.",
+            "Annotation Categories": "Select one annotation category, review its parameters, then export or import Excel changes.",
+            "Elements": "Work at element level when you want to target instances or types directly instead of going through schedules.",
+            "Schedules": "Select one schedule, review its parameters, then export or import Excel changes.",
+            "Spatial": "Use the spatial branch for rooms and spaces with their own Excel-first workflow.",
+            "Preview/Edit": "Review the current selection and launch export or import actions from a lightweight control room.",
+        }
+
+        self.lblIntroText.Text = intro_text.get(view_name, "")
+        if view_name == "Schedules":
+            self._refresh_schedule_list()
+        elif view_name == "Model Categories":
+            self._refresh_model_category_list()
+            self._sync_model_parameter_views()
+        elif view_name == "Annotation Categories":
+            self._refresh_annotation_category_list()
+            self._sync_annotation_parameter_views()
+        elif view_name == "Elements":
+            self._refresh_element_category_list()
+            self._refresh_element_list()
+            self._sync_element_parameter_views()
+        elif view_name == "Spatial":
+            self._refresh_spatial_category_list()
+            self._refresh_spatial_list()
+            self._sync_spatial_parameter_views()
+
+        self._update_preview_panel()
+        self._update_context_panels()
+        self._update_action_buttons()
+        self._update_status()
+
+    def _update_action_buttons(self):
+        selected_item = self._get_selected_item()
+        selected_model_category = self._get_selected_model_category_item()
+        selected_annotation_category = self._get_selected_annotation_category_item()
+        selected_element_category = self._get_selected_element_category_item()
+        selected_elements = self._get_selected_element_items()
+        selected_spatial_category = self._get_selected_spatial_category_item()
+        selected_spatial_items = self._get_selected_spatial_items()
+        can_use_excel_actions = self.active_view in ("Schedules", "Preview/Edit", "Model Categories", "Annotation Categories", "Elements", "Spatial")
+
+        if self.active_view == "Model Categories":
+            has_selection = selected_model_category is not None and len(self.selected_model_parameters) > 0
+        elif self.active_view == "Annotation Categories":
+            has_selection = selected_annotation_category is not None and len(self.selected_annotation_parameters) > 0
+        elif self.active_view == "Elements":
+            has_selection = selected_element_category is not None and len(selected_elements) > 0 and len(self.selected_element_parameters) > 0
+        elif self.active_view == "Spatial":
+            has_selection = selected_spatial_category is not None and len(selected_spatial_items) > 0 and len(self.selected_spatial_parameters) > 0
+        elif self.active_view == "Preview/Edit":
+            source_view = self._get_preview_source_view()
+            if source_view == "Schedules":
+                has_selection = selected_item is not None
+            elif source_view == "Model Categories":
+                has_selection = selected_model_category is not None and len(self.selected_model_parameters) > 0
+            elif source_view == "Annotation Categories":
+                has_selection = selected_annotation_category is not None and len(self.selected_annotation_parameters) > 0
+            elif source_view == "Elements":
+                has_selection = selected_element_category is not None and len(selected_elements) > 0 and len(self.selected_element_parameters) > 0
+            elif source_view == "Spatial":
+                selected_spatial_category = self._get_selected_spatial_category_for_preview()
+                selected_spatial_items = self._get_selected_spatial_items_for_preview()
+                has_selection = selected_spatial_category is not None and len(selected_spatial_items) > 0 and len(self.selected_spatial_parameters) > 0
+            else:
+                has_selection = False
+        else:
+            has_selection = selected_item is not None
+
+        self.btnImportExcel.IsEnabled = can_use_excel_actions
+        self.btnExport.IsEnabled = can_use_excel_actions and has_selection
+        self.btnPreviewImport.IsEnabled = self.active_view == "Preview/Edit" and has_selection
+        self.btnPreviewExport.IsEnabled = has_selection
+
+    def _update_context_panels(self):
+        schedule_count = len(self.all_schedules)
+        selected_item = self._get_selected_item()
+        selected_name = selected_item.Name if selected_item is not None else "no schedule selected"
+        selected_category_item = self._get_selected_model_category_item()
+        selected_category_name = selected_category_item.Name if selected_category_item is not None else "no model category selected"
+        selected_annotation_category_item = self._get_selected_annotation_category_item()
+        selected_annotation_category_name = selected_annotation_category_item.Name if selected_annotation_category_item is not None else "no annotation category selected"
+        selected_element_category_item = self._get_selected_element_category_item()
+        selected_element_category_name = selected_element_category_item.Name if selected_element_category_item is not None else "no element category selected"
+        selected_element_count = len(self._get_selected_element_items())
+        selected_spatial_category_item = self._get_selected_spatial_category_item()
+        selected_spatial_category_name = selected_spatial_category_item.Name if selected_spatial_category_item is not None else "no spatial type selected"
+        selected_spatial_count = len(self._get_selected_spatial_items())
+        model_category_count = len(self.all_model_categories)
+        annotation_category_count = len(self.all_annotation_categories)
+        element_category_count = len(self.all_element_categories)
+        spatial_category_count = len(self.all_spatial_categories)
+
+        self.lblModelCategoriesInfo.Text = (
+            "Model categories available: {}. Current selection: {}. Choose a category to detect instance and type parameters ready for Excel export/import.".format(
+                model_category_count,
+                selected_category_name
+            )
+        )
+        self.lblModelCategoryHint.Text = (
+            "Selection drives the parameter list and category-based Excel workflow. Current schedules available in the model: {}.".format(
+                schedule_count
+            )
+        )
+        self.lblModelSelectedHint.Text = "Only selected parameters will be used for Preview/Edit and Excel export. Current selection: {}.".format(
+            len(self.selected_model_parameters)
+        )
+        self.lblAnnotationCategoriesInfo.Text = (
+            "Annotation categories available: {}. Current selection: {}. Choose a category to detect annotation parameters ready for Excel export/import.".format(
+                annotation_category_count,
+                selected_annotation_category_name
+            )
+        )
+        self.lblAnnotationCategoryHint.Text = (
+            "Selection drives the parameter list and annotation-based Excel workflow. Current schedules available in the model: {}.".format(
+                schedule_count
+            )
+        )
+        self.lblAnnotationSelectedHint.Text = "Only selected parameters will be used for Preview/Edit and Excel export. Current selection: {}.".format(
+            len(self.selected_annotation_parameters)
+        )
+        if self.active_view == "Spatial":
+            self.lblElementsInfo.Text = (
+                "Spatial types available: {}. Current selection: {}. Selected rooms/spaces: {}. Choose rooms or spaces and parameters for an Excel export.".format(
+                    spatial_category_count,
+                    selected_spatial_category_name,
+                    selected_spatial_count
+                )
+            )
+            self.lblElementCategoryHint.Text = (
+                "Pick Rooms or Spaces first, then choose the exact items to export. Current schedules available in the model: {}.".format(
+                    schedule_count
+                )
+            )
+            self.lblElementSelectedHint.Text = "Only selected parameters will be used for Preview/Edit and Excel export. Current selection: {}.".format(
+                len(self.selected_spatial_parameters)
+            )
+        else:
+            self.lblElementsInfo.Text = (
+                "Element categories available: {}. Current selection: {}. Selected elements: {}. Choose elements and parameters for an Excel export.".format(
+                    element_category_count,
+                    selected_element_category_name,
+                    selected_element_count
+                )
+            )
+            self.lblElementCategoryHint.Text = (
+                "Pick a category first, then choose the exact elements to export. Current schedules available in the model: {}.".format(
+                    schedule_count
+                )
+            )
+            self.lblElementSelectedHint.Text = "Only selected parameters will be used for Preview/Edit and Excel export. Current selection: {}.".format(
+                len(self.selected_element_parameters)
+            )
+        self.lblSpatialInfo.Text = (
+            "Navigation is active. Spatial workflows for rooms and spaces can grow here without colliding with schedule export rules."
+        )
+
+    def _make_unique_preview_column_name(self, table, base_name):
+        base_name = normalize_text(base_name) or "Column"
+        candidate = base_name
+        index = 2
+
+        while table.Columns.Contains(candidate):
+            candidate = "{} {}".format(base_name, index)
+            index += 1
+
+        return candidate
+
+    def _clear_preview_grid(self):
+        try:
+            self.preview_table = None
+            self.preview_row_elements = []
+            self.preview_column_map = {}
+            self.preview_original_values = {}
+            self.dgPreviewEdit.ItemsSource = None
+        except Exception:
+            pass
+
+    def _bind_preview_table(self, table):
+        self.preview_table = table
+        self.dgPreviewEdit.ItemsSource = None
+        self.dgPreviewEdit.ItemsSource = table.DefaultView
+
+    def _get_preview_source_view(self):
+        if self.active_view == "Preview/Edit":
+            return getattr(self, "preview_source_view", "Model Categories")
+        return self.active_view
+
+    def _get_selected_spatial_category_for_preview(self):
+        try:
+            return self.lstElementCategories.SelectedItem
+        except Exception:
+            return None
+
+    def _get_selected_spatial_items_for_preview(self):
+        try:
+            return list(self.lstElementItems.SelectedItems)
+        except Exception:
+            return []
+
+    def _dedupe_preview_parameter_items(self, parameter_items):
+        deduped_by_name = {}
+        order = []
+
+        for item in list(parameter_items or []):
+            name_key = normalize_text(getattr(item, "Name", "")).lower()
+            if not name_key:
+                continue
+
+            if name_key not in deduped_by_name:
+                deduped_by_name[name_key] = item
+                order.append(name_key)
+                continue
+
+            current = deduped_by_name.get(name_key)
+            current_editable = is_editable_metadata_value(getattr(current, "Editable", ""))
+            item_editable = is_editable_metadata_value(getattr(item, "Editable", ""))
+
+            # Revit can expose the same display name twice. Keep the writable
+            # parameter when possible so Preview/Edit and Excel avoid twins.
+            if item_editable and not current_editable:
+                deduped_by_name[name_key] = item
+
+        return [deduped_by_name[key] for key in order]
+
+    def _should_add_preview_name_column(self, parameter_items):
+        display_name_fields = set(["name", "sheet name", "view name"])
+
+        for item in list(parameter_items or []):
+            if normalize_text(getattr(item, "Name", "")).lower() in display_name_fields:
+                return False
+
+        return True
+
+    def _build_preview_table_from_elements(self, elements, parameter_items):
+        parameter_items = self._dedupe_preview_parameter_items(parameter_items)
+        table = DataTable()
+        table.Columns.Add("ElementId")
+        include_name_column = self._should_add_preview_name_column(parameter_items)
+        if include_name_column:
+            table.Columns.Add("Name")
+
+        parameter_columns = []
+        column_map = {}
+        row_elements = []
+        original_values = {}
+
+        for param_item in list(parameter_items or []):
+            column_name = self._make_unique_preview_column_name(table, getattr(param_item, "Name", "Parameter"))
+            table.Columns.Add(column_name)
+            metadata = getattr(param_item, "Metadata", {}) or {}
+            column_map[column_name] = {
+                "Metadata": metadata,
+                "Name": getattr(param_item, "Name", column_name),
+                "Editable": getattr(param_item, "Editable", ""),
+                "Status": getattr(param_item, "Status", "")
+            }
+            parameter_columns.append((column_name, param_item))
+
+        for element in list(elements or []):
+            if element is None:
+                continue
+
+            row_index = len(row_elements)
+            row_elements.append(element)
+            row = table.NewRow()
+
+            try:
+                row["ElementId"] = safe_text(element.Id.IntegerValue)
+            except Exception:
+                row["ElementId"] = ""
+
+            if include_name_column:
+                row["Name"] = get_element_display_name(element)
+
+            for column_name, param_item in parameter_columns:
+                metadata = getattr(param_item, "Metadata", {}) or {}
+                value = get_export_value_from_metadata(element, metadata)
+                row[column_name] = value
+                original_values[(row_index, column_name)] = normalize_text(value)
+
+            table.Rows.Add(row)
+
+        self.preview_row_elements = row_elements
+        self.preview_column_map = column_map
+        self.preview_original_values = original_values
+
+        return table
+
+    def _build_preview_table_from_schedule(self, schedule):
+        table = DataTable()
+        table.Columns.Add("ElementId")
+
+        visible_fields = get_visible_schedule_fields(schedule)
+        field_columns = []
+        column_map = {}
+        row_elements = []
+        original_values = {}
+
+        for field_info in visible_fields:
+            metadata = field_info.get("metadata") or {}
+            field_name = (
+                field_info.get("name")
+                or metadata.get("Name")
+                or "Field"
+            )
+            column_name = self._make_unique_preview_column_name(table, field_name)
+            table.Columns.Add(column_name)
+            column_map[column_name] = {
+                "Metadata": metadata,
+                "Name": field_name,
+                "Editable": field_info.get("editable", metadata.get("Editable", "")),
+                "Status": metadata.get("Status", build_status(metadata.get("Origin", ""), field_info.get("editable", metadata.get("Editable", ""))))
+            }
+            field_columns.append((column_name, field_info))
+
+        for element in get_schedule_elements(schedule):
+            if element is None:
+                continue
+
+            row_index = len(row_elements)
+            row_elements.append(element)
+            row = table.NewRow()
+
+            try:
+                row["ElementId"] = safe_text(element.Id.IntegerValue)
+            except Exception:
+                row["ElementId"] = ""
+
+            for column_name, field_info in field_columns:
+                value = get_schedule_field_export_value(element, field_info)
+                row[column_name] = value
+                original_values[(row_index, column_name)] = normalize_text(value)
+
+            table.Rows.Add(row)
+
+        self.preview_row_elements = row_elements
+        self.preview_column_map = column_map
+        self.preview_original_values = original_values
+
+        return table
+
+    def _refresh_preview_grid(self):
+        if self.active_view != "Preview/Edit":
+            return 0
+
+        try:
+            source_view = self._get_preview_source_view()
+
+            selected_item = self._get_selected_item()
+            if source_view == "Schedules" and selected_item is not None:
+                table = self._build_preview_table_from_schedule(selected_item.Schedule)
+                self._bind_preview_table(table)
+                return table.Rows.Count
+
+            selected_model_category = self._get_selected_model_category_item()
+            if source_view == "Model Categories" and selected_model_category is not None and len(self.selected_model_parameters) > 0:
+                table = self._build_preview_table_from_elements(
+                    get_category_elements(selected_model_category.Category),
+                    self.selected_model_parameters
+                )
+                self._bind_preview_table(table)
+                return table.Rows.Count
+
+            selected_annotation_category = self._get_selected_annotation_category_item()
+            if source_view == "Annotation Categories" and selected_annotation_category is not None and len(self.selected_annotation_parameters) > 0:
+                table = self._build_preview_table_from_elements(
+                    get_category_elements(selected_annotation_category.Category),
+                    self.selected_annotation_parameters
+                )
+                self._bind_preview_table(table)
+                return table.Rows.Count
+
+            selected_element_category = self._get_selected_element_category_item()
+            selected_elements = self._get_selected_element_items()
+            if source_view == "Elements" and selected_element_category is not None and len(selected_elements) > 0 and len(self.selected_element_parameters) > 0:
+                elements = []
+                for item in selected_elements:
+                    element = getattr(item, "Element", None)
+                    if element is not None:
+                        elements.append(element)
+
+                table = self._build_preview_table_from_elements(elements, self.selected_element_parameters)
+                self._bind_preview_table(table)
+                return table.Rows.Count
+
+            selected_spatial_category = self._get_selected_spatial_category_for_preview()
+            selected_spatial_items = self._get_selected_spatial_items_for_preview()
+            if source_view == "Spatial" and selected_spatial_category is not None and len(selected_spatial_items) > 0 and len(self.selected_spatial_parameters) > 0:
+                elements = []
+                for item in selected_spatial_items:
+                    element = getattr(item, "Element", None)
+                    if element is not None:
+                        elements.append(element)
+
+                table = self._build_preview_table_from_elements(elements, self.selected_spatial_parameters)
+                self._bind_preview_table(table)
+                return table.Rows.Count
+
+            self._clear_preview_grid()
+            return 0
+
+        except Exception as ex:
+            self._clear_preview_grid()
+            try:
+                self.lblPreviewWorkflow.Text = "Preview could not be built: {}".format(safe_text(ex))
+            except Exception:
+                pass
+            logger.warning("Could not build Preview/Edit grid. %s", safe_text(ex))
+            return 0
+
+    def _commit_preview_edits(self):
+        if self.active_view != "Preview/Edit":
+            TaskDialog.Show(__title__, "Open Preview/Edit first.")
+            return
+
+        try:
+            self.dgPreviewEdit.CommitEdit()
+            self.dgPreviewEdit.CommitEdit()
+        except Exception:
+            pass
+
+        table = getattr(self, "preview_table", None)
+        row_elements = list(getattr(self, "preview_row_elements", []) or [])
+        column_map = getattr(self, "preview_column_map", {}) or {}
+        original_values = getattr(self, "preview_original_values", {}) or {}
+
+        if table is None or not row_elements or not column_map:
+            TaskDialog.Show(__title__, "Nothing editable was found in Preview/Edit.")
+            return
+
+        updated = 0
+        unchanged = 0
+        locked = 0
+        missing = 0
+        failed = 0
+        duplicate_count = 0
+        failed_lines = []
+        duplicate_lines = []
+
+        transaction = DB.Transaction(doc, "SheetLink Preview/Edit Update")
+        started = False
+
+        try:
+            self._set_progress(35, "Applying Preview/Edit changes")
+            transaction.Start()
+            started = True
+
+            for row_index in range(table.Rows.Count):
+                if row_index >= len(row_elements):
+                    continue
+
+                element = row_elements[row_index]
+                if element is None:
+                    missing += 1
+                    continue
+
+                row = table.Rows[row_index]
+
+                for column_name, column_info in column_map.items():
+                    try:
+                        if not table.Columns.Contains(column_name):
+                            continue
+
+                        new_value = normalize_text(row[column_name])
+                        old_value = original_values.get((row_index, column_name), "")
+
+                        if new_value == old_value:
+                            unchanged += 1
+                            continue
+
+                        editable = normalize_text(column_info.get("Editable", ""))
+                        if not is_editable_metadata_value(editable):
+                            locked += 1
+                            continue
+
+                        metadata = column_info.get("Metadata") or {}
+                        param, param_origin = get_parameter_from_metadata(element, metadata)
+                        if param is None:
+                            missing += 1
+                            continue
+
+                        try:
+                            if param.IsReadOnly:
+                                locked += 1
+                                continue
+                        except Exception:
+                            locked += 1
+                            continue
+
+                        field_name = column_info.get("Name", column_name)
+                        if is_unique_controlled_field(field_name):
+                            is_duplicate, duplicate_message = value_exists_in_other_elements(field_name, new_value, element)
+                            if is_duplicate:
+                                duplicate_count += 1
+                                if len(duplicate_lines) < 8:
+                                    duplicate_lines.append(
+                                        "{} | {} | {}".format(
+                                            get_element_display_name(element),
+                                            field_name,
+                                            duplicate_message
+                                        )
+                                    )
+                                continue
+
+                        if set_parameter_value(param, new_value):
+                            refreshed_value = get_parameter_preview_value(param)
+                            row[column_name] = refreshed_value
+                            original_values[(row_index, column_name)] = normalize_text(refreshed_value)
+                            updated += 1
+                        else:
+                            failed += 1
+                            if len(failed_lines) < 8:
+                                failed_lines.append(
+                                    "{} | {}".format(
+                                        get_element_display_name(element),
+                                        field_name
+                                    )
+                                )
+
+                    except Exception as cell_ex:
+                        failed += 1
+                        if len(failed_lines) < 8:
+                            failed_lines.append(
+                                "{} | {} | {}".format(
+                                    get_element_display_name(element),
+                                    column_name,
+                                    safe_text(cell_ex)
+                                )
+                            )
+
+            transaction.Commit()
+            started = False
+
+        except Exception as ex:
+            if started:
+                try:
+                    transaction.RollBack()
+                except Exception:
+                    pass
+            self._set_progress(100, "Update failed")
+            TaskDialog.Show(__title__, "Preview/Edit update failed.\n\n{}".format(safe_text(ex)))
+            return
+
+        self.preview_original_values = original_values
+        self._set_progress(100, "Update completed")
+
+        has_warnings = locked or missing or duplicate_count or failed
+        message = []
+
+        if updated == 0 and not has_warnings:
+            message.append("No changes to update.")
+            message.append("")
+            message.append("Everything in Preview/Edit already matches the model.")
+        else:
+            message.append("Preview/Edit update complete.")
+            message.append("")
+            if updated:
+                message.append("Updated values: {}".format(updated))
+            if unchanged and not updated:
+                message.append("Unchanged cells: {}".format(unchanged))
+            if has_warnings:
+                message.append("")
+                message.append("Needs attention:")
+                if locked:
+                    message.append("Read-only skipped: {}".format(locked))
+                if missing:
+                    message.append("Missing parameters: {}".format(missing))
+                if duplicate_count:
+                    message.append("Duplicate conflicts: {}".format(duplicate_count))
+                if failed:
+                    message.append("Failed writes: {}".format(failed))
+
+        if duplicate_lines:
+            message.append("")
+            message.append("Duplicate conflict examples:")
+            for line in duplicate_lines:
+                message.append(line)
+
+        if failed_lines:
+            message.append("")
+            message.append("Failed write examples:")
+            for line in failed_lines:
+                message.append(line)
+
+        TaskDialog.Show(__title__, "\n".join(message))
+        self._refresh_preview_grid()
+        self._update_preview_panel()
+        self._update_status()
+
+    def _get_preview_editable_column_count(self):
+        count = 0
+        for column_info in (getattr(self, "preview_column_map", {}) or {}).values():
+            if is_editable_metadata_value(column_info.get("Editable", "")):
+                count += 1
+        return count
+
+    def on_preview_auto_generating_column(self, sender, args):
+        header = normalize_text(getattr(args.Column, "Header", ""))
+        if header in ("ElementId", "Name"):
+            args.Column.IsReadOnly = True
+            return
+
+        column_info = (getattr(self, "preview_column_map", {}) or {}).get(header)
+        if column_info is not None and not is_editable_metadata_value(column_info.get("Editable", "")):
+            status = normalize_text(column_info.get("Status", "")) or "Locked"
+            args.Column.Header = "{}\n{}".format(header, status)
+            args.Column.IsReadOnly = True
+
+    def on_preview_update_clicked(self, sender, args):
+        self._commit_preview_edits()
+
+    def _update_preview_panel(self):
+        selected_item = self._get_selected_item()
+        selected_model_category = self._get_selected_model_category_item()
+        selected_annotation_category = self._get_selected_annotation_category_item()
+        selected_element_category = self._get_selected_element_category_item()
+        selected_elements = self._get_selected_element_items()
+        selected_spatial_category = self._get_selected_spatial_category_item()
+        selected_spatial_items = self._get_selected_spatial_items()
+        source_view = self._get_preview_source_view()
+
+        if self.active_view == "Preview/Edit":
+            if source_view != "Schedules":
+                selected_item = None
+            if source_view != "Model Categories":
+                selected_model_category = None
+            if source_view != "Annotation Categories":
+                selected_annotation_category = None
+            if source_view != "Elements":
+                selected_element_category = None
+                selected_elements = []
+            if source_view == "Spatial":
+                selected_spatial_category = self._get_selected_spatial_category_for_preview()
+                selected_spatial_items = self._get_selected_spatial_items_for_preview()
+            else:
+                selected_spatial_category = None
+                selected_spatial_items = []
+
+        preview_rows = self._refresh_preview_grid()
+        editable_preview_columns = self._get_preview_editable_column_count()
+
+        if self.active_view == "Spatial" and selected_spatial_category is not None:
+            self.lblPreviewSchedule.Text = "Spatial: {}".format(selected_spatial_category.Name)
+            self.lblPreviewParameterCount.Text = "Rooms/spaces selected: {} | Parameters selected: {}".format(
+                len(selected_spatial_items),
+                len(self.selected_spatial_parameters)
+            )
+            self.lblPreviewWorkflow.Text = (
+                "Current room/space selection is ready for a targeted Excel export."
+            )
+            return
+
+        if self.active_view == "Elements" and selected_element_category is not None:
+            self.lblPreviewSchedule.Text = "Elements: {}".format(selected_element_category.Name)
+            self.lblPreviewParameterCount.Text = "Elements selected: {} | Parameters selected: {}".format(
+                len(selected_elements),
+                len(self.selected_element_parameters)
+            )
+            self.lblPreviewWorkflow.Text = (
+                "Current element selection is ready for a targeted Excel export without exporting the whole category."
+            )
+            return
+
+        if selected_item is None and selected_model_category is None and selected_annotation_category is None and selected_element_category is None and selected_spatial_category is None:
+            self.lblPreviewSchedule.Text = "No schedule selected"
+            self.lblPreviewParameterCount.Text = "Parameters ready: 0"
+            self.lblPreviewWorkflow.Text = (
+                "Pick a schedule, category, element set, or spatial set first. Once selected, this view becomes a quick launch point for export and Excel import."
+            )
+            return
+
+        if selected_item is not None:
+            parameter_count = len(self.current_parameters)
+            self.lblPreviewSchedule.Text = selected_item.Name
+            self.lblPreviewParameterCount.Text = "Rows previewed: {} | Parameters ready: {}".format(
+                preview_rows,
+                parameter_count
+            )
+            if parameter_count and editable_preview_columns == 0:
+                self.lblPreviewWorkflow.Text = (
+                    "All selected schedule parameters are locked by Revit. They can be reviewed here, but cannot be edited from Preview/Edit."
+                )
+            else:
+                self.lblPreviewWorkflow.Text = (
+                    "Editable cells can be changed directly here. Locked columns are marked and protected."
+                )
+            return
+
+        if selected_model_category is not None:
+            self.lblPreviewSchedule.Text = "Model Category: {}".format(selected_model_category.Name)
+            self.lblPreviewParameterCount.Text = "Rows previewed: {} | Parameters selected: {}".format(
+                preview_rows,
+                len(self.selected_model_parameters)
+            )
+            if self.selected_model_parameters and editable_preview_columns == 0:
+                self.lblPreviewWorkflow.Text = (
+                    "All selected model-category parameters are locked by Revit. Pick at least one green editable parameter if you want to edit in this grid."
+                )
+            else:
+                self.lblPreviewWorkflow.Text = (
+                    "Editable cells can be changed directly here. Locked columns are marked and protected."
+                )
+            return
+
+        if selected_annotation_category is not None:
+            self.lblPreviewSchedule.Text = "Annotation Category: {}".format(selected_annotation_category.Name)
+            self.lblPreviewParameterCount.Text = "Rows previewed: {} | Parameters selected: {}".format(
+                preview_rows,
+                len(self.selected_annotation_parameters)
+            )
+            if self.selected_annotation_parameters and editable_preview_columns == 0:
+                self.lblPreviewWorkflow.Text = (
+                    "All selected annotation parameters are locked by Revit. Pick at least one green editable parameter if you want to edit in this grid."
+                )
+            else:
+                self.lblPreviewWorkflow.Text = (
+                    "Editable cells can be changed directly here. Locked columns are marked and protected."
+                )
+            return
+
+        if selected_spatial_category is not None:
+            self.lblPreviewSchedule.Text = "Spatial: {}".format(selected_spatial_category.Name)
+            self.lblPreviewParameterCount.Text = "Rooms/spaces selected: {} | Parameters selected: {}".format(
+                len(selected_spatial_items),
+                len(self.selected_spatial_parameters)
+            )
+            self.lblPreviewWorkflow.Text = (
+                "Current room/space selection is ready for a targeted Excel export."
+            )
+            return
+
+        self.lblPreviewSchedule.Text = "Elements: {}".format(selected_element_category.Name)
+        self.lblPreviewParameterCount.Text = "Rows previewed: {} | Elements selected: {} | Parameters selected: {}".format(
+            preview_rows,
+            len(selected_elements),
+            len(self.selected_element_parameters)
+        )
+        if self.selected_element_parameters and editable_preview_columns == 0:
+            self.lblPreviewWorkflow.Text = (
+                "All selected element parameters are locked by Revit. Pick at least one green editable parameter if you want to edit in this grid."
+            )
+        else:
+            self.lblPreviewWorkflow.Text = (
+                "Editable cells can be changed directly here. Locked columns are marked and protected."
+            )
 
     def _refresh_schedule_list(self):
         self.lstSchedules.ItemsSource = None
@@ -2268,14 +4310,157 @@ class ScheduleBrowserWindow(forms.WPFWindow):
         self.dgParameters.ItemsSource = None
         self.dgParameters.ItemsSource = parameter_items
 
+    def _refresh_model_category_list(self):
+        self.lstModelCategories.ItemsSource = None
+        self.lstModelCategories.ItemsSource = self.filtered_model_categories
+
+    def _refresh_model_parameter_grid(self, parameter_items):
+        self.lstModelAvailableParameters.ItemsSource = None
+        self.lstModelAvailableParameters.ItemsSource = parameter_items
+
+    def _refresh_model_selected_parameter_list(self, parameter_items):
+        self.lstModelSelectedParameters.ItemsSource = None
+        self.lstModelSelectedParameters.ItemsSource = parameter_items
+
+    def _refresh_annotation_category_list(self):
+        self.lstAnnotationCategories.ItemsSource = None
+        self.lstAnnotationCategories.ItemsSource = self.filtered_annotation_categories
+
+    def _refresh_annotation_parameter_grid(self, parameter_items):
+        self.lstAnnotationAvailableParameters.ItemsSource = None
+        self.lstAnnotationAvailableParameters.ItemsSource = parameter_items
+
+    def _refresh_annotation_selected_parameter_list(self, parameter_items):
+        self.lstAnnotationSelectedParameters.ItemsSource = None
+        self.lstAnnotationSelectedParameters.ItemsSource = parameter_items
+
+    def _refresh_element_category_list(self):
+        self.lstElementCategories.ItemsSource = None
+        self.lstElementCategories.ItemsSource = self.filtered_element_categories
+
+    def _refresh_element_list(self):
+        self.lstElementItems.ItemsSource = None
+        self.lstElementItems.ItemsSource = self.filtered_element_items
+
+    def _refresh_element_parameter_grid(self, parameter_items):
+        self.lstElementAvailableParameters.ItemsSource = None
+        self.lstElementAvailableParameters.ItemsSource = parameter_items
+
+    def _refresh_element_selected_parameter_list(self, parameter_items):
+        self.lstElementSelectedParameters.ItemsSource = None
+        self.lstElementSelectedParameters.ItemsSource = parameter_items
+
+    def _refresh_spatial_category_list(self):
+        if self.active_view != "Spatial":
+            return
+        self.lstElementCategories.ItemsSource = None
+        self.lstElementCategories.ItemsSource = self.filtered_spatial_categories
+
+    def _refresh_spatial_list(self):
+        if self.active_view != "Spatial":
+            return
+        self.lstElementItems.ItemsSource = None
+        self.lstElementItems.ItemsSource = self.filtered_spatial_items
+
+    def _refresh_spatial_parameter_grid(self, parameter_items):
+        if self.active_view != "Spatial":
+            return
+        self.lstElementAvailableParameters.ItemsSource = None
+        self.lstElementAvailableParameters.ItemsSource = parameter_items
+
+    def _refresh_spatial_selected_parameter_list(self, parameter_items):
+        if self.active_view != "Spatial":
+            return
+        self.lstElementSelectedParameters.ItemsSource = None
+        self.lstElementSelectedParameters.ItemsSource = parameter_items
+
     def _update_status(self):
         total_count = len(self.all_schedules)
-        field_count = len(self.filtered_parameters)
+        if self.active_view == "Model Categories":
+            field_count = len(self.filtered_selected_model_parameters)
+        elif self.active_view == "Annotation Categories":
+            field_count = len(self.filtered_selected_annotation_parameters)
+        elif self.active_view == "Elements":
+            field_count = len(self.filtered_selected_element_parameters)
+        elif self.active_view == "Spatial":
+            field_count = len(self.filtered_selected_spatial_parameters)
+        else:
+            field_count = len(self.filtered_parameters)
+        selected_item = self._get_selected_item()
+        selected_count = 1 if selected_item is not None else 0
+        selected_model_category = self._get_selected_model_category_item()
+        selected_model_count = 1 if selected_model_category is not None else 0
+        selected_annotation_category = self._get_selected_annotation_category_item()
+        selected_annotation_count = 1 if selected_annotation_category is not None else 0
+        selected_element_category = self._get_selected_element_category_item()
+        selected_element_category_count = 1 if selected_element_category is not None else 0
+        selected_element_count = len(self._get_selected_element_items())
+        selected_spatial_category = self._get_selected_spatial_category_item()
+        selected_spatial_category_count = 1 if selected_spatial_category is not None else 0
+        selected_spatial_count = len(self._get_selected_spatial_items())
 
-        self.lblStatus.Text = "Schedules: {} | Fields: {}".format(
+        self.lblStatus.Text = "View: {} | Schedules: {} | Fields: {}".format(
+            self.active_view,
             total_count,
             field_count
         )
+
+        if hasattr(self, "lblFooterSummary"):
+            if self.active_view == "Preview/Edit":
+                self.lblFooterSummary.Text = (
+                    "Preview/Edit | selected schedules {} | parameters ready {}".format(
+                        selected_count,
+                        len(self.current_parameters)
+                    )
+                )
+            elif self.active_view == "Schedules":
+                self.lblFooterSummary.Text = (
+                    "Schedules selected {} | parameters found {}".format(
+                        selected_count,
+                        field_count
+                    )
+                )
+            elif self.active_view == "Model Categories":
+                self.lblFooterSummary.Text = (
+                    "Model categories selected {} | parameters found {} | parameters selected {}".format(
+                        selected_model_count,
+                        len(self.filtered_model_parameters),
+                        len(self.selected_model_parameters)
+                    )
+                )
+            elif self.active_view == "Annotation Categories":
+                self.lblFooterSummary.Text = (
+                    "Annotation categories selected {} | parameters found {} | parameters selected {}".format(
+                        selected_annotation_count,
+                        len(self.filtered_annotation_parameters),
+                        len(self.selected_annotation_parameters)
+                    )
+                )
+            elif self.active_view == "Elements":
+                self.lblFooterSummary.Text = (
+                    "Element categories selected {} | elements selected {} | parameters found {} | parameters selected {}".format(
+                        selected_element_category_count,
+                        selected_element_count,
+                        len(self.filtered_element_parameters),
+                        len(self.selected_element_parameters)
+                    )
+                )
+            elif self.active_view == "Spatial":
+                self.lblFooterSummary.Text = (
+                    "Spatial types selected {} | rooms/spaces selected {} | parameters found {} | parameters selected {}".format(
+                        selected_spatial_category_count,
+                        selected_spatial_count,
+                        len(self.filtered_spatial_parameters),
+                        len(self.selected_spatial_parameters)
+                    )
+                )
+            else:
+                self.lblFooterSummary.Text = (
+                    "{} | schedules available {}".format(
+                        self.active_view,
+                        total_count
+                    )
+                )
 
     def _apply_schedule_filter(self):
         search = safe_text(self.txtSearchSchedules.Text).strip().lower()
@@ -2305,11 +4490,415 @@ class ScheduleBrowserWindow(forms.WPFWindow):
         self._refresh_parameter_grid(self.filtered_parameters)
         self._update_status()
 
+    def _apply_model_category_filter(self):
+        search = safe_text(self.txtSearchModelCategories.Text).strip().lower()
+
+        if not search:
+            self.filtered_model_categories = list(self.all_model_categories)
+        else:
+            self.filtered_model_categories = [
+                x for x in self.all_model_categories
+                if search in x.Name.lower()
+            ]
+
+        self._refresh_model_category_list()
+        self._update_status()
+
+    def _apply_model_parameter_filter(self):
+        search = safe_text(self.txtSearchModelParameters.Text).strip().lower()
+        available_parameters = [x for x in self.current_model_parameters if not self._is_model_parameter_selected(x)]
+
+        if not search:
+            self.filtered_model_parameters = list(available_parameters)
+        else:
+            self.filtered_model_parameters = [
+                x for x in available_parameters
+                if search in x.Name.lower() or search in x.Status.lower()
+            ]
+
+        self._refresh_model_parameter_grid(self.filtered_model_parameters)
+        self._update_status()
+
+    def _apply_model_selected_parameter_filter(self):
+        search = safe_text(self.txtSearchModelSelectedParameters.Text).strip().lower()
+
+        if not search:
+            self.filtered_selected_model_parameters = list(self.selected_model_parameters)
+        else:
+            self.filtered_selected_model_parameters = [
+                x for x in self.selected_model_parameters
+                if search in x.Name.lower() or search in x.Status.lower()
+            ]
+
+        self._refresh_model_selected_parameter_list(self.filtered_selected_model_parameters)
+        self._update_status()
+        self._update_preview_panel()
+        self._update_action_buttons()
+
+    def _apply_annotation_category_filter(self):
+        search = safe_text(self.txtSearchAnnotationCategories.Text).strip().lower()
+
+        if not search:
+            self.filtered_annotation_categories = list(self.all_annotation_categories)
+        else:
+            self.filtered_annotation_categories = [
+                x for x in self.all_annotation_categories
+                if search in x.Name.lower()
+            ]
+
+        self._refresh_annotation_category_list()
+        self._update_status()
+
+    def _apply_annotation_parameter_filter(self):
+        search = safe_text(self.txtSearchAnnotationParameters.Text).strip().lower()
+        available_parameters = [x for x in self.current_annotation_parameters if not self._is_annotation_parameter_selected(x)]
+
+        if not search:
+            self.filtered_annotation_parameters = list(available_parameters)
+        else:
+            self.filtered_annotation_parameters = [
+                x for x in available_parameters
+                if search in x.Name.lower() or search in x.Status.lower()
+            ]
+
+        self._refresh_annotation_parameter_grid(self.filtered_annotation_parameters)
+        self._update_status()
+
+    def _apply_annotation_selected_parameter_filter(self):
+        search = safe_text(self.txtSearchAnnotationSelectedParameters.Text).strip().lower()
+
+        if not search:
+            self.filtered_selected_annotation_parameters = list(self.selected_annotation_parameters)
+        else:
+            self.filtered_selected_annotation_parameters = [
+                x for x in self.selected_annotation_parameters
+                if search in x.Name.lower() or search in x.Status.lower()
+            ]
+
+        self._refresh_annotation_selected_parameter_list(self.filtered_selected_annotation_parameters)
+        self._update_status()
+        self._update_preview_panel()
+        self._update_action_buttons()
+
+    def _apply_element_category_filter(self):
+        search = safe_text(self.txtSearchElementCategories.Text).strip().lower()
+
+        if not search:
+            self.filtered_element_categories = list(self.all_element_categories)
+        else:
+            self.filtered_element_categories = [
+                x for x in self.all_element_categories
+                if search in x.Name.lower()
+            ]
+
+        self._refresh_element_category_list()
+        self._update_status()
+
+    def _apply_element_item_filter(self):
+        search = safe_text(self.txtSearchElementItems.Text).strip().lower()
+
+        if not search:
+            self.filtered_element_items = list(self.current_element_items)
+        else:
+            self.filtered_element_items = [
+                x for x in self.current_element_items
+                if search in x.Name.lower() or search in x.ElementId.lower()
+            ]
+
+        self._refresh_element_list()
+        self._update_status()
+        self._update_context_panels()
+        self._update_action_buttons()
+
+    def _apply_element_parameter_filter(self):
+        search = safe_text(self.txtSearchElementParameters.Text).strip().lower()
+        available_parameters = [x for x in self.current_element_parameters if not self._is_element_parameter_selected(x)]
+
+        if not search:
+            self.filtered_element_parameters = list(available_parameters)
+        else:
+            self.filtered_element_parameters = [
+                x for x in available_parameters
+                if search in x.Name.lower() or search in x.Status.lower()
+            ]
+
+        self._refresh_element_parameter_grid(self.filtered_element_parameters)
+        self._update_status()
+
+    def _apply_element_selected_parameter_filter(self):
+        search = safe_text(self.txtSearchElementSelectedParameters.Text).strip().lower()
+
+        if not search:
+            self.filtered_selected_element_parameters = list(self.selected_element_parameters)
+        else:
+            self.filtered_selected_element_parameters = [
+                x for x in self.selected_element_parameters
+                if search in x.Name.lower() or search in x.Status.lower()
+            ]
+
+        self._refresh_element_selected_parameter_list(self.filtered_selected_element_parameters)
+        self._update_status()
+        self._update_context_panels()
+        self._update_preview_panel()
+        self._update_action_buttons()
+
+    def _apply_spatial_category_filter(self):
+        search = safe_text(self.txtSearchElementCategories.Text).strip().lower()
+
+        if not search:
+            self.filtered_spatial_categories = list(self.all_spatial_categories)
+        else:
+            self.filtered_spatial_categories = [
+                x for x in self.all_spatial_categories
+                if search in x.Name.lower()
+            ]
+
+        self._refresh_spatial_category_list()
+        self._update_status()
+
+    def _apply_spatial_item_filter(self):
+        search = safe_text(self.txtSearchElementItems.Text).strip().lower()
+
+        if not search:
+            self.filtered_spatial_items = list(self.current_spatial_items)
+        else:
+            self.filtered_spatial_items = [
+                x for x in self.current_spatial_items
+                if search in x.Name.lower() or search in x.ElementId.lower()
+            ]
+
+        self._refresh_spatial_list()
+        self._update_status()
+        self._update_context_panels()
+        self._update_action_buttons()
+
+    def _apply_spatial_parameter_filter(self):
+        search = safe_text(self.txtSearchElementParameters.Text).strip().lower()
+        available_parameters = [x for x in self.current_spatial_parameters if not self._is_spatial_parameter_selected(x)]
+
+        if not search:
+            self.filtered_spatial_parameters = list(available_parameters)
+        else:
+            self.filtered_spatial_parameters = [
+                x for x in available_parameters
+                if search in x.Name.lower() or search in x.Status.lower()
+            ]
+
+        self._refresh_spatial_parameter_grid(self.filtered_spatial_parameters)
+        self._update_status()
+
+    def _apply_spatial_selected_parameter_filter(self):
+        search = safe_text(self.txtSearchElementSelectedParameters.Text).strip().lower()
+
+        if not search:
+            self.filtered_selected_spatial_parameters = list(self.selected_spatial_parameters)
+        else:
+            self.filtered_selected_spatial_parameters = [
+                x for x in self.selected_spatial_parameters
+                if search in x.Name.lower() or search in x.Status.lower()
+            ]
+
+        self._refresh_spatial_selected_parameter_list(self.filtered_selected_spatial_parameters)
+        self._update_status()
+        self._update_context_panels()
+        self._update_preview_panel()
+        self._update_action_buttons()
+
     def _get_selected_item(self):
         try:
             return self.lstSchedules.SelectedItem
         except Exception:
             return None
+
+    def _get_selected_model_category_item(self):
+        try:
+            return self.lstModelCategories.SelectedItem
+        except Exception:
+            return None
+
+    def _get_selected_annotation_category_item(self):
+        try:
+            return self.lstAnnotationCategories.SelectedItem
+        except Exception:
+            return None
+
+    def _get_selected_element_category_item(self):
+        try:
+            return self.lstElementCategories.SelectedItem
+        except Exception:
+            return None
+
+    def _get_selected_element_items(self):
+        try:
+            return list(self.lstElementItems.SelectedItems)
+        except Exception:
+            return []
+
+    def _get_selected_spatial_category_item(self):
+        if self.active_view != "Spatial":
+            return None
+        try:
+            return self.lstElementCategories.SelectedItem
+        except Exception:
+            return None
+
+    def _get_selected_spatial_items(self):
+        if self.active_view != "Spatial":
+            return []
+        try:
+            return list(self.lstElementItems.SelectedItems)
+        except Exception:
+            return []
+
+    def _get_selected_model_available_parameters(self):
+        try:
+            return list(self.lstModelAvailableParameters.SelectedItems)
+        except Exception:
+            return []
+
+    def _get_selected_model_selected_parameters(self):
+        try:
+            return list(self.lstModelSelectedParameters.SelectedItems)
+        except Exception:
+            return []
+
+    def _get_selected_annotation_available_parameters(self):
+        try:
+            return list(self.lstAnnotationAvailableParameters.SelectedItems)
+        except Exception:
+            return []
+
+    def _get_selected_annotation_selected_parameters(self):
+        try:
+            return list(self.lstAnnotationSelectedParameters.SelectedItems)
+        except Exception:
+            return []
+
+    def _get_selected_element_available_parameters(self):
+        try:
+            return list(self.lstElementAvailableParameters.SelectedItems)
+        except Exception:
+            return []
+
+    def _get_selected_element_selected_parameters(self):
+        try:
+            return list(self.lstElementSelectedParameters.SelectedItems)
+        except Exception:
+            return []
+
+    def _get_selected_spatial_available_parameters(self):
+        if self.active_view != "Spatial":
+            return []
+        try:
+            return list(self.lstElementAvailableParameters.SelectedItems)
+        except Exception:
+            return []
+
+    def _get_selected_spatial_selected_parameters(self):
+        if self.active_view != "Spatial":
+            return []
+        try:
+            return list(self.lstElementSelectedParameters.SelectedItems)
+        except Exception:
+            return []
+
+    def _get_model_parameter_signature(self, parameter_item):
+        metadata = getattr(parameter_item, "Metadata", {}) or {}
+        used_params = metadata.get("UsedParams", [])
+        return (
+            safe_text(getattr(parameter_item, "Name", "")),
+            safe_text(getattr(parameter_item, "Origin", "")),
+            safe_text(getattr(parameter_item, "Editable", "")),
+            tuple([safe_text(x) for x in used_params])
+        )
+
+    def _is_model_parameter_selected(self, parameter_item):
+        target_signature = self._get_model_parameter_signature(parameter_item)
+        for selected_item in self.selected_model_parameters:
+            if self._get_model_parameter_signature(selected_item) == target_signature:
+                return True
+        return False
+
+    def _is_annotation_parameter_selected(self, parameter_item):
+        target_signature = self._get_model_parameter_signature(parameter_item)
+        for selected_item in self.selected_annotation_parameters:
+            if self._get_model_parameter_signature(selected_item) == target_signature:
+                return True
+        return False
+
+    def _is_element_parameter_selected(self, parameter_item):
+        target_signature = self._get_model_parameter_signature(parameter_item)
+        for selected_item in self.selected_element_parameters:
+            if self._get_model_parameter_signature(selected_item) == target_signature:
+                return True
+        return False
+
+    def _is_spatial_parameter_selected(self, parameter_item):
+        target_signature = self._get_model_parameter_signature(parameter_item)
+        for selected_item in self.selected_spatial_parameters:
+            if self._get_model_parameter_signature(selected_item) == target_signature:
+                return True
+        return False
+
+    def _sync_model_parameter_views(self):
+        self._apply_model_parameter_filter()
+        self._apply_model_selected_parameter_filter()
+        self._update_context_panels()
+        self._update_preview_panel()
+        self._update_action_buttons()
+
+    def _sync_annotation_parameter_views(self):
+        self._apply_annotation_parameter_filter()
+        self._apply_annotation_selected_parameter_filter()
+        self._update_context_panels()
+        self._update_preview_panel()
+        self._update_action_buttons()
+
+    def _sync_element_parameter_views(self):
+        self._apply_element_parameter_filter()
+        self._apply_element_selected_parameter_filter()
+        self._update_context_panels()
+        self._update_preview_panel()
+        self._update_action_buttons()
+
+    def _sync_spatial_parameter_views(self):
+        self._apply_spatial_parameter_filter()
+        self._apply_spatial_selected_parameter_filter()
+        self._update_context_panels()
+        self._update_preview_panel()
+        self._update_action_buttons()
+
+    def _load_model_parameters_from_item(self, item):
+        self.selected_model_parameters = []
+        self.filtered_selected_model_parameters = []
+
+        if item is None:
+            self.current_model_parameters = []
+            self._set_progress(0, "Completed")
+        else:
+            self._set_progress(15, "Scanning parameters")
+            self.current_model_parameters = self._dedupe_preview_parameter_items(
+                get_category_parameters(item.Category)
+            )
+            self._set_progress(100, "Parameters ready")
+
+        self._sync_model_parameter_views()
+
+    def _load_annotation_parameters_from_item(self, item):
+        self.selected_annotation_parameters = []
+        self.filtered_selected_annotation_parameters = []
+
+        if item is None:
+            self.current_annotation_parameters = []
+            self._set_progress(0, "Completed")
+        else:
+            self._set_progress(15, "Scanning parameters")
+            self.current_annotation_parameters = self._dedupe_preview_parameter_items(
+                get_category_parameters(item.Category)
+            )
+            self._set_progress(100, "Parameters ready")
+
+        self._sync_annotation_parameter_views()
 
     def on_schedule_search_changed(self, sender, args):
         self._apply_schedule_filter()
@@ -2317,102 +4906,641 @@ class ScheduleBrowserWindow(forms.WPFWindow):
     def on_parameter_search_changed(self, sender, args):
         self._apply_parameter_filter()
 
+    def on_model_category_search_changed(self, sender, args):
+        self._apply_model_category_filter()
+
+    def on_model_parameter_search_changed(self, sender, args):
+        self._apply_model_parameter_filter()
+
+    def on_model_selected_parameter_search_changed(self, sender, args):
+        self._apply_model_selected_parameter_filter()
+
+    def on_annotation_category_search_changed(self, sender, args):
+        self._apply_annotation_category_filter()
+
+    def on_annotation_parameter_search_changed(self, sender, args):
+        self._apply_annotation_parameter_filter()
+
+    def on_annotation_selected_parameter_search_changed(self, sender, args):
+        self._apply_annotation_selected_parameter_filter()
+
+    def on_element_category_search_changed(self, sender, args):
+        if self.active_view == "Spatial":
+            self._apply_spatial_category_filter()
+            return
+        self._apply_element_category_filter()
+
+    def on_element_item_search_changed(self, sender, args):
+        if self.active_view == "Spatial":
+            self._apply_spatial_item_filter()
+            return
+        self._apply_element_item_filter()
+
+    def on_element_parameter_search_changed(self, sender, args):
+        if self.active_view == "Spatial":
+            self._apply_spatial_parameter_filter()
+            return
+        self._apply_element_parameter_filter()
+
+    def on_element_selected_parameter_search_changed(self, sender, args):
+        if self.active_view == "Spatial":
+            self._apply_spatial_selected_parameter_filter()
+            return
+        self._apply_element_selected_parameter_filter()
+
+    def on_nav_clicked(self, sender, args):
+        view_name = safe_text(getattr(sender, "Tag", "")).strip()
+        if view_name:
+            self._set_active_view(view_name)
+
     def on_schedule_selection_changed(self, sender, args):
         item = self._get_selected_item()
         self._load_parameters_from_item(item)
 
+    def on_model_category_selection_changed(self, sender, args):
+        item = self._get_selected_model_category_item()
+        self._load_model_parameters_from_item(item)
+
+    def on_annotation_category_selection_changed(self, sender, args):
+        item = self._get_selected_annotation_category_item()
+        self._load_annotation_parameters_from_item(item)
+
+    def on_element_category_selection_changed(self, sender, args):
+        if self.active_view == "Spatial":
+            item = self._get_selected_spatial_category_item()
+            self._load_spatial_from_category_item(item)
+            return
+        item = self._get_selected_element_category_item()
+        self._load_elements_from_category_item(item)
+
+    def on_element_item_selection_changed(self, sender, args):
+        self._update_context_panels()
+        self._update_preview_panel()
+        self._update_action_buttons()
+        self._update_status()
+
+    def on_model_add_parameter_clicked(self, sender, args):
+        selected_items = self._get_selected_model_available_parameters()
+        if not selected_items:
+            return
+
+        for item in selected_items:
+            if not self._is_model_parameter_selected(item):
+                self.selected_model_parameters.append(item)
+
+        self._sync_model_parameter_views()
+
+    def on_model_remove_parameter_clicked(self, sender, args):
+        selected_items = self._get_selected_model_selected_parameters()
+        if not selected_items:
+            return
+
+        remove_signatures = [self._get_model_parameter_signature(x) for x in selected_items]
+        self.selected_model_parameters = [
+            x for x in self.selected_model_parameters
+            if self._get_model_parameter_signature(x) not in remove_signatures
+        ]
+
+        self._sync_model_parameter_views()
+
+    def on_annotation_add_parameter_clicked(self, sender, args):
+        selected_items = self._get_selected_annotation_available_parameters()
+        if not selected_items:
+            return
+
+        for item in selected_items:
+            if not self._is_annotation_parameter_selected(item):
+                self.selected_annotation_parameters.append(item)
+
+        self._sync_annotation_parameter_views()
+
+    def _load_elements_from_category_item(self, item):
+        self.current_element_items = []
+        self.filtered_element_items = []
+        self.current_element_parameters = []
+        self.filtered_element_parameters = []
+        self.selected_element_parameters = []
+        self.filtered_selected_element_parameters = []
+
+        if item is None:
+            self._set_progress(0, "Completed")
+        else:
+            self._set_progress(15, "Collecting elements")
+            self.current_element_items = get_element_items_for_category(item.Category)
+            self.filtered_element_items = list(self.current_element_items)
+            self._set_progress(50, "Scanning parameters")
+            self.current_element_parameters = self._dedupe_preview_parameter_items(
+                get_category_parameters(item.Category)
+            )
+            self._set_progress(100, "Parameters ready")
+
+        self._refresh_element_list()
+        self._sync_element_parameter_views()
+
+    def _load_spatial_from_category_item(self, item):
+        self.current_spatial_items = []
+        self.filtered_spatial_items = []
+        self.current_spatial_parameters = []
+        self.filtered_spatial_parameters = []
+        self.selected_spatial_parameters = []
+        self.filtered_selected_spatial_parameters = []
+
+        if item is None:
+            self._set_progress(0, "Completed")
+        else:
+            self._set_progress(15, "Collecting rooms/spaces")
+            self.current_spatial_items = get_element_items_for_category(item.Category)
+            self.filtered_spatial_items = list(self.current_spatial_items)
+            self._set_progress(50, "Scanning parameters")
+            self.current_spatial_parameters = self._dedupe_preview_parameter_items(
+                get_category_parameters(item.Category)
+            )
+            self._set_progress(100, "Parameters ready")
+
+        self._refresh_spatial_list()
+        self._sync_spatial_parameter_views()
+
+    def on_annotation_remove_parameter_clicked(self, sender, args):
+        selected_items = self._get_selected_annotation_selected_parameters()
+        if not selected_items:
+            return
+
+        remove_signatures = [self._get_model_parameter_signature(x) for x in selected_items]
+        self.selected_annotation_parameters = [
+            x for x in self.selected_annotation_parameters
+            if self._get_model_parameter_signature(x) not in remove_signatures
+        ]
+
+        self._sync_annotation_parameter_views()
+
+    def on_element_add_parameter_clicked(self, sender, args):
+        if self.active_view == "Spatial":
+            selected_items = self._get_selected_spatial_available_parameters()
+            if not selected_items:
+                return
+
+            for item in selected_items:
+                if not self._is_spatial_parameter_selected(item):
+                    self.selected_spatial_parameters.append(item)
+
+            self._sync_spatial_parameter_views()
+            return
+
+        selected_items = self._get_selected_element_available_parameters()
+        if not selected_items:
+            return
+
+        for item in selected_items:
+            if not self._is_element_parameter_selected(item):
+                self.selected_element_parameters.append(item)
+
+        self._sync_element_parameter_views()
+
+    def on_element_remove_parameter_clicked(self, sender, args):
+        if self.active_view == "Spatial":
+            selected_items = self._get_selected_spatial_selected_parameters()
+            if not selected_items:
+                return
+
+            remove_signatures = [self._get_model_parameter_signature(x) for x in selected_items]
+            self.selected_spatial_parameters = [
+                x for x in self.selected_spatial_parameters
+                if self._get_model_parameter_signature(x) not in remove_signatures
+            ]
+
+            self._sync_spatial_parameter_views()
+            return
+
+        selected_items = self._get_selected_element_selected_parameters()
+        if not selected_items:
+            return
+
+        remove_signatures = [self._get_model_parameter_signature(x) for x in selected_items]
+        self.selected_element_parameters = [
+            x for x in self.selected_element_parameters
+            if self._get_model_parameter_signature(x) not in remove_signatures
+        ]
+
+        self._sync_element_parameter_views()
+
     def on_refresh_clicked(self, sender, args):
+        self._set_progress(10, "Refreshing schedules")
         self.all_schedules = collect_schedules()
         self.filtered_schedules = list(self.all_schedules)
         self.current_parameters = []
         self.filtered_parameters = []
+        self._set_progress(45, "Refreshing categories")
+        self.all_model_categories = collect_model_categories()
+        self.filtered_model_categories = list(self.all_model_categories)
+        self.current_model_parameters = []
+        self.filtered_model_parameters = []
+        self.selected_model_parameters = []
+        self.filtered_selected_model_parameters = []
+        self.annotation_categories_loaded = False
+        self.element_categories_loaded = False
+        self.spatial_categories_loaded = False
+        self.all_annotation_categories = []
+        self.filtered_annotation_categories = []
+        self.current_annotation_parameters = []
+        self.filtered_annotation_parameters = []
+        self.selected_annotation_parameters = []
+        self.filtered_selected_annotation_parameters = []
+        self.all_element_categories = []
+        self.filtered_element_categories = []
+        self.current_element_items = []
+        self.filtered_element_items = []
+        self.current_element_parameters = []
+        self.filtered_element_parameters = []
+        self.selected_element_parameters = []
+        self.filtered_selected_element_parameters = []
+        self.all_spatial_categories = []
+        self.filtered_spatial_categories = []
+        self.current_spatial_items = []
+        self.filtered_spatial_items = []
+        self.current_spatial_parameters = []
+        self.filtered_spatial_parameters = []
+        self.selected_spatial_parameters = []
+        self.filtered_selected_spatial_parameters = []
 
         self.txtSearchSchedules.Text = ""
         self.txtSearchParameters.Text = ""
+        self.txtSearchModelCategories.Text = ""
+        self.txtSearchModelParameters.Text = ""
+        self.txtSearchModelSelectedParameters.Text = ""
+        self.txtSearchAnnotationCategories.Text = ""
+        self.txtSearchAnnotationParameters.Text = ""
+        self.txtSearchAnnotationSelectedParameters.Text = ""
+        self.txtSearchElementCategories.Text = ""
+        self.txtSearchElementItems.Text = ""
+        self.txtSearchElementParameters.Text = ""
+        self.txtSearchElementSelectedParameters.Text = ""
 
+        self._set_progress(75, "Updating interface")
+        self._ensure_view_data_loaded(self.active_view)
         self._refresh_schedule_list()
         self._refresh_parameter_grid([])
+        self._refresh_model_category_list()
+        self._refresh_model_parameter_grid([])
+        self._refresh_model_selected_parameter_list([])
+        if self.active_view == "Annotation Categories":
+            self._refresh_annotation_category_list()
+            self._refresh_annotation_parameter_grid([])
+            self._refresh_annotation_selected_parameter_list([])
+        elif self.active_view == "Elements":
+            self._refresh_element_category_list()
+            self._refresh_element_list()
+            self._refresh_element_parameter_grid([])
+            self._refresh_element_selected_parameter_list([])
+        elif self.active_view == "Spatial":
+            self._refresh_spatial_category_list()
+            self._refresh_spatial_list()
+            self._refresh_spatial_parameter_grid([])
+            self._refresh_spatial_selected_parameter_list([])
+        self._update_context_panels()
+        self._update_preview_panel()
+        self._update_action_buttons()
         self._update_status()
+        self._set_progress(100, "Refresh completed")
 
     def on_import_excel_clicked(self, sender, args):
         xlsx_path = ask_input_xlsx_path()
         if not xlsx_path:
             return
 
-        action = forms.CommandSwitchWindow.show(
-            [
-                "PREVIEW",
-                "IMPORT TO REVIT",
-                "CANCEL"
-            ],
-            message="Choose import action"
-        )
-
-        if not action or action == "CANCEL":
-            return
-
         try:
-            if action == "IMPORT TO REVIT":
-                run_import_apply(xlsx_path)
-            else:
-                run_import_preview(xlsx_path)
+            self._set_progress(20, "Opening workbook")
+            self._set_progress(55, "Applying changes")
+            run_import_apply(xlsx_path)
+            self._set_progress(100, "Import completed")
 
         except Exception as ex:
+            self._set_progress(0, "Completed")
             TaskDialog.Show(__title__, "Import Excel failed.\n\n{}".format(safe_text(ex)))
 
     def on_export_clicked(self, sender, args):
+        if self.active_view == "Model Categories":
+            self._export_selected_model_category()
+            return
+
+        if self.active_view == "Annotation Categories":
+            self._export_selected_annotation_category()
+            return
+
+        if self.active_view == "Elements":
+            self._export_selected_elements()
+            return
+
+        if self.active_view == "Spatial":
+            self._export_selected_spatial()
+            return
+
+        if self.active_view == "Preview/Edit":
+            source_view = self._get_preview_source_view()
+            selected_item = self._get_selected_item()
+            selected_model_category = self._get_selected_model_category_item()
+            selected_annotation_category = self._get_selected_annotation_category_item()
+            selected_element_category = self._get_selected_element_category_item()
+
+            if source_view == "Schedules" and selected_item is not None:
+                pass
+            elif source_view == "Model Categories" and selected_model_category is not None and len(self.selected_model_parameters) > 0:
+                self._export_selected_model_category()
+                return
+            elif source_view == "Annotation Categories" and selected_annotation_category is not None and len(self.selected_annotation_parameters) > 0:
+                self._export_selected_annotation_category()
+                return
+            elif source_view == "Elements" and selected_element_category is not None and len(self._get_selected_element_items()) > 0 and len(self.selected_element_parameters) > 0:
+                self._export_selected_elements()
+                return
+            elif source_view == "Spatial" and self._get_selected_spatial_category_for_preview() is not None and len(self._get_selected_spatial_items_for_preview()) > 0 and len(self.selected_spatial_parameters) > 0:
+                self._export_selected_spatial_from_preview()
+                return
+
         selected_item = self._get_selected_item()
         if selected_item is None:
             TaskDialog.Show(__title__, "Select one schedule first.")
             return
 
-        full_path = ask_output_xlsx_path(selected_item.Schedule)
+        full_path = ask_output_xlsx_path_for_name(get_schedule_name(selected_item.Schedule))
         if not full_path:
             return
 
         try:
+            self._set_progress(15, "Preparing export")
             full_path, has_valid_ids, id_source, data_row_count, schedule_element_count, skipped_group_rows = export_schedule_to_xlsx(
                 selected_item.Schedule,
                 full_path
             )
+            self._set_progress(100, "Export completed")
         except Exception as ex:
+            self._set_progress(0, "Completed")
             error_text = safe_text(ex)
 
-            if "0x800A03EC" in error_text or "cannot access" in error_text.lower():
+            if "cannot access" in error_text.lower():
                 TaskDialog.Show(
                     __title__,
-                    "Excel export failed.\n\nThe Excel file is open.\nClose it before exporting again."
+                    "Excel export failed.\n\nExcel cannot access the target file.\nClose it if it is open and try again.\n\nDetails:\n{}".format(error_text)
                 )
             else:
                 TaskDialog.Show(__title__, "Excel export failed.\n\n{}".format(error_text))
 
             return
 
-        message = "Excel export completed.\n\n{}".format(full_path)
+        open_path_with_default_app(full_path)
 
-        if skipped_group_rows > 0:
-            message += "\n\nFiltered rows:\n{} group/header rows were excluded from export.".format(skipped_group_rows)
+        summary_label = selected_item.Name
+        if not has_valid_ids:
+            summary_label = "{} | Warning: no import IDs".format(summary_label)
 
-        if id_source == "CSV":
-            if not has_valid_ids:
-                message += "\n\nWarning:\nElementId was found in the export, but UniqueId could not be resolved from the rows."
-        elif id_source == "ScheduleElements":
-            message += "\n\nIdentifiers:\nRows were exported directly from schedule elements using the schedule field definition."
-            message += "\nExported rows: {}".format(data_row_count)
-        else:
-            message += "\n\nWarning:\nNo reliable ElementId / UniqueId source was found for this schedule."
-            if schedule_element_count > 0:
-                message += "\nSchedule elements detected: {}".format(schedule_element_count)
+        self._set_completed_export_summary(summary_label, data_row_count, len(self.current_parameters))
+
+    def _export_selected_model_category(self):
+        selected_item = self._get_selected_model_category_item()
+        if selected_item is None:
+            TaskDialog.Show(__title__, "Select one model category first.")
+            return
+
+        parameter_items = self._dedupe_preview_parameter_items(self.selected_model_parameters)
+        if not parameter_items:
+            TaskDialog.Show(__title__, "Select at least one parameter for the model category.")
+            return
+
+        full_path = ask_output_xlsx_path_for_name("{}_ModelCategory".format(selected_item.Name))
+        if not full_path:
+            return
 
         try:
-            subprocess.Popen([full_path], shell=True)
-        except Exception:
-            pass
+            self._set_progress(15, "Preparing export")
+            full_path, exported_row_count, category_element_count = export_category_to_xlsx(
+                selected_item,
+                parameter_items,
+                full_path
+            )
+            self._set_progress(100, "Export completed")
+        except Exception as ex:
+            self._set_progress(0, "Completed")
+            error_text = safe_text(ex)
 
-        TaskDialog.Show(__title__, message)
+            if "cannot access" in error_text.lower():
+                TaskDialog.Show(
+                    __title__,
+                    "Excel export failed.\n\nExcel cannot access the target file.\nClose it if it is open and try again.\n\nDetails:\n{}".format(error_text)
+                )
+            else:
+                TaskDialog.Show(__title__, "Excel export failed.\n\n{}".format(error_text))
+
+            return
+
+        open_path_with_default_app(full_path)
+        self._set_completed_export_summary(selected_item.Name, exported_row_count, len(parameter_items))
+
+    def _export_selected_elements(self):
+        selected_category = self._get_selected_element_category_item()
+        if selected_category is None:
+            TaskDialog.Show(__title__, "Select one element category first.")
+            return
+
+        selected_elements = self._get_selected_element_items()
+        if not selected_elements:
+            TaskDialog.Show(__title__, "Select at least one element.")
+            return
+
+        parameter_items = self._dedupe_preview_parameter_items(self.selected_element_parameters)
+        if not parameter_items:
+            TaskDialog.Show(__title__, "Select at least one parameter for the selected elements.")
+            return
+
+        full_path = ask_output_xlsx_path_for_name("{}_Elements".format(selected_category.Name))
+        if not full_path:
+            return
+
+        source_elements = [x.Element for x in selected_elements if getattr(x, "Element", None) is not None]
+
+        try:
+            self._set_progress(15, "Preparing export")
+            full_path, exported_row_count, category_element_count = export_category_to_xlsx(
+                selected_category,
+                parameter_items,
+                full_path,
+                source_elements=source_elements,
+                sheet_suffix="Elements",
+                keep_empty_rows=True
+            )
+            self._set_progress(100, "Export completed")
+        except Exception as ex:
+            self._set_progress(0, "Completed")
+            error_text = safe_text(ex)
+
+            if "cannot access" in error_text.lower():
+                TaskDialog.Show(
+                    __title__,
+                    "Excel export failed.\n\nExcel cannot access the target file.\nClose it if it is open and try again.\n\nDetails:\n{}".format(error_text)
+                )
+            else:
+                TaskDialog.Show(__title__, "Excel export failed.\n\n{}".format(error_text))
+
+            return
+
+        open_path_with_default_app(full_path)
+        self._set_completed_export_summary(
+            "{} elements".format(selected_category.Name),
+            exported_row_count,
+            len(parameter_items)
+        )
+
+    def _export_selected_spatial_from_preview(self):
+        selected_category = self._get_selected_spatial_category_for_preview()
+        if selected_category is None:
+            TaskDialog.Show(__title__, "Select Rooms or Spaces first.")
+            return
+
+        selected_items = self._get_selected_spatial_items_for_preview()
+        if not selected_items:
+            TaskDialog.Show(__title__, "Select at least one room or space.")
+            return
+
+        parameter_items = self._dedupe_preview_parameter_items(self.selected_spatial_parameters)
+        if not parameter_items:
+            TaskDialog.Show(__title__, "Select at least one parameter for the selected rooms/spaces.")
+            return
+
+        full_path = ask_output_xlsx_path_for_name("{}_Spatial".format(selected_category.Name))
+        if not full_path:
+            return
+
+        source_elements = [x.Element for x in selected_items if getattr(x, "Element", None) is not None]
+
+        try:
+            self._set_progress(15, "Preparing export")
+            full_path, exported_row_count, category_element_count = export_category_to_xlsx(
+                selected_category,
+                parameter_items,
+                full_path,
+                source_elements=source_elements,
+                sheet_suffix="Spatial",
+                keep_empty_rows=True
+            )
+            self._set_progress(100, "Export completed")
+        except Exception as ex:
+            self._set_progress(0, "Completed")
+            error_text = safe_text(ex)
+
+            if "cannot access" in error_text.lower():
+                TaskDialog.Show(
+                    __title__,
+                    "Excel export failed.\n\nExcel cannot access the target file.\nClose it if it is open and try again.\n\nDetails:\n{}".format(error_text)
+                )
+            else:
+                TaskDialog.Show(__title__, "Excel export failed.\n\n{}".format(error_text))
+
+            return
+
+        open_path_with_default_app(full_path)
+        self._set_completed_export_summary(
+            "{} spatial".format(selected_category.Name),
+            exported_row_count,
+            len(parameter_items)
+        )
+
+    def _export_selected_spatial(self):
+        selected_category = self._get_selected_spatial_category_item()
+        if selected_category is None:
+            TaskDialog.Show(__title__, "Select Rooms or Spaces first.")
+            return
+
+        selected_items = self._get_selected_spatial_items()
+        if not selected_items:
+            TaskDialog.Show(__title__, "Select at least one room or space.")
+            return
+
+        parameter_items = self._dedupe_preview_parameter_items(self.selected_spatial_parameters)
+        if not parameter_items:
+            TaskDialog.Show(__title__, "Select at least one parameter for the selected rooms/spaces.")
+            return
+
+        full_path = ask_output_xlsx_path_for_name("{}_Spatial".format(selected_category.Name))
+        if not full_path:
+            return
+
+        source_elements = [x.Element for x in selected_items if getattr(x, "Element", None) is not None]
+
+        try:
+            self._set_progress(15, "Preparing export")
+            full_path, exported_row_count, category_element_count = export_category_to_xlsx(
+                selected_category,
+                parameter_items,
+                full_path,
+                source_elements=source_elements,
+                sheet_suffix="Spatial",
+                keep_empty_rows=True
+            )
+            self._set_progress(100, "Export completed")
+        except Exception as ex:
+            self._set_progress(0, "Completed")
+            error_text = safe_text(ex)
+
+            if "cannot access" in error_text.lower():
+                TaskDialog.Show(
+                    __title__,
+                    "Excel export failed.\n\nExcel cannot access the target file.\nClose it if it is open and try again.\n\nDetails:\n{}".format(error_text)
+                )
+            else:
+                TaskDialog.Show(__title__, "Excel export failed.\n\n{}".format(error_text))
+
+            return
+
+        open_path_with_default_app(full_path)
+        self._set_completed_export_summary(
+            "{} spatial".format(selected_category.Name),
+            exported_row_count,
+            len(parameter_items)
+        )
+
+    def _export_selected_annotation_category(self):
+        selected_item = self._get_selected_annotation_category_item()
+        if selected_item is None:
+            TaskDialog.Show(__title__, "Select one annotation category first.")
+            return
+
+        parameter_items = self._dedupe_preview_parameter_items(self.selected_annotation_parameters)
+        if not parameter_items:
+            TaskDialog.Show(__title__, "Select at least one parameter for the annotation category.")
+            return
+
+        full_path = ask_output_xlsx_path_for_name("{}_AnnotationCategory".format(selected_item.Name))
+        if not full_path:
+            return
+
+        try:
+            self._set_progress(15, "Preparing export")
+            full_path, exported_row_count, category_element_count = export_category_to_xlsx(
+                selected_item,
+                parameter_items,
+                full_path
+            )
+            self._set_progress(100, "Export completed")
+        except Exception as ex:
+            self._set_progress(0, "Completed")
+            error_text = safe_text(ex)
+
+            if "cannot access" in error_text.lower():
+                TaskDialog.Show(
+                    __title__,
+                    "Excel export failed.\n\nExcel cannot access the target file.\nClose it if it is open and try again.\n\nDetails:\n{}".format(error_text)
+                )
+            else:
+                TaskDialog.Show(__title__, "Excel export failed.\n\n{}".format(error_text))
+
+            return
+
+        open_path_with_default_app(full_path)
+        self._set_completed_export_summary(selected_item.Name, exported_row_count, len(parameter_items))
 
     def on_close_clicked(self, sender, args):
         self.Close()
+
+    def on_go_schedules_clicked(self, sender, args):
+        self._set_active_view("Schedules")
 
     def _load_parameters_from_item(self, item):
         if item is None:
@@ -2421,10 +5549,10 @@ class ScheduleBrowserWindow(forms.WPFWindow):
             self.current_parameters = get_schedule_parameters(item.Schedule)
 
         self._apply_parameter_filter()
+        self._update_preview_panel()
+        self._update_context_panels()
+        self._update_action_buttons()
 
-    def on_schedule_list_mouse_up(self, sender, args):
-        item = self._get_selected_item()
-        self._load_parameters_from_item(item)
 if not os.path.exists(XAML_PATH):
     TaskDialog.Show(__title__, "Missing XAML file:\n{}".format(XAML_FILENAME))
     sys.exit()

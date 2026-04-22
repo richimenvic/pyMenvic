@@ -1,12 +1,12 @@
 title:
-  en_us: Schedule Browser
-  es_es: Explorador de Tablas
+  en_us: SheetLink - pyMENVIC
+  es_es: SheetLink - pyMENVIC
 
 tooltip:
   en_us: |
-    Browse, preview, and export Revit schedules to Excel through a dedicated management interface.
-    Schedule Browser is a pyMENVIC productivity tool designed to simplify 
-    data extraction and table auditing.
+    Browse, preview, import, and export Revit schedules and category data to Excel through a dedicated management interface.
+    SheetLink - pyMENVIC is a pyMENVIC productivity tool designed to simplify 
+    data extraction, schedule review, and Excel roundtrips.
     _______________________________________________________________
     Key features:
     - Field Preview: Instantly lists all parameters and fields included in any selected schedule.
@@ -16,10 +16,10 @@ tooltip:
 
     Ideal for data validation, quantity take-offs, and external reporting.
   es_es: |
-    Navega, previsualiza y exporta tablas de planificación de Revit a Excel mediante una interfaz de gestión dedicada.
+    Navega, previsualiza, importa y exporta tablas de planificación de Revit a Excel mediante una interfaz de gestión dedicada.
     _______________________________________________________________
-    Explorador de Tablas es una herramienta de productividad de pyMENVIC diseñada 
-    para simplificar la extracción de datos y la auditoría de tablas.
+    SheetLink - pyMENVIC es una herramienta de productividad de pyMENVIC diseñada 
+    para simplificar la extracción de datos, la revisión de tablas, categorías y el trabajo de ida y vuelta con Excel.
 
     Características clave:
     - Previsualización de Campos: Lista instantáneamente todos los parámetros y campos incluidos en cualquier tabla.
@@ -31,19 +31,16 @@ tooltip:
 
 description:
   en_us: >
-    Schedule Browser provides a modern, dark-themed interface to manage 
-    project schedules. It allows BIM managers to audit schedule structures 
-    without opening each view, providing a clear list of scheduled fields. 
-    The tool streamlines the workflow between Revit and Excel, handling 
-    the export process and file opening automatically for high-efficiency 
-    data management.
+    SheetLink - pyMENVIC provides a compact spreadsheet-oriented interface
+    to manage project schedules and category-based exports. It helps BIM teams
+    inspect fields, export editable Excel workbooks, and bring validated
+    changes back into Revit with technical identifiers and import preview support.
   es_es: >
-    Explorador de Tablas proporciona una interfaz moderna con tema oscuro 
-    para gestionar las tablas del proyecto. Permite a los BIM managers 
-    auditar la estructura de las tablas sin abrirlas una por una, 
-    proporcionando una lista clara de los campos programados. La herramienta 
-    optimiza el flujo de trabajo entre Revit y Excel, manejando el proceso 
-    de exportación y apertura de archivos de forma automática.
+    SheetLink - pyMENVIC proporciona una interfaz compacta orientada a hojas
+    de cálculo para gestionar tablas y exportaciones por categoría del proyecto.
+    Permite inspeccionar campos, exportar libros editables de Excel y devolver
+    cambios validados a Revit con identificadores técnicos y previsualización
+    de importación.
 
 author: Ricardo J. Mendieta | pyMENVIC
 version: 1.0.0
