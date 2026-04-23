@@ -81,6 +81,7 @@ from System.Runtime.InteropServices import Marshal
 from Microsoft.Win32 import SaveFileDialog, OpenFileDialog
 from System.Windows import Visibility, FontWeights
 from System.Windows.Forms import Application
+from System.Windows.Data import Binding, BindingMode, UpdateSourceTrigger
 logger = script.get_logger()
 
 uidoc = __revit__.ActiveUIDocument
@@ -3308,6 +3309,7 @@ class ScheduleBrowserWindow(forms.WPFWindow):
 
         self.active_view = "Model Categories"
         self.preview_source_view = "Model Categories"
+        self._suspend_selection_changed = False
         self._set_progress(5, "Starting")
         self.all_schedules = collect_schedules()
         self._set_progress(30, "Schedules loaded")
@@ -3350,6 +3352,9 @@ class ScheduleBrowserWindow(forms.WPFWindow):
         self.preview_row_elements = []
         self.preview_column_map = {}
         self.preview_original_values = {}
+        self.preview_pending_change_count = 0
+        self._suspend_preview_autosave = False
+        self._is_committing_preview_edits = False
 
         self._configure_branding()
         self._setup_navigation()
@@ -3474,24 +3479,28 @@ class ScheduleBrowserWindow(forms.WPFWindow):
         self.btnAnnotationRemoveParameter.Click += self.on_annotation_remove_parameter_clicked
         self.btnElementAddParameter.Click += self.on_element_add_parameter_clicked
         self.btnElementRemoveParameter.Click += self.on_element_remove_parameter_clicked
-        self.btnRefresh.Click += self.on_refresh_clicked
         self.btnImportExcel.Click += self.on_import_excel_clicked
         self.btnExport.Click += self.on_export_clicked
-        self.btnClose.Click += self.on_close_clicked
+        self.btnResetValues.Click += self.on_reset_values_clicked
+        self.btnOpenPreviewEdit.Click += self.on_open_preview_edit_clicked
+        self.btnExportProjectStandards.Click += self.on_export_project_standards_clicked
         self.btnPreviewImport.Click += self.on_preview_update_clicked
         self.btnPreviewExport.Click += self.on_export_clicked
         self.btnGoSchedules.Click += self.on_go_schedules_clicked
         self.dgPreviewEdit.AutoGeneratingColumn += self.on_preview_auto_generating_column
+        self.dgPreviewEdit.CurrentCellChanged += self.on_preview_current_cell_changed
 
     def _configure_export_state(self):
         self.btnExport.IsEnabled = True
         self.btnExport.ToolTip = "Export the current selection to Excel"
         self.btnImportExcel.ToolTip = "Preview or import Excel changes back into Revit"
-        self.btnRefresh.ToolTip = "Reload schedules from the current model"
-        self.btnClose.ToolTip = "Close SheetLink - pyMENVIC"
+        self.btnResetValues.ToolTip = "Reset the current workspace state"
+        self.btnOpenPreviewEdit.ToolTip = "Open Preview/Edit for the current selection"
+        self.btnExportProjectStandards.ToolTip = "Export project standards workflow"
         self.btnPreviewImport.ToolTip = "Apply editable Preview/Edit cell changes to Revit"
         self.btnPreviewExport.ToolTip = "Export the selected schedule to Excel"
-        self.btnGoSchedules.ToolTip = "Go back to the schedules workspace"
+        self.btnGoSchedules.Content = "Back"
+        self.btnGoSchedules.ToolTip = "Go back to the source workspace"
 
     def _ensure_annotation_categories_loaded(self):
         if self.annotation_categories_loaded:
@@ -3624,9 +3633,45 @@ class ScheduleBrowserWindow(forms.WPFWindow):
         else:
             has_selection = selected_item is not None
 
-        self.btnImportExcel.IsEnabled = can_use_excel_actions
-        self.btnExport.IsEnabled = can_use_excel_actions and has_selection
-        self.btnPreviewImport.IsEnabled = self.active_view == "Preview/Edit" and has_selection
+        is_preview = self.active_view == "Preview/Edit"
+        has_preview_edits = is_preview and getattr(self, "preview_table", None) is not None
+        editable_preview_columns = self._get_preview_editable_column_count() if is_preview else 0
+
+        self.btnResetValues.Visibility = Visibility.Visible
+        self.btnOpenPreviewEdit.Visibility = Visibility.Collapsed if is_preview else Visibility.Visible
+        self.btnExportProjectStandards.Visibility = Visibility.Visible if not is_preview else Visibility.Collapsed
+
+        if is_preview:
+            self.btnResetValues.ToolTip = "Reset Preview/Edit values to the current Revit model state"
+            self.btnResetValues.IsEnabled = has_preview_edits
+        else:
+            self.btnResetValues.ToolTip = "Clear the current selections and parameter picks in this workspace"
+            self.btnResetValues.IsEnabled = True
+
+        if is_preview:
+            self.btnImportExcel.Content = "Update Model"
+            self.btnImportExcel.ToolTip = "Apply Preview/Edit changes to Revit"
+            self.btnImportExcel.IsEnabled = (
+                has_selection
+                and editable_preview_columns > 0
+                and getattr(self, "preview_pending_change_count", 0) > 0
+            )
+            self.btnExport.Visibility = Visibility.Collapsed
+            self.btnExport.IsEnabled = False
+            self.btnOpenPreviewEdit.IsEnabled = False
+        else:
+            self.btnImportExcel.Content = "Import ▾"
+            self.btnImportExcel.ToolTip = "Preview or import Excel changes back into Revit"
+            self.btnImportExcel.IsEnabled = can_use_excel_actions
+            self.btnExport.Visibility = Visibility.Visible
+            self.btnExport.IsEnabled = can_use_excel_actions and has_selection
+            self.btnOpenPreviewEdit.IsEnabled = has_selection
+
+        self.btnPreviewImport.IsEnabled = (
+            self.active_view == "Preview/Edit"
+            and has_selection
+            and getattr(self, "preview_pending_change_count", 0) > 0
+        )
         self.btnPreviewExport.IsEnabled = has_selection
 
     def _update_context_panels(self):
@@ -3729,14 +3774,56 @@ class ScheduleBrowserWindow(forms.WPFWindow):
             self.preview_row_elements = []
             self.preview_column_map = {}
             self.preview_original_values = {}
+            self.preview_pending_change_count = 0
             self.dgPreviewEdit.ItemsSource = None
         except Exception:
             pass
 
     def _bind_preview_table(self, table):
         self.preview_table = table
-        self.dgPreviewEdit.ItemsSource = None
-        self.dgPreviewEdit.ItemsSource = table.DefaultView
+        was_suspended = getattr(self, "_suspend_preview_autosave", False)
+        self._suspend_preview_autosave = True
+        try:
+            self.dgPreviewEdit.ItemsSource = None
+            self.dgPreviewEdit.ItemsSource = table.DefaultView
+            self._update_preview_change_state()
+        finally:
+            self._suspend_preview_autosave = was_suspended
+
+    def _prune_empty_preview_columns(self, table, column_map):
+        if table is None:
+            return table
+
+        removable_columns = []
+        for column_name in list(column_map.keys()):
+            if not table.Columns.Contains(column_name):
+                continue
+
+            column_info = column_map.get(column_name) or {}
+            if is_editable_metadata_value(column_info.get("Editable", "")):
+                continue
+
+            has_value = False
+            for row_index in range(table.Rows.Count):
+                row = table.Rows[row_index]
+                if normalize_text(row[column_name]):
+                    has_value = True
+                    break
+
+            if not has_value:
+                removable_columns.append(column_name)
+
+        for column_name in removable_columns:
+            try:
+                table.Columns.Remove(column_name)
+            except Exception:
+                pass
+            try:
+                del column_map[column_name]
+            except Exception:
+                pass
+
+        return table
 
     def _get_preview_source_view(self):
         if self.active_view == "Preview/Edit":
@@ -3779,6 +3866,54 @@ class ScheduleBrowserWindow(forms.WPFWindow):
                 deduped_by_name[name_key] = item
 
         return [deduped_by_name[key] for key in order]
+
+    def _is_sheets_category_item(self, category_item):
+        name = normalize_text(getattr(category_item, "Name", "")).lower()
+        if name == "sheets":
+            return True
+
+        try:
+            category_name = normalize_text(category_item.Category.Name).lower()
+            return category_name == "sheets"
+        except Exception:
+            return False
+
+    def _find_best_parameter_by_name(self, parameter_items, parameter_names):
+        desired_names = set([normalize_text(x).lower() for x in parameter_names])
+        fallback_item = None
+
+        for item in list(parameter_items or []):
+            item_name = normalize_text(getattr(item, "Name", "")).lower()
+            if item_name not in desired_names:
+                continue
+
+            if fallback_item is None:
+                fallback_item = item
+
+            if is_editable_metadata_value(getattr(item, "Editable", "")):
+                return item
+
+        return fallback_item
+
+    def _with_required_model_context_parameters(self, category_item, parameter_items):
+        parameter_items = self._dedupe_preview_parameter_items(parameter_items)
+
+        if not self._is_sheets_category_item(category_item):
+            return parameter_items
+
+        if self._find_best_parameter_by_name(parameter_items, ["Sheet Name", "Name"]) is not None:
+            return parameter_items
+
+        sheet_name_parameter = self._find_best_parameter_by_name(
+            list(getattr(self, "current_model_parameters", []) or []),
+            ["Sheet Name", "Name"]
+        )
+        if sheet_name_parameter is None:
+            return parameter_items
+
+        # Sheets need their title next to the number/sort fields; otherwise
+        # Preview/Edit and exported workbooks lose the main human-readable key.
+        return self._dedupe_preview_parameter_items([sheet_name_parameter] + list(parameter_items))
 
     def _should_add_preview_name_column(self, parameter_items):
         display_name_fields = set(["name", "sheet name", "view name"])
@@ -3841,8 +3976,7 @@ class ScheduleBrowserWindow(forms.WPFWindow):
         self.preview_row_elements = row_elements
         self.preview_column_map = column_map
         self.preview_original_values = original_values
-
-        return table
+        return self._prune_empty_preview_columns(table, column_map)
 
     def _build_preview_table_from_schedule(self, schedule):
         table = DataTable()
@@ -3894,43 +4028,53 @@ class ScheduleBrowserWindow(forms.WPFWindow):
         self.preview_row_elements = row_elements
         self.preview_column_map = column_map
         self.preview_original_values = original_values
-
-        return table
+        return self._prune_empty_preview_columns(table, column_map)
 
     def _refresh_preview_grid(self):
         if self.active_view != "Preview/Edit":
             return 0
 
         try:
+            self._set_progress(20, "Collecting preview data")
             source_view = self._get_preview_source_view()
 
             selected_item = self._get_selected_item()
             if source_view == "Schedules" and selected_item is not None:
+                self._set_progress(60, "Building schedule preview")
                 table = self._build_preview_table_from_schedule(selected_item.Schedule)
                 self._bind_preview_table(table)
+                self._set_progress(100, "Preview ready")
                 return table.Rows.Count
 
             selected_model_category = self._get_selected_model_category_item()
             if source_view == "Model Categories" and selected_model_category is not None and len(self.selected_model_parameters) > 0:
+                self._set_progress(60, "Building model category preview")
                 table = self._build_preview_table_from_elements(
                     get_category_elements(selected_model_category.Category),
-                    self.selected_model_parameters
+                    self._with_required_model_context_parameters(
+                        selected_model_category,
+                        self.selected_model_parameters
+                    )
                 )
                 self._bind_preview_table(table)
+                self._set_progress(100, "Preview ready")
                 return table.Rows.Count
 
             selected_annotation_category = self._get_selected_annotation_category_item()
             if source_view == "Annotation Categories" and selected_annotation_category is not None and len(self.selected_annotation_parameters) > 0:
+                self._set_progress(60, "Building annotation preview")
                 table = self._build_preview_table_from_elements(
                     get_category_elements(selected_annotation_category.Category),
                     self.selected_annotation_parameters
                 )
                 self._bind_preview_table(table)
+                self._set_progress(100, "Preview ready")
                 return table.Rows.Count
 
             selected_element_category = self._get_selected_element_category_item()
             selected_elements = self._get_selected_element_items()
             if source_view == "Elements" and selected_element_category is not None and len(selected_elements) > 0 and len(self.selected_element_parameters) > 0:
+                self._set_progress(60, "Building element preview")
                 elements = []
                 for item in selected_elements:
                     element = getattr(item, "Element", None)
@@ -3939,11 +4083,13 @@ class ScheduleBrowserWindow(forms.WPFWindow):
 
                 table = self._build_preview_table_from_elements(elements, self.selected_element_parameters)
                 self._bind_preview_table(table)
+                self._set_progress(100, "Preview ready")
                 return table.Rows.Count
 
             selected_spatial_category = self._get_selected_spatial_category_for_preview()
             selected_spatial_items = self._get_selected_spatial_items_for_preview()
             if source_view == "Spatial" and selected_spatial_category is not None and len(selected_spatial_items) > 0 and len(self.selected_spatial_parameters) > 0:
+                self._set_progress(60, "Building spatial preview")
                 elements = []
                 for item in selected_spatial_items:
                     element = getattr(item, "Element", None)
@@ -3952,9 +4098,11 @@ class ScheduleBrowserWindow(forms.WPFWindow):
 
                 table = self._build_preview_table_from_elements(elements, self.selected_spatial_parameters)
                 self._bind_preview_table(table)
+                self._set_progress(100, "Preview ready")
                 return table.Rows.Count
 
             self._clear_preview_grid()
+            self._set_progress(100, "Preview ready")
             return 0
 
         except Exception as ex:
@@ -3964,186 +4112,311 @@ class ScheduleBrowserWindow(forms.WPFWindow):
             except Exception:
                 pass
             logger.warning("Could not build Preview/Edit grid. %s", safe_text(ex))
+            self._set_progress(0, "Preview failed")
             return 0
 
-    def _commit_preview_edits(self):
-        if self.active_view != "Preview/Edit":
-            TaskDialog.Show(__title__, "Open Preview/Edit first.")
-            return
+    def _has_pending_preview_changes(self, table, column_map, original_values):
+        if table is None or not column_map:
+            return False
 
+        for row_index in range(table.Rows.Count):
+            row = table.Rows[row_index]
+            for column_name in column_map.keys():
+                if not table.Columns.Contains(column_name):
+                    continue
+                new_value = normalize_text(row[column_name])
+                old_value = original_values.get((row_index, column_name), "")
+                if new_value != old_value:
+                    return True
+
+        return False
+
+    def _get_pending_preview_change_count(self, table, column_map, original_values):
+        if table is None or not column_map:
+            return 0
+
+        count = 0
+        for row_index in range(table.Rows.Count):
+            row = table.Rows[row_index]
+            for column_name in column_map.keys():
+                if not table.Columns.Contains(column_name):
+                    continue
+                new_value = normalize_text(row[column_name])
+                old_value = original_values.get((row_index, column_name), "")
+                if new_value != old_value:
+                    count += 1
+        return count
+
+    def _update_preview_change_state(self):
+        table = getattr(self, "preview_table", None)
+        column_map = getattr(self, "preview_column_map", {}) or {}
+        original_values = getattr(self, "preview_original_values", {}) or {}
+        pending = self._get_pending_preview_change_count(table, column_map, original_values)
+        self.preview_pending_change_count = pending
         try:
-            self.dgPreviewEdit.CommitEdit()
-            self.dgPreviewEdit.CommitEdit()
+            self.btnPreviewImport.IsEnabled = pending > 0
+        except Exception:
+            pass
+        try:
+            if self.active_view == "Preview/Edit":
+                self.btnImportExcel.IsEnabled = pending > 0
+        except Exception:
+            pass
+        return pending
+
+    def _build_preview_workflow_message(self, editable_preview_columns, pending_changes, context_label):
+        if editable_preview_columns == 0:
+            return (
+                "All selected {} parameters are locked by Revit. You can review them here, "
+                "but they will not update the model.".format(context_label)
+            )
+        if pending_changes > 0:
+            return (
+                "{} pending change(s). Review the editable cells and press 'Update Model' "
+                "when you are ready.".format(pending_changes)
+            )
+        return "Editable cells can be changed here. Locked columns stay protected until you update the model."
+
+    def _get_preview_column_style_key(self, header, column_info):
+        if header == "ElementId":
+            return "PreviewElementIdCellStyle"
+        if header == "Name":
+            return "PreviewNameCellStyle"
+        if column_info is None:
+            return "PreviewNameCellStyle"
+        if not is_editable_metadata_value(column_info.get("Editable", "")):
+            return "PreviewLockedCellStyle"
+        origin = normalize_text((column_info.get("Metadata", {}) or {}).get("Origin", ""))
+        if origin.lower() == "type":
+            return "PreviewTypeCellStyle"
+        return "PreviewEditableCellStyle"
+
+    def _format_preview_column_header(self, header, column_info):
+        if header in ("ElementId", "Name") or column_info is None:
+            return header
+        status = normalize_text(column_info.get("Status", "")) or "Locked"
+        return "{}\n{}".format(header, status)
+
+    def _apply_preview_column_style(self, column, style_key):
+        if not style_key:
+            return
+        try:
+            column.CellStyle = self.FindResource(style_key)
         except Exception:
             pass
 
-        table = getattr(self, "preview_table", None)
-        row_elements = list(getattr(self, "preview_row_elements", []) or [])
-        column_map = getattr(self, "preview_column_map", {}) or {}
-        original_values = getattr(self, "preview_original_values", {}) or {}
-
-        if table is None or not row_elements or not column_map:
-            TaskDialog.Show(__title__, "Nothing editable was found in Preview/Edit.")
+    def _commit_preview_edits(self, show_dialog=True):
+        if getattr(self, "_is_committing_preview_edits", False):
             return
 
-        updated = 0
-        unchanged = 0
-        locked = 0
-        missing = 0
-        failed = 0
-        duplicate_count = 0
-        failed_lines = []
-        duplicate_lines = []
+        if self.active_view != "Preview/Edit":
+            if show_dialog:
+                TaskDialog.Show(__title__, "Open Preview/Edit first.")
+            return
 
-        transaction = DB.Transaction(doc, "SheetLink Preview/Edit Update")
-        started = False
-
+        self._is_committing_preview_edits = True
         try:
-            self._set_progress(35, "Applying Preview/Edit changes")
-            transaction.Start()
-            started = True
+            try:
+                self.dgPreviewEdit.CommitEdit()
+                self.dgPreviewEdit.CommitEdit()
+            except Exception:
+                pass
 
-            for row_index in range(table.Rows.Count):
-                if row_index >= len(row_elements):
-                    continue
+            table = getattr(self, "preview_table", None)
+            row_elements = list(getattr(self, "preview_row_elements", []) or [])
+            column_map = getattr(self, "preview_column_map", {}) or {}
+            original_values = getattr(self, "preview_original_values", {}) or {}
 
-                element = row_elements[row_index]
-                if element is None:
-                    missing += 1
-                    continue
+            if table is None or not row_elements or not column_map:
+                if show_dialog:
+                    TaskDialog.Show(__title__, "Nothing editable was found in Preview/Edit.")
+                return
 
-                row = table.Rows[row_index]
+            if not self._has_pending_preview_changes(table, column_map, original_values):
+                if show_dialog:
+                    TaskDialog.Show(
+                        __title__,
+                        "No changes to update.\n\nEverything in Preview/Edit already matches the model."
+                    )
+                return
 
-                for column_name, column_info in column_map.items():
-                    try:
-                        if not table.Columns.Contains(column_name):
-                            continue
+            updated = 0
+            unchanged = 0
+            locked = 0
+            missing = 0
+            failed = 0
+            duplicate_count = 0
+            failed_lines = []
+            duplicate_lines = []
 
-                        new_value = normalize_text(row[column_name])
-                        old_value = original_values.get((row_index, column_name), "")
+            transaction = DB.Transaction(doc, "SheetLink Preview/Edit Update")
+            started = False
 
-                        if new_value == old_value:
-                            unchanged += 1
-                            continue
+            try:
+                self._set_progress(35, "Saving Preview/Edit changes")
+                transaction.Start()
+                started = True
 
-                        editable = normalize_text(column_info.get("Editable", ""))
-                        if not is_editable_metadata_value(editable):
-                            locked += 1
-                            continue
+                for row_index in range(table.Rows.Count):
+                    if row_index >= len(row_elements):
+                        continue
 
-                        metadata = column_info.get("Metadata") or {}
-                        param, param_origin = get_parameter_from_metadata(element, metadata)
-                        if param is None:
-                            missing += 1
-                            continue
+                    element = row_elements[row_index]
+                    if element is None:
+                        missing += 1
+                        continue
 
+                    row = table.Rows[row_index]
+
+                    for column_name, column_info in column_map.items():
                         try:
-                            if param.IsReadOnly:
+                            if not table.Columns.Contains(column_name):
+                                continue
+
+                            new_value = normalize_text(row[column_name])
+                            old_value = original_values.get((row_index, column_name), "")
+
+                            if new_value == old_value:
+                                unchanged += 1
+                                continue
+
+                            editable = normalize_text(column_info.get("Editable", ""))
+                            if not is_editable_metadata_value(editable):
                                 locked += 1
                                 continue
-                        except Exception:
-                            locked += 1
-                            continue
 
-                        field_name = column_info.get("Name", column_name)
-                        if is_unique_controlled_field(field_name):
-                            is_duplicate, duplicate_message = value_exists_in_other_elements(field_name, new_value, element)
-                            if is_duplicate:
-                                duplicate_count += 1
-                                if len(duplicate_lines) < 8:
-                                    duplicate_lines.append(
-                                        "{} | {} | {}".format(
-                                            get_element_display_name(element),
-                                            field_name,
-                                            duplicate_message
-                                        )
-                                    )
+                            metadata = column_info.get("Metadata") or {}
+                            param, param_origin = get_parameter_from_metadata(element, metadata)
+                            if param is None:
+                                missing += 1
                                 continue
 
-                        if set_parameter_value(param, new_value):
-                            refreshed_value = get_parameter_preview_value(param)
-                            row[column_name] = refreshed_value
-                            original_values[(row_index, column_name)] = normalize_text(refreshed_value)
-                            updated += 1
-                        else:
+                            try:
+                                if param.IsReadOnly:
+                                    locked += 1
+                                    continue
+                            except Exception:
+                                locked += 1
+                                continue
+
+                            field_name = column_info.get("Name", column_name)
+                            if is_unique_controlled_field(field_name):
+                                is_duplicate, duplicate_message = value_exists_in_other_elements(field_name, new_value, element)
+                                if is_duplicate:
+                                    duplicate_count += 1
+                                    if len(duplicate_lines) < 8:
+                                        duplicate_lines.append(
+                                            "{} | {} | {}".format(
+                                                get_element_display_name(element),
+                                                field_name,
+                                                duplicate_message
+                                            )
+                                        )
+                                    continue
+
+                            if set_parameter_value(param, new_value):
+                                refreshed_value = get_parameter_preview_value(param)
+                                row[column_name] = refreshed_value
+                                original_values[(row_index, column_name)] = normalize_text(refreshed_value)
+                                updated += 1
+                            else:
+                                failed += 1
+                                if len(failed_lines) < 8:
+                                    failed_lines.append(
+                                        "{} | {}".format(
+                                            get_element_display_name(element),
+                                            field_name
+                                        )
+                                    )
+
+                        except Exception as cell_ex:
                             failed += 1
                             if len(failed_lines) < 8:
                                 failed_lines.append(
-                                    "{} | {}".format(
+                                    "{} | {} | {}".format(
                                         get_element_display_name(element),
-                                        field_name
+                                        column_name,
+                                        safe_text(cell_ex)
                                     )
                                 )
 
-                    except Exception as cell_ex:
-                        failed += 1
-                        if len(failed_lines) < 8:
-                            failed_lines.append(
-                                "{} | {} | {}".format(
-                                    get_element_display_name(element),
-                                    column_name,
-                                    safe_text(cell_ex)
-                                )
-                            )
+                transaction.Commit()
+                started = False
 
-            transaction.Commit()
-            started = False
+            except Exception as ex:
+                if started:
+                    try:
+                        transaction.RollBack()
+                    except Exception:
+                        pass
+                self._set_progress(100, "Update failed")
+                if show_dialog:
+                    TaskDialog.Show(__title__, "Preview/Edit update failed.\n\n{}".format(safe_text(ex)))
+                else:
+                    try:
+                        self.lblPreviewWorkflow.Text = "Auto-save failed: {}".format(safe_text(ex))
+                    except Exception:
+                        pass
+                return
 
-        except Exception as ex:
-            if started:
+            self.preview_original_values = original_values
+            self._update_preview_change_state()
+            self._set_progress(100, "Saved")
+
+            has_warnings = locked or missing or duplicate_count or failed
+            message = []
+
+            if updated == 0 and not has_warnings:
+                message.append("No changes to update.")
+                message.append("")
+                message.append("Everything in Preview/Edit already matches the model.")
+            else:
+                message.append("Preview/Edit update complete.")
+                message.append("")
+                if updated:
+                    message.append("Updated values: {}".format(updated))
+                if unchanged and not updated:
+                    message.append("Unchanged cells: {}".format(unchanged))
+                if has_warnings:
+                    message.append("")
+                    message.append("Needs attention:")
+                    if locked:
+                        message.append("Read-only skipped: {}".format(locked))
+                    if missing:
+                        message.append("Missing parameters: {}".format(missing))
+                    if duplicate_count:
+                        message.append("Duplicate conflicts: {}".format(duplicate_count))
+                    if failed:
+                        message.append("Failed writes: {}".format(failed))
+
+            if duplicate_lines:
+                message.append("")
+                message.append("Duplicate conflict examples:")
+                for line in duplicate_lines:
+                    message.append(line)
+
+            if failed_lines:
+                message.append("")
+                message.append("Failed write examples:")
+                for line in failed_lines:
+                    message.append(line)
+
+            if show_dialog:
+                TaskDialog.Show(__title__, "\n".join(message))
+                self._refresh_preview_grid()
+                self._update_preview_panel()
+            else:
                 try:
-                    transaction.RollBack()
+                    if updated:
+                        self.lblPreviewWorkflow.Text = "Auto-saved to Revit. Updated values: {}".format(updated)
+                    elif has_warnings:
+                        self.lblPreviewWorkflow.Text = "Auto-save finished with warnings. Review locked, missing or duplicate values."
                 except Exception:
                     pass
-            self._set_progress(100, "Update failed")
-            TaskDialog.Show(__title__, "Preview/Edit update failed.\n\n{}".format(safe_text(ex)))
-            return
 
-        self.preview_original_values = original_values
-        self._set_progress(100, "Update completed")
-
-        has_warnings = locked or missing or duplicate_count or failed
-        message = []
-
-        if updated == 0 and not has_warnings:
-            message.append("No changes to update.")
-            message.append("")
-            message.append("Everything in Preview/Edit already matches the model.")
-        else:
-            message.append("Preview/Edit update complete.")
-            message.append("")
-            if updated:
-                message.append("Updated values: {}".format(updated))
-            if unchanged and not updated:
-                message.append("Unchanged cells: {}".format(unchanged))
-            if has_warnings:
-                message.append("")
-                message.append("Needs attention:")
-                if locked:
-                    message.append("Read-only skipped: {}".format(locked))
-                if missing:
-                    message.append("Missing parameters: {}".format(missing))
-                if duplicate_count:
-                    message.append("Duplicate conflicts: {}".format(duplicate_count))
-                if failed:
-                    message.append("Failed writes: {}".format(failed))
-
-        if duplicate_lines:
-            message.append("")
-            message.append("Duplicate conflict examples:")
-            for line in duplicate_lines:
-                message.append(line)
-
-        if failed_lines:
-            message.append("")
-            message.append("Failed write examples:")
-            for line in failed_lines:
-                message.append(line)
-
-        TaskDialog.Show(__title__, "\n".join(message))
-        self._refresh_preview_grid()
-        self._update_preview_panel()
-        self._update_status()
+            self._update_status()
+        finally:
+            self._is_committing_preview_edits = False
 
     def _get_preview_editable_column_count(self):
         count = 0
@@ -4154,18 +4427,144 @@ class ScheduleBrowserWindow(forms.WPFWindow):
 
     def on_preview_auto_generating_column(self, sender, args):
         header = normalize_text(getattr(args.Column, "Header", ""))
-        if header in ("ElementId", "Name"):
+        column_info = (getattr(self, "preview_column_map", {}) or {}).get(header)
+        args.Column.Header = self._format_preview_column_header(header, column_info)
+        self._apply_preview_column_style(args.Column, self._get_preview_column_style_key(header, column_info))
+
+        if header == "ElementId":
+            args.Column.IsReadOnly = True
+            try:
+                args.Column.Width = 100
+            except Exception:
+                pass
+            return
+        if header == "Name":
+            args.Column.IsReadOnly = True
+            try:
+                args.Column.Width = 240
+            except Exception:
+                pass
+            return
+
+        if column_info is not None and not is_editable_metadata_value(column_info.get("Editable", "")):
             args.Column.IsReadOnly = True
             return
 
-        column_info = (getattr(self, "preview_column_map", {}) or {}).get(header)
-        if column_info is not None and not is_editable_metadata_value(column_info.get("Editable", "")):
-            status = normalize_text(column_info.get("Status", "")) or "Locked"
-            args.Column.Header = "{}\n{}".format(header, status)
-            args.Column.IsReadOnly = True
+        args.Column.IsReadOnly = False
+        try:
+            binding = Binding(header)
+            binding.Mode = BindingMode.TwoWay
+            binding.UpdateSourceTrigger = UpdateSourceTrigger.LostFocus
+            args.Column.Binding = binding
+        except Exception:
+            pass
+
+    def on_preview_current_cell_changed(self, sender, args):
+        if getattr(self, "_suspend_preview_autosave", False):
+            return
+        if self.active_view != "Preview/Edit":
+            return
+        self._update_preview_change_state()
 
     def on_preview_update_clicked(self, sender, args):
         self._commit_preview_edits()
+
+    def on_reset_values_clicked(self, sender, args):
+        if self.active_view == "Preview/Edit":
+            try:
+                self.dgPreviewEdit.CancelEdit()
+            except Exception:
+                pass
+
+            self._set_progress(35, "Resetting preview values")
+            self._refresh_preview_grid()
+            try:
+                self.lblPreviewWorkflow.Text = "Preview values reset to the current Revit model state."
+            except Exception:
+                pass
+            self._update_preview_panel()
+            self._update_action_buttons()
+            self._update_status()
+            self._update_preview_change_state()
+            self._set_progress(100, "Values reset")
+            return
+
+        self._set_progress(25, "Resetting workspace")
+
+        if self.active_view == "Schedules":
+            try:
+                self.lstSchedules.SelectedItem = None
+            except Exception:
+                pass
+            self.current_parameters = []
+            self.filtered_parameters = []
+            self._refresh_parameter_grid([])
+        elif self.active_view == "Model Categories":
+            try:
+                self.lstModelCategories.SelectedItem = None
+            except Exception:
+                pass
+            self.current_model_parameters = []
+            self.filtered_model_parameters = []
+            self.selected_model_parameters = []
+            self.filtered_selected_model_parameters = []
+            self._refresh_model_parameter_grid([])
+            self._refresh_model_selected_parameter_list([])
+        elif self.active_view == "Annotation Categories":
+            try:
+                self.lstAnnotationCategories.SelectedItem = None
+            except Exception:
+                pass
+            self.current_annotation_parameters = []
+            self.filtered_annotation_parameters = []
+            self.selected_annotation_parameters = []
+            self.filtered_selected_annotation_parameters = []
+            self._refresh_annotation_parameter_grid([])
+            self._refresh_annotation_selected_parameter_list([])
+        elif self.active_view == "Elements":
+            try:
+                self.lstElementCategories.SelectedItem = None
+            except Exception:
+                pass
+            self.current_element_items = []
+            self.filtered_element_items = []
+            self.current_element_parameters = []
+            self.filtered_element_parameters = []
+            self.selected_element_parameters = []
+            self.filtered_selected_element_parameters = []
+            self._refresh_element_list()
+            self._refresh_element_parameter_grid([])
+            self._refresh_element_selected_parameter_list([])
+        elif self.active_view == "Spatial":
+            try:
+                self.lstElementCategories.SelectedItem = None
+            except Exception:
+                pass
+            self.current_spatial_items = []
+            self.filtered_spatial_items = []
+            self.current_spatial_parameters = []
+            self.filtered_spatial_parameters = []
+            self.selected_spatial_parameters = []
+            self.filtered_selected_spatial_parameters = []
+            self._refresh_spatial_list()
+            self._refresh_spatial_parameter_grid([])
+            self._refresh_spatial_selected_parameter_list([])
+
+        self._clear_preview_grid()
+        self._update_context_panels()
+        self._update_preview_panel()
+        self._update_action_buttons()
+        self._update_status()
+        self._set_progress(100, "Workspace reset")
+
+    def on_open_preview_edit_clicked(self, sender, args):
+        self._set_active_view("Preview/Edit")
+
+    def on_export_project_standards_clicked(self, sender, args):
+        TaskDialog.Show(
+            __title__,
+            "Export Project Standards is not connected yet.\n\nThe button is back in the interface and ready for the next workflow step."
+        )
 
     def _update_preview_panel(self):
         selected_item = self._get_selected_item()
@@ -4196,6 +4595,7 @@ class ScheduleBrowserWindow(forms.WPFWindow):
 
         preview_rows = self._refresh_preview_grid()
         editable_preview_columns = self._get_preview_editable_column_count()
+        pending_changes = self._update_preview_change_state() if self.active_view == "Preview/Edit" else 0
 
         if self.active_view == "Spatial" and selected_spatial_category is not None:
             self.lblPreviewSchedule.Text = "Spatial: {}".format(selected_spatial_category.Name)
@@ -4203,8 +4603,10 @@ class ScheduleBrowserWindow(forms.WPFWindow):
                 len(selected_spatial_items),
                 len(self.selected_spatial_parameters)
             )
-            self.lblPreviewWorkflow.Text = (
-                "Current room/space selection is ready for a targeted Excel export."
+            self.lblPreviewWorkflow.Text = self._build_preview_workflow_message(
+                editable_preview_columns,
+                pending_changes,
+                "spatial"
             )
             return
 
@@ -4214,8 +4616,10 @@ class ScheduleBrowserWindow(forms.WPFWindow):
                 len(selected_elements),
                 len(self.selected_element_parameters)
             )
-            self.lblPreviewWorkflow.Text = (
-                "Current element selection is ready for a targeted Excel export without exporting the whole category."
+            self.lblPreviewWorkflow.Text = self._build_preview_workflow_message(
+                editable_preview_columns,
+                pending_changes,
+                "element"
             )
             return
 
@@ -4234,14 +4638,11 @@ class ScheduleBrowserWindow(forms.WPFWindow):
                 preview_rows,
                 parameter_count
             )
-            if parameter_count and editable_preview_columns == 0:
-                self.lblPreviewWorkflow.Text = (
-                    "All selected schedule parameters are locked by Revit. They can be reviewed here, but cannot be edited from Preview/Edit."
-                )
-            else:
-                self.lblPreviewWorkflow.Text = (
-                    "Editable cells can be changed directly here. Locked columns are marked and protected."
-                )
+            self.lblPreviewWorkflow.Text = self._build_preview_workflow_message(
+                editable_preview_columns,
+                pending_changes,
+                "schedule"
+            )
             return
 
         if selected_model_category is not None:
@@ -4250,14 +4651,11 @@ class ScheduleBrowserWindow(forms.WPFWindow):
                 preview_rows,
                 len(self.selected_model_parameters)
             )
-            if self.selected_model_parameters and editable_preview_columns == 0:
-                self.lblPreviewWorkflow.Text = (
-                    "All selected model-category parameters are locked by Revit. Pick at least one green editable parameter if you want to edit in this grid."
-                )
-            else:
-                self.lblPreviewWorkflow.Text = (
-                    "Editable cells can be changed directly here. Locked columns are marked and protected."
-                )
+            self.lblPreviewWorkflow.Text = self._build_preview_workflow_message(
+                editable_preview_columns,
+                pending_changes,
+                "model-category"
+            )
             return
 
         if selected_annotation_category is not None:
@@ -4266,14 +4664,11 @@ class ScheduleBrowserWindow(forms.WPFWindow):
                 preview_rows,
                 len(self.selected_annotation_parameters)
             )
-            if self.selected_annotation_parameters and editable_preview_columns == 0:
-                self.lblPreviewWorkflow.Text = (
-                    "All selected annotation parameters are locked by Revit. Pick at least one green editable parameter if you want to edit in this grid."
-                )
-            else:
-                self.lblPreviewWorkflow.Text = (
-                    "Editable cells can be changed directly here. Locked columns are marked and protected."
-                )
+            self.lblPreviewWorkflow.Text = self._build_preview_workflow_message(
+                editable_preview_columns,
+                pending_changes,
+                "annotation"
+            )
             return
 
         if selected_spatial_category is not None:
@@ -4302,17 +4697,58 @@ class ScheduleBrowserWindow(forms.WPFWindow):
                 "Editable cells can be changed directly here. Locked columns are marked and protected."
             )
 
+    def _get_list_item_key(self, item):
+        if item is None:
+            return ""
+
+        for attr_name in ("Schedule", "Element", "Category"):
+            try:
+                source = getattr(item, attr_name, None)
+                if source is not None:
+                    source_id = getattr(source, "Id", None)
+                    if source_id is not None:
+                        try:
+                            return "{}:{}".format(attr_name, source_id.IntegerValue)
+                        except Exception:
+                            return "{}:{}".format(attr_name, safe_text(source_id))
+            except Exception:
+                pass
+
+        return normalize_text(getattr(item, "Name", ""))
+
+    def _refresh_items_preserving_selection(self, control, items):
+        selected_item = None
+        try:
+            selected_item = control.SelectedItem
+        except Exception:
+            pass
+
+        selected_key = self._get_list_item_key(selected_item)
+        was_suspended = getattr(self, "_suspend_selection_changed", False)
+        self._suspend_selection_changed = True
+        try:
+            control.ItemsSource = None
+            control.ItemsSource = items
+            if selected_key:
+                for item in list(items or []):
+                    if item is selected_item or self._get_list_item_key(item) == selected_key:
+                        try:
+                            control.SelectedItem = item
+                        except Exception:
+                            pass
+                        break
+        finally:
+            self._suspend_selection_changed = was_suspended
+
     def _refresh_schedule_list(self):
-        self.lstSchedules.ItemsSource = None
-        self.lstSchedules.ItemsSource = self.filtered_schedules
+        self._refresh_items_preserving_selection(self.lstSchedules, self.filtered_schedules)
 
     def _refresh_parameter_grid(self, parameter_items):
         self.dgParameters.ItemsSource = None
         self.dgParameters.ItemsSource = parameter_items
 
     def _refresh_model_category_list(self):
-        self.lstModelCategories.ItemsSource = None
-        self.lstModelCategories.ItemsSource = self.filtered_model_categories
+        self._refresh_items_preserving_selection(self.lstModelCategories, self.filtered_model_categories)
 
     def _refresh_model_parameter_grid(self, parameter_items):
         self.lstModelAvailableParameters.ItemsSource = None
@@ -4323,8 +4759,7 @@ class ScheduleBrowserWindow(forms.WPFWindow):
         self.lstModelSelectedParameters.ItemsSource = parameter_items
 
     def _refresh_annotation_category_list(self):
-        self.lstAnnotationCategories.ItemsSource = None
-        self.lstAnnotationCategories.ItemsSource = self.filtered_annotation_categories
+        self._refresh_items_preserving_selection(self.lstAnnotationCategories, self.filtered_annotation_categories)
 
     def _refresh_annotation_parameter_grid(self, parameter_items):
         self.lstAnnotationAvailableParameters.ItemsSource = None
@@ -4335,12 +4770,10 @@ class ScheduleBrowserWindow(forms.WPFWindow):
         self.lstAnnotationSelectedParameters.ItemsSource = parameter_items
 
     def _refresh_element_category_list(self):
-        self.lstElementCategories.ItemsSource = None
-        self.lstElementCategories.ItemsSource = self.filtered_element_categories
+        self._refresh_items_preserving_selection(self.lstElementCategories, self.filtered_element_categories)
 
     def _refresh_element_list(self):
-        self.lstElementItems.ItemsSource = None
-        self.lstElementItems.ItemsSource = self.filtered_element_items
+        self._refresh_items_preserving_selection(self.lstElementItems, self.filtered_element_items)
 
     def _refresh_element_parameter_grid(self, parameter_items):
         self.lstElementAvailableParameters.ItemsSource = None
@@ -4353,14 +4786,12 @@ class ScheduleBrowserWindow(forms.WPFWindow):
     def _refresh_spatial_category_list(self):
         if self.active_view != "Spatial":
             return
-        self.lstElementCategories.ItemsSource = None
-        self.lstElementCategories.ItemsSource = self.filtered_spatial_categories
+        self._refresh_items_preserving_selection(self.lstElementCategories, self.filtered_spatial_categories)
 
     def _refresh_spatial_list(self):
         if self.active_view != "Spatial":
             return
-        self.lstElementItems.ItemsSource = None
-        self.lstElementItems.ItemsSource = self.filtered_spatial_items
+        self._refresh_items_preserving_selection(self.lstElementItems, self.filtered_spatial_items)
 
     def _refresh_spatial_parameter_grid(self, parameter_items):
         if self.active_view != "Spatial":
@@ -4954,18 +5385,26 @@ class ScheduleBrowserWindow(forms.WPFWindow):
             self._set_active_view(view_name)
 
     def on_schedule_selection_changed(self, sender, args):
+        if getattr(self, "_suspend_selection_changed", False):
+            return
         item = self._get_selected_item()
         self._load_parameters_from_item(item)
 
     def on_model_category_selection_changed(self, sender, args):
+        if getattr(self, "_suspend_selection_changed", False):
+            return
         item = self._get_selected_model_category_item()
         self._load_model_parameters_from_item(item)
 
     def on_annotation_category_selection_changed(self, sender, args):
+        if getattr(self, "_suspend_selection_changed", False):
+            return
         item = self._get_selected_annotation_category_item()
         self._load_annotation_parameters_from_item(item)
 
     def on_element_category_selection_changed(self, sender, args):
+        if getattr(self, "_suspend_selection_changed", False):
+            return
         if self.active_view == "Spatial":
             item = self._get_selected_spatial_category_item()
             self._load_spatial_from_category_item(item)
@@ -4974,6 +5413,8 @@ class ScheduleBrowserWindow(forms.WPFWindow):
         self._load_elements_from_category_item(item)
 
     def on_element_item_selection_changed(self, sender, args):
+        if getattr(self, "_suspend_selection_changed", False):
+            return
         self._update_context_panels()
         self._update_preview_panel()
         self._update_action_buttons()
@@ -5203,6 +5644,10 @@ class ScheduleBrowserWindow(forms.WPFWindow):
         self._set_progress(100, "Refresh completed")
 
     def on_import_excel_clicked(self, sender, args):
+        if self.active_view == "Preview/Edit":
+            self._commit_preview_edits()
+            return
+
         xlsx_path = ask_input_xlsx_path()
         if not xlsx_path:
             return
@@ -5300,7 +5745,10 @@ class ScheduleBrowserWindow(forms.WPFWindow):
             TaskDialog.Show(__title__, "Select one model category first.")
             return
 
-        parameter_items = self._dedupe_preview_parameter_items(self.selected_model_parameters)
+        parameter_items = self._with_required_model_context_parameters(
+            selected_item,
+            self.selected_model_parameters
+        )
         if not parameter_items:
             TaskDialog.Show(__title__, "Select at least one parameter for the model category.")
             return
@@ -5540,7 +5988,10 @@ class ScheduleBrowserWindow(forms.WPFWindow):
         self.Close()
 
     def on_go_schedules_clicked(self, sender, args):
-        self._set_active_view("Schedules")
+        source_view = self._get_preview_source_view()
+        if source_view == "Preview/Edit" or source_view not in self.view_panels:
+            source_view = "Model Categories"
+        self._set_active_view(source_view)
 
     def _load_parameters_from_item(self, item):
         if item is None:
