@@ -227,9 +227,9 @@
         </Style>
 
         <Style x:Key="PreviewChangedCellStyle" TargetType="DataGridCell">
-            <Setter Property="Background" Value="#DCEEFF"/>
-            <Setter Property="Foreground" Value="{StaticResource TextPrimary}"/>
-            <Setter Property="BorderBrush" Value="#4D9DE0"/>
+            <Setter Property="Background" Value="#118C8C"/>
+            <Setter Property="Foreground" Value="#FFFFFF"/>
+            <Setter Property="BorderBrush" Value="#118C8C"/>
             <Setter Property="BorderThickness" Value="0,0,1,1"/>
             <Setter Property="Padding" Value="6,2"/>
         </Style>
@@ -455,7 +455,7 @@
 
                 <StackPanel Grid.Column="1"
                             Margin="10,0,0,0"
-                            Width="460"
+                            Width="560"
                             HorizontalAlignment="Right">
                     <Grid>
                         <Grid.ColumnDefinitions>
@@ -464,12 +464,20 @@
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
 
-                        <Button x:Name="btnExportProjectStandards"
-                                Grid.Column="0"
-                                Content="Export Project Standards"
-                                Width="170"
-                                Height="26"
-                                VerticalAlignment="Center"/>
+                        <Border Grid.Column="0"
+                                Width="54"
+                                Height="44"
+                                VerticalAlignment="Center"
+                                Background="{StaticResource PanelBg}"
+                                BorderBrush="{StaticResource BorderBrushMain}"
+                                BorderThickness="1"
+                                CornerRadius="4"
+                                Padding="4">
+                            <Image x:Name="imgHeaderMark"
+                                   Stretch="Uniform"
+                                   VerticalAlignment="Center"
+                                   HorizontalAlignment="Center"/>
+                        </Border>
 
                         <Border Grid.Column="2"
                                 Background="{StaticResource PanelBg}"
@@ -2430,7 +2438,7 @@
                                             CornerRadius="4"
                                             Padding="8,3"
                                             Margin="0,0,6,0">
-                                        <TextBlock Text="ID"
+                                        <TextBlock Text="ID / Key"
                                                    Foreground="{StaticResource TextPrimary}"/>
                                     </Border>
 
@@ -2450,8 +2458,18 @@
                                             CornerRadius="4"
                                             Padding="8,3"
                                             Margin="0,0,6,0">
-                                        <TextBlock Text="Type"
+                                        <TextBlock Text="Type Editable"
                                                    Foreground="{StaticResource TextPrimary}"/>
+                                    </Border>
+
+                                    <Border Background="#118C8C"
+                                            BorderBrush="{StaticResource BorderBrushMain}"
+                                            BorderThickness="1"
+                                            CornerRadius="4"
+                                            Padding="8,3"
+                                            Margin="0,0,6,0">
+                                        <TextBlock Text="Imported Change"
+                                                   Foreground="#FFFFFF"/>
                                     </Border>
 
                                     <Border Background="#F8D9D2"
@@ -2485,9 +2503,14 @@
                 <StackPanel Grid.Column="1"
                             Orientation="Horizontal"
                             HorizontalAlignment="Right">
+                    <Button x:Name="btnExportProjectStandards"
+                            Content="Export Project Standards"
+                            Width="170"
+                            Height="38"
+                            Margin="0,0,8,0"/>
                     <Button x:Name="btnResetValues"
                             Content="Reset Values"
-                            Width="138"
+                            Width="160"
                             Height="38"
                             IsEnabled="False"
                             Margin="0,0,8,0"/>
@@ -2501,7 +2524,16 @@
                             Width="138"
                             Height="38"
                             Style="{StaticResource ImportButtonStyle}"
-                            Margin="0,0,8,0"/>
+                            Margin="0,0,8,0">
+                        <Button.ContextMenu>
+                            <ContextMenu x:Name="ctxImportExcel">
+                                <MenuItem x:Name="miImportFromExcel"
+                                          Header="Import from Excel"/>
+                                <MenuItem x:Name="miPreviewImport"
+                                          Header="Preview Import"/>
+                            </ContextMenu>
+                        </Button.ContextMenu>
+                    </Button>
                     <Button x:Name="btnExport"
                             Content="Export"
                             Width="138"

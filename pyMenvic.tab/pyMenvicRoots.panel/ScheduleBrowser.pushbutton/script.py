@@ -79,9 +79,11 @@ from System import Array, Object
 from System.Data import DataTable
 from System.Runtime.InteropServices import Marshal
 from Microsoft.Win32 import SaveFileDialog, OpenFileDialog
-from System.Windows import Visibility, FontWeights
+from System.Windows import Visibility, FontWeights, Style, Setter, DataTrigger
+from System.Windows.Controls import DataGridCell
 from System.Windows.Forms import Application
 from System.Windows.Data import Binding, BindingMode, UpdateSourceTrigger
+from System.Windows.Media import BrushConverter
 logger = script.get_logger()
 
 uidoc = __revit__.ActiveUIDocument
@@ -90,6 +92,8 @@ doc = uidoc.Document
 XAML_FILENAME = "window.xaml"
 THIS_DIR = os.path.dirname(__file__)
 XAML_PATH = os.path.join(THIS_DIR, XAML_FILENAME)
+PROJECT_STANDARDS_XAML_FILENAME = "project_standards_dialog.xaml"
+PROJECT_STANDARDS_XAML_PATH = os.path.join(THIS_DIR, PROJECT_STANDARDS_XAML_FILENAME)
 
 TEMP_FOLDER = os.path.expandvars("%temp%")
 MAX_SAMPLE_ELEMENTS = 20
@@ -111,6 +115,14 @@ MODEL_CATEGORY_VISIBLE_NAMES = set([
     "views",
     "vistas",
 ])
+
+PROJECT_STANDARDS_SECTIONS = [
+    ("project_information", "Project Information"),
+    ("project_parameters", "Project Parameters"),
+    ("object_styles", "Object Styles"),
+    ("line_styles", "Line Styles"),
+    ("families", "Families"),
+]
 
 class ScheduleItem(object):
     def __init__(self, schedule):
@@ -1565,11 +1577,10 @@ def read_csv_rows(csv_path):
 
 
 def release_com_object(obj):
-    try:
-        if obj is not None:
-            Marshal.ReleaseComObject(obj)
-    except Exception:
-        pass
+    if THIS_DIR not in sys.path:
+        sys.path.append(THIS_DIR)
+    import excel_utils
+    return excel_utils.release_com_object(obj, Marshal)
 
 
 def get_status_fill_color(status_text):
@@ -1972,75 +1983,678 @@ def build_schema_rows(export_columns):
 
 
 def make_excel_sheet_name(name, fallback_name):
-    invalid_chars = ['\\', '/', '?', '*', '[', ']', ':']
-    sheet_name = normalize_text(name)
-
-    if not sheet_name:
-        sheet_name = fallback_name
-
-    for invalid_char in invalid_chars:
-        sheet_name = sheet_name.replace(invalid_char, "_")
-
-    sheet_name = sheet_name.strip()
-    if not sheet_name:
-        sheet_name = fallback_name
-
-    return sheet_name[:31]
+    if THIS_DIR not in sys.path:
+        sys.path.append(THIS_DIR)
+    import excel_utils
+    return excel_utils.make_excel_sheet_name(name, fallback_name, normalize_text)
 
 
 def write_matrix_to_range(worksheet, start_row, start_col, matrix):
-    if worksheet is None or not matrix:
-        return
-
-    row_count = len(matrix)
-    if row_count == 0:
-        return
-
-    col_count = len(matrix[0])
-    if col_count == 0:
-        return
-
-    values = Array.CreateInstance(Object, row_count, col_count)
-
-    for row_index in range(row_count):
-        row_vals = matrix[row_index]
-        for col_index in range(col_count):
-            cell_value = None
-            if col_index < len(row_vals):
-                cell_value = row_vals[col_index]
-            values[row_index, col_index] = cell_value
-
-    target_range = worksheet.Range[
-        worksheet.Cells[start_row, start_col],
-        worksheet.Cells[start_row + row_count - 1, start_col + col_count - 1]
-    ]
-    target_range.Value2 = values
+    if THIS_DIR not in sys.path:
+        sys.path.append(THIS_DIR)
+    import excel_utils
+    return excel_utils.write_matrix_to_range(worksheet, start_row, start_col, matrix, Array, Object)
 
 
 def ensure_workbook_sheet_count(workbook, required_count):
-    if workbook is None:
-        return
-
-    try:
-        worksheets = workbook.Worksheets
-        while worksheets.Count < required_count:
-            worksheets.Add()
-    except Exception:
-        pass
+    if THIS_DIR not in sys.path:
+        sys.path.append(THIS_DIR)
+    import excel_utils
+    return excel_utils.ensure_workbook_sheet_count(workbook, required_count)
 
 
 def open_path_with_default_app(full_path):
+    if THIS_DIR not in sys.path:
+        sys.path.append(THIS_DIR)
+    import excel_utils
+    return excel_utils.open_path_with_default_app(full_path)
+
+def get_project_standards_section_label(section_key):
+    for key, label in PROJECT_STANDARDS_SECTIONS:
+        if key == section_key:
+            return label
+    return safe_text(section_key)
+
+
+def get_enum_label(enum_value):
+    if enum_value is None:
+        return ""
+
     try:
-        os.startfile(full_path)
-        return True
+        return safe_text(DB.LabelUtils.GetLabelFor(enum_value))
+    except Exception:
+        return safe_text(enum_value)
+
+
+def get_definition_group_label(definition):
+    if definition is None:
+        return ""
+
+    try:
+        return get_enum_label(definition.ParameterGroup)
+    except Exception:
+        return ""
+
+
+def get_definition_type_label(definition):
+    if definition is None:
+        return ""
+
+    try:
+        param_type = definition.ParameterType
+        if param_type is not None:
+            return safe_text(param_type)
     except Exception:
         pass
 
     try:
-        subprocess.Popen([full_path], shell=False)
-        return True
+        data_type = definition.GetDataType()
+        if data_type is not None:
+            return safe_text(data_type.TypeId)
     except Exception:
-        return False
+        pass
+
+    return ""
+
+
+def get_binding_type_label(binding):
+    if binding is None:
+        return ""
+
+    try:
+        if isinstance(binding, DB.InstanceBinding):
+            return "Instance"
+    except Exception:
+        pass
+
+    try:
+        if isinstance(binding, DB.TypeBinding):
+            return "Type"
+    except Exception:
+        pass
+
+    return safe_text(type(binding).__name__)
+
+
+def get_binding_categories_label(binding):
+    if binding is None:
+        return ""
+
+    names = []
+    try:
+        categories = binding.Categories
+    except Exception:
+        categories = None
+
+    if categories is None:
+        return ""
+
+    try:
+        for category in categories:
+            category_name = safe_text(getattr(category, "Name", ""))
+            if category_name:
+                names.append(category_name)
+    except Exception:
+        pass
+
+    return ", ".join(sorted(set(names)))
+
+
+def get_bool_label(value):
+    return "Yes" if value else "No"
+
+
+def get_color_label(color_value):
+    if color_value is None:
+        return ""
+
+    try:
+        return "{},{},{}".format(color_value.Red, color_value.Green, color_value.Blue)
+    except Exception:
+        return ""
+
+
+def get_line_pattern_name(pattern_id):
+    try:
+        if pattern_id is None or pattern_id == DB.ElementId.InvalidElementId:
+            return ""
+    except Exception:
+        pass
+
+    try:
+        pattern_element = doc.GetElement(pattern_id)
+        if pattern_element is not None:
+            return safe_text(pattern_element.Name)
+    except Exception:
+        pass
+
+    return ""
+
+
+def get_category_material_name(category):
+    if category is None:
+        return ""
+
+    try:
+        material = category.Material
+        if material is not None:
+            return safe_text(material.Name)
+    except Exception:
+        pass
+
+    try:
+        material_id = category.Material.Id
+        if material_id is not None and material_id != DB.ElementId.InvalidElementId:
+            material = doc.GetElement(material_id)
+            if material is not None:
+                return safe_text(material.Name)
+    except Exception:
+        pass
+
+    return ""
+
+
+def get_category_line_weight(category, graphics_style_type):
+    if category is None:
+        return ""
+
+    try:
+        return safe_text(category.GetLineWeight(graphics_style_type))
+    except Exception:
+        return ""
+
+
+def build_project_standards_plain_sheet(headers, data_rows):
+    rows = [list(headers or [])]
+    for data_row in data_rows or []:
+        rows.append(list(data_row))
+    return rows
+
+
+def get_integer_id_text(element_or_id):
+    if element_or_id is None:
+        return ""
+    try:
+        return safe_text(element_or_id.IntegerValue)
+    except Exception:
+        pass
+    try:
+        return safe_text(element_or_id.Id.IntegerValue)
+    except Exception:
+        return ""
+
+
+def get_color_label_spaced(color_value):
+    if color_value is None:
+        return ""
+    try:
+        return "{0}, {1}, {2}".format(color_value.Red, color_value.Green, color_value.Blue)
+    except Exception:
+        return safe_text(color_value)
+
+
+def get_category_bucket_key(category):
+    if category is None:
+        return ""
+    try:
+        category_type = category.CategoryType
+        if category_type == DB.CategoryType.Model:
+            return "model"
+        if category_type == DB.CategoryType.Annotation:
+            return "annotation"
+        if category_type == DB.CategoryType.AnalyticalModel:
+            return "analytical"
+    except Exception:
+        pass
+
+    category_type_text = normalize_text(getattr(category, "CategoryType", ""))
+    if "annotation" in category_type_text:
+        return "annotation"
+    if "analytical" in category_type_text:
+        return "analytical"
+    if "model" in category_type_text:
+        return "model"
+    return ""
+
+
+def make_hierarchical_child_name(child_name):
+    return "       |---- {0}".format(safe_text(child_name))
+
+
+def collect_object_style_rows(bucket_key):
+    rows = []
+    try:
+        categories = list(doc.Settings.Categories)
+    except Exception:
+        categories = []
+
+    categories.sort(key=lambda item: normalize_text(getattr(item, "Name", "")))
+
+    for category in categories:
+        if get_category_bucket_key(category) != bucket_key:
+            continue
+
+        include_cut = bucket_key == "model"
+        parent_row = [
+            get_integer_id_text(category),
+            safe_text(getattr(category, "Name", "")),
+            get_category_line_weight(category, DB.GraphicsStyleType.Projection),
+        ]
+        if include_cut:
+            parent_row.append(get_category_line_weight(category, DB.GraphicsStyleType.Cut))
+        parent_row.append(get_color_label_spaced(getattr(category, "LineColor", None)))
+        rows.append(parent_row)
+
+        try:
+            subcategories = list(category.SubCategories)
+        except Exception:
+            subcategories = []
+
+        subcategories.sort(key=lambda item: normalize_text(getattr(item, "Name", "")))
+        for subcategory in subcategories:
+            child_row = [
+                get_integer_id_text(subcategory),
+                make_hierarchical_child_name(getattr(subcategory, "Name", "")),
+                get_category_line_weight(subcategory, DB.GraphicsStyleType.Projection),
+            ]
+            if include_cut:
+                child_row.append(get_category_line_weight(subcategory, DB.GraphicsStyleType.Cut))
+            child_row.append(get_color_label_spaced(getattr(subcategory, "LineColor", None)))
+            rows.append(child_row)
+
+    return rows
+
+
+def build_object_style_sheet_rows(bucket_key):
+    include_cut = bucket_key == "model"
+    headers = ["Id", "Name", "Projection"]
+    if include_cut:
+        headers.append("Cut")
+    headers.append("Color")
+    return build_project_standards_plain_sheet(headers, collect_object_style_rows(bucket_key))
+
+
+def build_project_information_rows():
+    rows = [[
+        "Parameter Name",
+        "Value",
+        "Group",
+        "Storage Type",
+        "Read Only",
+    ]]
+
+    project_info = getattr(doc, "ProjectInformation", None)
+    if project_info is None:
+        return rows
+
+    try:
+        parameters = project_info.Parameters
+    except Exception:
+        parameters = []
+
+    for param in parameters:
+        try:
+            definition = param.Definition
+        except Exception:
+            definition = None
+
+        rows.append([
+            safe_text(getattr(definition, "Name", "")),
+            get_parameter_preview_value(param),
+            get_definition_group_label(definition),
+            safe_text(getattr(param, "StorageType", "")),
+            get_bool_label(getattr(param, "IsReadOnly", True)),
+        ])
+
+    return rows
+
+
+def build_project_parameters_rows():
+    rows = [[
+        "Parameter Name",
+        "Type of Parameter",
+        "Group Parameter Under",
+        "Binding",
+        "Categories",
+        "Shared",
+        "GUID",
+        "Visible",
+        "User Modifiable",
+    ]]
+
+    try:
+        iterator = doc.ParameterBindings.ForwardIterator()
+        iterator.Reset()
+    except Exception:
+        return rows
+
+    while iterator.MoveNext():
+        try:
+            definition = iterator.Key
+            binding = iterator.Current
+        except Exception:
+            continue
+
+        shared_guid = ""
+        shared_value = False
+        visible_value = True
+        user_modifiable_value = True
+
+        try:
+            guid_value = definition.GUID
+            shared_guid = safe_text(guid_value)
+            shared_value = bool(shared_guid)
+        except Exception:
+            shared_guid = ""
+
+        try:
+            visible_value = bool(definition.Visible)
+        except Exception:
+            visible_value = True
+
+        try:
+            user_modifiable_value = bool(definition.UserModifiable)
+        except Exception:
+            user_modifiable_value = True
+
+        rows.append([
+            safe_text(getattr(definition, "Name", "")),
+            get_definition_type_label(definition),
+            get_definition_group_label(definition),
+            get_binding_type_label(binding),
+            get_binding_categories_label(binding),
+            get_bool_label(shared_value),
+            shared_guid,
+            get_bool_label(visible_value),
+            get_bool_label(user_modifiable_value),
+        ])
+
+    return rows
+
+
+def build_object_styles_rows():
+    rows = [[
+        "Category",
+        "Subcategory",
+        "Category Type",
+        "Projection Weight",
+        "Cut Weight",
+        "Color",
+        "Material",
+    ]]
+
+    try:
+        categories = doc.Settings.Categories
+    except Exception:
+        categories = []
+
+    for category in categories:
+        category_name = safe_text(getattr(category, "Name", ""))
+        category_type = safe_text(getattr(category, "CategoryType", ""))
+        rows.append([
+            category_name,
+            "",
+            category_type,
+            get_category_line_weight(category, DB.GraphicsStyleType.Projection),
+            get_category_line_weight(category, DB.GraphicsStyleType.Cut),
+            get_color_label(getattr(category, "LineColor", None)),
+            get_category_material_name(category),
+        ])
+
+        try:
+            subcategories = category.SubCategories
+        except Exception:
+            subcategories = []
+
+        try:
+            for subcategory in subcategories:
+                rows.append([
+                    category_name,
+                    safe_text(getattr(subcategory, "Name", "")),
+                    category_type,
+                    get_category_line_weight(subcategory, DB.GraphicsStyleType.Projection),
+                    get_category_line_weight(subcategory, DB.GraphicsStyleType.Cut),
+                    get_color_label(getattr(subcategory, "LineColor", None)),
+                    get_category_material_name(subcategory),
+                ])
+        except Exception:
+            pass
+
+    return rows
+
+
+def build_line_styles_rows():
+    rows = [[
+        "Line Style",
+        "Projection Weight",
+        "Color",
+        "Line Pattern",
+    ]]
+
+    try:
+        lines_category = doc.Settings.Categories.get_Item(DB.BuiltInCategory.OST_Lines)
+        subcategories = lines_category.SubCategories
+    except Exception:
+        subcategories = []
+
+    try:
+        for subcategory in subcategories:
+            rows.append([
+                safe_text(getattr(subcategory, "Name", "")),
+                get_category_line_weight(subcategory, DB.GraphicsStyleType.Projection),
+                get_color_label(getattr(subcategory, "LineColor", None)),
+                get_line_pattern_name(subcategory.GetLinePatternId(DB.GraphicsStyleType.Projection)),
+            ])
+    except Exception:
+        pass
+
+    return rows
+
+
+def build_families_rows():
+    rows = [[
+        "Family Name",
+        "Category",
+        "Type Count",
+        "In Place",
+        "Editable",
+    ]]
+
+    try:
+        families = DB.FilteredElementCollector(doc).OfClass(DB.Family)
+    except Exception:
+        families = []
+
+    for family in families:
+        type_count = 0
+        try:
+            type_count = len(list(family.GetFamilySymbolIds()))
+        except Exception:
+            type_count = 0
+
+        rows.append([
+            safe_text(getattr(family, "Name", "")),
+            safe_text(getattr(getattr(family, "FamilyCategory", None), "Name", "")),
+            safe_text(type_count),
+            get_bool_label(getattr(family, "IsInPlace", False)),
+            get_bool_label(getattr(family, "IsEditable", False)),
+        ])
+
+    return rows
+
+
+def build_project_standards_instructions_rows(selected_section_keys):
+    selected_labels = []
+    for section_key in selected_section_keys:
+        selected_labels.append(get_project_standards_section_label(section_key))
+
+    return [
+        ["SheetLink - pyMENVIC"],
+        ["Project Standards Export"],
+        [""],
+        ["Selected sections:"],
+        [", ".join(selected_labels) if selected_labels else "None"],
+        [""],
+        ["Notes:"],
+        ["This workbook documents project standards exported from the current Revit model."],
+        ["Project Parameters lists parameter definitions and their bindings, not per-element values."],
+        ["Editability and import back into Revit are not part of this standards export workflow yet."],
+    ]
+
+
+def get_project_standards_rows(section_key):
+    if section_key == "project_information":
+        return build_project_information_rows()
+    if section_key == "project_parameters":
+        return build_project_parameters_rows()
+    if section_key == "object_styles":
+        return [["Info"], ["Object styles now export through split worksheets."]]
+    if section_key == "line_styles":
+        return build_line_styles_rows()
+    if section_key == "families":
+        return build_families_rows()
+    return [["Info"], ["Section not available"]]
+
+
+def format_project_standards_sheet(worksheet, row_count, col_count):
+    if worksheet is None or row_count <= 0 or col_count <= 0:
+        return
+
+    try:
+        used_range = worksheet.Range[worksheet.Cells[1, 1], worksheet.Cells[row_count, col_count]]
+        used_range.Borders.LineStyle = 1
+    except Exception:
+        pass
+
+    try:
+        header_range = worksheet.Range[worksheet.Cells[1, 1], worksheet.Cells[1, col_count]]
+        header_range.Font.Bold = True
+        header_range.Font.Color = 0xFFFFFF
+        header_range.Interior.Color = 0x5B7D95
+        header_range.RowHeight = 24
+    except Exception:
+        pass
+
+    try:
+        worksheet.Range[worksheet.Cells[1, 1], worksheet.Cells[max(1, row_count), col_count]].AutoFilter()
+    except Exception:
+        pass
+
+    try:
+        worksheet.Application.ActiveWindow.SplitRow = 1
+        worksheet.Application.ActiveWindow.FreezePanes = True
+    except Exception:
+        pass
+
+    for col_index in range(1, col_count + 1):
+        try:
+            worksheet.Columns[col_index].AutoFit()
+            if worksheet.Columns[col_index].ColumnWidth > 36:
+                worksheet.Columns[col_index].ColumnWidth = 36
+        except Exception:
+            pass
+
+
+def format_project_standards_instructions_sheet(worksheet, row_count, col_count):
+    if worksheet is None or row_count <= 0 or col_count <= 0:
+        return
+
+    try:
+        title_range = worksheet.Range[worksheet.Cells[1, 1], worksheet.Cells[2, 1]]
+        title_range.Font.Bold = True
+    except Exception:
+        pass
+
+    try:
+        worksheet.Columns[1].ColumnWidth = 90
+        worksheet.Range[worksheet.Cells[1, 1], worksheet.Cells[row_count, 1]].WrapText = True
+    except Exception:
+        pass
+
+
+def export_project_standards_to_xlsx(full_path, selected_section_keys, open_after_export):
+    if THIS_DIR not in sys.path:
+        sys.path.append(THIS_DIR)
+    import imp
+    module_path = os.path.join(THIS_DIR, "project_standards_export.py")
+    project_standards_export = imp.load_source("project_standards_export_active", module_path)
+    return project_standards_export.export_project_standards_to_xlsx(
+        full_path,
+        selected_section_keys,
+        open_after_export,
+        globals(),
+    )
+
+
+class ProjectStandardsWindow(forms.WPFWindow):
+    def __init__(self, xaml_path):
+        forms.WPFWindow.__init__(self, xaml_path)
+        self.result_confirmed = False
+        self.open_after_export = True
+        self.selected_sections = []
+
+        try:
+            self.chkOpenAfterExport.IsChecked = True
+            self.chkProjectInformation.IsChecked = True
+            self.chkProjectParameters.IsChecked = True
+            self.chkObjectStyles.IsChecked = True
+            self.chkAnnotationObjects.IsChecked = True
+            self.chkAnalyticalModelObjects.IsChecked = True
+            self.chkLineStyles.IsChecked = True
+            self.chkFamilies.IsChecked = True
+            self.btnStandardsGoogle.IsEnabled = False
+        except Exception:
+            pass
+
+        self.btnStandardsExcel.Click += self.on_excel_clicked
+        self.btnStandardsCancel.Click += self.on_cancel_clicked
+
+    def _collect_selected_sections(self):
+        selections = []
+
+        mapping = [
+            ("project_information", getattr(self, "chkProjectInformation", None)),
+            ("project_parameters", getattr(self, "chkProjectParameters", None)),
+            ("line_styles", getattr(self, "chkLineStyles", None)),
+            ("families", getattr(self, "chkFamilies", None)),
+        ]
+
+        for section_key, checkbox in mapping:
+            try:
+                if checkbox is not None and checkbox.IsChecked:
+                    selections.append(section_key)
+            except Exception:
+                pass
+
+        object_checkboxes = [
+            getattr(self, "chkObjectStyles", None),
+            getattr(self, "chkAnnotationObjects", None),
+            getattr(self, "chkAnalyticalModelObjects", None),
+        ]
+        for checkbox in object_checkboxes:
+            try:
+                if checkbox is not None and checkbox.IsChecked:
+                    selections.insert(2, "object_styles")
+                    break
+            except Exception:
+                pass
+
+        return selections
+
+    def on_excel_clicked(self, sender, args):
+        selected_sections = self._collect_selected_sections()
+        if not selected_sections:
+            TaskDialog.Show(__title__, "Select at least one Project Standards category to export.")
+            return
+
+        self.open_after_export = bool(getattr(self.chkOpenAfterExport, "IsChecked", True))
+        self.selected_sections = selected_sections
+        self.result_confirmed = True
+        self.Close()
+
+    def on_cancel_clicked(self, sender, args):
+        self.result_confirmed = False
+        self.Close()
 
 def get_cell_value(worksheet, row, col):
     try:
@@ -3145,6 +3759,7 @@ def export_schedule_to_xlsx(schedule, full_path):
     workbooks = None
     workbook = None
     data_sheet = None
+    instructions_sheet = None
     schema_sheet = None
 
     try:
@@ -3154,9 +3769,15 @@ def export_schedule_to_xlsx(schedule, full_path):
 
         workbooks = excel_app.Workbooks
         workbook = workbooks.Add()
+        ensure_workbook_sheet_count(workbook, 3)
 
         data_sheet = workbook.Worksheets[1]
+        instructions_sheet = workbook.Worksheets[2]
+        schema_sheet = workbook.Worksheets[3]
+
         data_sheet.Name = "Data"
+        instructions_sheet.Name = "Instructions"
+        schema_sheet.Name = "Schema"
 
         total_cols = len(final_headers)
 
@@ -3234,8 +3855,47 @@ def export_schedule_to_xlsx(schedule, full_path):
 
         # Leave the worksheet unprotected so Excel sorting, filtering, and free-form edits work normally.
 
-        schema_sheet = workbook.Worksheets.Add()
-        schema_sheet.Name = "Schema"
+        instruction_rows = [
+            [None, None, None],
+            [None, "Cell Fill Colour", "Description"],
+            [None, None, "Type value"],
+            [None, None, "Read-only value"],
+            [None, None, "Parameter does not exist for this element"],
+            [None, None, None],
+            [None, "Note:", None],
+            [None, "Edit values on the first worksheet only. The hidden metadata row in Data is used for import, so keep row 1 untouched.", None],
+            [None, None, None]
+        ]
+
+        instruction_fill_colors = {
+            3: 0xC9F1F9,
+            4: 0xD3D9F7,
+            5: 0xF2F2F2
+        }
+
+        write_matrix_to_range(instructions_sheet, 1, 1, instruction_rows)
+
+        instructions_sheet.Columns[1].ColumnWidth = 3
+        instructions_sheet.Columns[2].ColumnWidth = 20
+        instructions_sheet.Columns[3].ColumnWidth = 65
+        instructions_sheet.Rows[8].RowHeight = 52
+
+        for row_index, fill_color in instruction_fill_colors.items():
+            try:
+                instructions_sheet.Cells[row_index, 2].Interior.Color = fill_color
+                instructions_sheet.Cells[row_index, 2].Borders.LineStyle = 1
+            except Exception:
+                pass
+
+        try:
+            instructions_sheet.Cells[2, 2].Font.Bold = True
+            instructions_sheet.Cells[2, 3].Font.Bold = True
+            instructions_sheet.Cells[7, 2].Font.Bold = True
+            instructions_sheet.Range[instructions_sheet.Cells[8, 2], instructions_sheet.Cells[8, 3]].Merge()
+            instructions_sheet.Range[instructions_sheet.Cells[2, 2], instructions_sheet.Cells[8, 3]].WrapText = True
+            instructions_sheet.Range[instructions_sheet.Cells[2, 2], instructions_sheet.Cells[8, 3]].VerticalAlignment = -4108
+        except Exception:
+            pass
 
         schema_headers = [
             "Schema Index", "Excel Column", "Name", "Status", "Origin",
@@ -3291,6 +3951,16 @@ def export_schedule_to_xlsx(schedule, full_path):
             except Exception:
                 pass
 
+        try:
+            schema_sheet.Visible = 0
+        except Exception:
+            pass
+
+        try:
+            data_sheet.Activate()
+        except Exception:
+            pass
+
         workbook.SaveAs(full_path)
         workbook.Close(True)
         excel_app.Quit()
@@ -3299,6 +3969,7 @@ def export_schedule_to_xlsx(schedule, full_path):
 
     finally:
         release_com_object(schema_sheet)
+        release_com_object(instructions_sheet)
         release_com_object(data_sheet)
         release_com_object(workbook)
         release_com_object(workbooks)
@@ -3353,6 +4024,12 @@ class ScheduleBrowserWindow(forms.WPFWindow):
         self.preview_column_map = {}
         self.preview_original_values = {}
         self.preview_pending_change_count = 0
+        self.preview_import_mode = False
+        self.preview_import_table = None
+        self.preview_import_source_path = ""
+        self.preview_import_row_count = 0
+        self.preview_import_editable_count = 0
+        self.preview_changed_marker_map = {}
         self._suspend_preview_autosave = False
         self._is_committing_preview_edits = False
 
@@ -3430,6 +4107,8 @@ class ScheduleBrowserWindow(forms.WPFWindow):
 
         try:
             self.set_image_source(self.imgLogo, logo_path)
+            if hasattr(self, "imgHeaderMark"):
+                self.set_image_source(self.imgHeaderMark, logo_path)
         except Exception:
             logger.debug("Could not load logo image from %s", logo_path)
 
@@ -3480,6 +4159,8 @@ class ScheduleBrowserWindow(forms.WPFWindow):
         self.btnElementAddParameter.Click += self.on_element_add_parameter_clicked
         self.btnElementRemoveParameter.Click += self.on_element_remove_parameter_clicked
         self.btnImportExcel.Click += self.on_import_excel_clicked
+        self.miImportFromExcel.Click += self.on_import_from_excel_clicked
+        self.miPreviewImport.Click += self.on_preview_import_clicked
         self.btnExport.Click += self.on_export_clicked
         self.btnResetValues.Click += self.on_reset_values_clicked
         self.btnOpenPreviewEdit.Click += self.on_open_preview_edit_clicked
@@ -3615,21 +4296,24 @@ class ScheduleBrowserWindow(forms.WPFWindow):
         elif self.active_view == "Spatial":
             has_selection = selected_spatial_category is not None and len(selected_spatial_items) > 0 and len(self.selected_spatial_parameters) > 0
         elif self.active_view == "Preview/Edit":
-            source_view = self._get_preview_source_view()
-            if source_view == "Schedules":
-                has_selection = selected_item is not None
-            elif source_view == "Model Categories":
-                has_selection = selected_model_category is not None and len(self.selected_model_parameters) > 0
-            elif source_view == "Annotation Categories":
-                has_selection = selected_annotation_category is not None and len(self.selected_annotation_parameters) > 0
-            elif source_view == "Elements":
-                has_selection = selected_element_category is not None and len(selected_elements) > 0 and len(self.selected_element_parameters) > 0
-            elif source_view == "Spatial":
-                selected_spatial_category = self._get_selected_spatial_category_for_preview()
-                selected_spatial_items = self._get_selected_spatial_items_for_preview()
-                has_selection = selected_spatial_category is not None and len(selected_spatial_items) > 0 and len(self.selected_spatial_parameters) > 0
+            if getattr(self, "preview_import_mode", False):
+                has_selection = getattr(self, "preview_table", None) is not None
             else:
-                has_selection = False
+                source_view = self._get_preview_source_view()
+                if source_view == "Schedules":
+                    has_selection = selected_item is not None
+                elif source_view == "Model Categories":
+                    has_selection = selected_model_category is not None and len(self.selected_model_parameters) > 0
+                elif source_view == "Annotation Categories":
+                    has_selection = selected_annotation_category is not None and len(self.selected_annotation_parameters) > 0
+                elif source_view == "Elements":
+                    has_selection = selected_element_category is not None and len(selected_elements) > 0 and len(self.selected_element_parameters) > 0
+                elif source_view == "Spatial":
+                    selected_spatial_category = self._get_selected_spatial_category_for_preview()
+                    selected_spatial_items = self._get_selected_spatial_items_for_preview()
+                    has_selection = selected_spatial_category is not None and len(selected_spatial_items) > 0 and len(self.selected_spatial_parameters) > 0
+                else:
+                    has_selection = False
         else:
             has_selection = selected_item is not None
 
@@ -3774,10 +4458,19 @@ class ScheduleBrowserWindow(forms.WPFWindow):
             self.preview_row_elements = []
             self.preview_column_map = {}
             self.preview_original_values = {}
+            self.preview_changed_marker_map = {}
             self.preview_pending_change_count = 0
             self.dgPreviewEdit.ItemsSource = None
         except Exception:
             pass
+
+    def _reset_preview_import_state(self):
+        self.preview_import_mode = False
+        self.preview_import_table = None
+        self.preview_import_source_path = ""
+        self.preview_import_row_count = 0
+        self.preview_import_editable_count = 0
+        self.preview_changed_marker_map = {}
 
     def _bind_preview_table(self, table):
         self.preview_table = table
@@ -3824,6 +4517,88 @@ class ScheduleBrowserWindow(forms.WPFWindow):
                 pass
 
         return table
+
+    def _build_preview_table_from_import_data(self, data_info):
+        table = DataTable()
+        table.Columns.Add("ElementId")
+
+        column_map = {
+            "ElementId": {
+                "Name": "ElementId",
+                "Editable": "Visible",
+                "Status": "Technical",
+                "Metadata": {"ColumnRole": "ElementId", "Status": "Technical"}
+            }
+        }
+        original_values = {}
+        row_elements = []
+        changed_marker_map = {}
+
+        editable_columns = get_editable_columns_for_import_preview(data_info)
+        preview_columns = []
+
+        for col_info in editable_columns:
+            metadata = col_info.get("Metadata") or {}
+            base_name = normalize_text(col_info.get("Name", "")) or normalize_text(metadata.get("Name", "")) or "Column"
+            column_name = self._make_unique_preview_column_name(table, base_name)
+            table.Columns.Add(column_name)
+            column_map[column_name] = {
+                "Name": normalize_text(metadata.get("Name", "")) or base_name,
+                "Editable": normalize_text(metadata.get("Editable", "")),
+                "Status": normalize_text(metadata.get("Status", "")) or build_status(
+                    metadata.get("Origin", ""),
+                    metadata.get("Editable", "")
+                ),
+                "Metadata": metadata
+            }
+            marker_name = "__chg__{}".format(column_name)
+            table.Columns.Add(marker_name, Object)
+            changed_marker_map[column_name] = marker_name
+            preview_columns.append((column_name, col_info))
+
+        rows = list(data_info.get("Rows", []) or [])
+        for row_index, row_info in enumerate(rows):
+            values = row_info.get("Values", {}) or {}
+            element, resolved_by = resolve_element_from_import_row(row_info)
+            row_elements.append(element)
+
+            row = table.NewRow()
+            if element is not None:
+                try:
+                    element_id_text = safe_text(element.Id.IntegerValue)
+                except Exception:
+                    element_id_text = get_import_row_reference_value(row_info, "ElementId", 2)
+            else:
+                element_id_text = get_import_row_reference_value(row_info, "ElementId", 2)
+            row["ElementId"] = element_id_text
+
+            for column_name, col_info in preview_columns:
+                excel_col = col_info.get("ExcelCol", 0)
+                metadata = col_info.get("Metadata") or {}
+                excel_value = normalize_text(values.get(excel_col, ""))
+                row[column_name] = excel_value
+
+                current_value = excel_value
+                if element is not None:
+                    try:
+                        param, origin = get_parameter_from_metadata(element, metadata)
+                        if param is not None:
+                            current_value = normalize_text(get_parameter_preview_value(param))
+                    except Exception:
+                        current_value = excel_value
+
+                original_values[(row_index, column_name)] = current_value
+                row[changed_marker_map[column_name]] = (excel_value != current_value)
+
+            table.Rows.Add(row)
+
+        self.preview_row_elements = row_elements
+        self.preview_column_map = column_map
+        self.preview_original_values = original_values
+        self.preview_changed_marker_map = changed_marker_map
+        self.preview_import_row_count = table.Rows.Count
+        self.preview_import_editable_count = len(preview_columns)
+        return self._prune_empty_preview_columns(table, column_map)
 
     def _get_preview_source_view(self):
         if self.active_view == "Preview/Edit":
@@ -3928,6 +4703,7 @@ class ScheduleBrowserWindow(forms.WPFWindow):
         parameter_items = self._dedupe_preview_parameter_items(parameter_items)
         table = DataTable()
         table.Columns.Add("ElementId")
+        self.preview_changed_marker_map = {}
         include_name_column = self._should_add_preview_name_column(parameter_items)
         if include_name_column:
             table.Columns.Add("Name")
@@ -3981,6 +4757,7 @@ class ScheduleBrowserWindow(forms.WPFWindow):
     def _build_preview_table_from_schedule(self, schedule):
         table = DataTable()
         table.Columns.Add("ElementId")
+        self.preview_changed_marker_map = {}
 
         visible_fields = get_visible_schedule_fields(schedule)
         field_columns = []
@@ -4036,6 +4813,14 @@ class ScheduleBrowserWindow(forms.WPFWindow):
 
         try:
             self._set_progress(20, "Collecting preview data")
+            if getattr(self, "preview_import_mode", False):
+                table = getattr(self, "preview_import_table", None)
+                if table is not None:
+                    self._set_progress(60, "Building import preview")
+                    self._bind_preview_table(table)
+                    self._set_progress(100, "Preview ready")
+                    return table.Rows.Count
+
             source_view = self._get_preview_source_view()
 
             selected_item = self._get_selected_item()
@@ -4168,14 +4953,17 @@ class ScheduleBrowserWindow(forms.WPFWindow):
         if editable_preview_columns == 0:
             return (
                 "All selected {} parameters are locked by Revit. You can review them here, "
-                "but they will not update the model.".format(context_label)
+                "but they will not update the model. Red means locked; beige marks the key ID column.".format(context_label)
             )
         if pending_changes > 0:
             return (
                 "{} pending change(s). Review the editable cells and press 'Update Model' "
-                "when you are ready.".format(pending_changes)
+                "when you are ready. Green means editable instance values, yellow means editable type values.".format(pending_changes)
             )
-        return "Editable cells can be changed here. Locked columns stay protected until you update the model."
+        return (
+            "Editable cells can be changed here. Green means editable instance values, "
+            "yellow means editable type values, red means locked, and beige marks the key ID column."
+        )
 
     def _get_preview_column_style_key(self, header, column_info):
         if header == "ElementId":
@@ -4201,7 +4989,22 @@ class ScheduleBrowserWindow(forms.WPFWindow):
         if not style_key:
             return
         try:
-            column.CellStyle = self.FindResource(style_key)
+            base_style = self.FindResource(style_key)
+            marker_map = getattr(self, "preview_changed_marker_map", {}) or {}
+            marker_name = marker_map.get(normalize_text(getattr(column, "SortMemberPath", "")))
+            if getattr(self, "preview_import_mode", False) and marker_name:
+                highlight_style = Style(DataGridCell)
+                highlight_style.BasedOn = base_style
+                trigger = DataTrigger()
+                trigger.Binding = Binding("[{}]".format(marker_name))
+                trigger.Value = True
+                brush_converter = BrushConverter()
+                trigger.Setters.Add(Setter(DataGridCell.BackgroundProperty, brush_converter.ConvertFrom("#118C8C")))
+                trigger.Setters.Add(Setter(DataGridCell.ForegroundProperty, brush_converter.ConvertFrom("#FFFFFF")))
+                highlight_style.Triggers.Add(trigger)
+                column.CellStyle = highlight_style
+            else:
+                column.CellStyle = base_style
         except Exception:
             pass
 
@@ -4318,6 +5121,12 @@ class ScheduleBrowserWindow(forms.WPFWindow):
                                 refreshed_value = get_parameter_preview_value(param)
                                 row[column_name] = refreshed_value
                                 original_values[(row_index, column_name)] = normalize_text(refreshed_value)
+                                marker_name = (getattr(self, "preview_changed_marker_map", {}) or {}).get(column_name)
+                                if marker_name and table.Columns.Contains(marker_name):
+                                    try:
+                                        row[marker_name] = False
+                                    except Exception:
+                                        pass
                                 updated += 1
                             else:
                                 failed += 1
@@ -4363,10 +5172,12 @@ class ScheduleBrowserWindow(forms.WPFWindow):
             self._update_preview_change_state()
             self._set_progress(100, "Saved")
 
-            has_warnings = locked or missing or duplicate_count or failed
+            has_issues = missing or duplicate_count or failed
+            has_locked_info = locked > 0
+            only_noop = updated == 0 and (unchanged > 0 or locked > 0) and missing == 0 and duplicate_count == 0 and failed == 0
             message = []
 
-            if updated == 0 and not has_warnings:
+            if updated == 0 and not has_issues and not has_locked_info:
                 message.append("No changes to update.")
                 message.append("")
                 message.append("Everything in Preview/Edit already matches the model.")
@@ -4377,17 +5188,22 @@ class ScheduleBrowserWindow(forms.WPFWindow):
                     message.append("Updated values: {}".format(updated))
                 if unchanged and not updated:
                     message.append("Unchanged cells: {}".format(unchanged))
-                if has_warnings:
+                if unchanged and updated:
+                    message.append("Unchanged cells: {}".format(unchanged))
+                if has_locked_info:
+                    message.append("Read-only skipped: {}".format(locked))
+                if has_issues:
                     message.append("")
                     message.append("Needs attention:")
-                    if locked:
-                        message.append("Read-only skipped: {}".format(locked))
                     if missing:
                         message.append("Missing parameters: {}".format(missing))
                     if duplicate_count:
                         message.append("Duplicate conflicts: {}".format(duplicate_count))
                     if failed:
                         message.append("Failed writes: {}".format(failed))
+                elif has_locked_info:
+                    message.append("")
+                    message.append("Locked parameters were left unchanged, which is expected.")
 
             if duplicate_lines:
                 message.append("")
@@ -4402,15 +5218,40 @@ class ScheduleBrowserWindow(forms.WPFWindow):
                     message.append(line)
 
             if show_dialog:
-                TaskDialog.Show(__title__, "\n".join(message))
+                if only_noop:
+                    try:
+                        detail_bits = []
+                        if unchanged:
+                            detail_bits.append("{} unchanged".format(unchanged))
+                        if locked:
+                            detail_bits.append("{} locked".format(locked))
+                        summary = "No editable changes to apply."
+                        if detail_bits:
+                            summary = "{} {}".format(summary, " | ".join(detail_bits))
+                        self.lblPreviewWorkflow.Text = summary
+                    except Exception:
+                        pass
+                elif updated > 0 and not has_issues:
+                    TaskDialog.Show(__title__, "Model updated successfully.")
+                else:
+                    TaskDialog.Show(__title__, "\n".join(message))
                 self._refresh_preview_grid()
                 self._update_preview_panel()
             else:
                 try:
                     if updated:
                         self.lblPreviewWorkflow.Text = "Auto-saved to Revit. Updated values: {}".format(updated)
-                    elif has_warnings:
+                    elif only_noop:
+                        detail_bits = []
+                        if unchanged:
+                            detail_bits.append("{} unchanged".format(unchanged))
+                        if locked:
+                            detail_bits.append("{} locked".format(locked))
+                        self.lblPreviewWorkflow.Text = "No editable changes to apply. {}".format(" | ".join(detail_bits))
+                    elif has_issues:
                         self.lblPreviewWorkflow.Text = "Auto-save finished with warnings. Review locked, missing or duplicate values."
+                    elif has_locked_info:
+                        self.lblPreviewWorkflow.Text = "Update complete. {} locked values were skipped as expected.".format(locked)
                 except Exception:
                     pass
 
@@ -4427,6 +5268,9 @@ class ScheduleBrowserWindow(forms.WPFWindow):
 
     def on_preview_auto_generating_column(self, sender, args):
         header = normalize_text(getattr(args.Column, "Header", ""))
+        if header.startswith("__chg__"):
+            args.Cancel = True
+            return
         column_info = (getattr(self, "preview_column_map", {}) or {}).get(header)
         args.Column.Header = self._format_preview_column_header(header, column_info)
         self._apply_preview_column_style(args.Column, self._get_preview_column_style_key(header, column_info))
@@ -4477,6 +5321,8 @@ class ScheduleBrowserWindow(forms.WPFWindow):
                 pass
 
             self._set_progress(35, "Resetting preview values")
+            if getattr(self, "preview_import_mode", False):
+                self._reset_preview_import_state()
             self._refresh_preview_grid()
             try:
                 self.lblPreviewWorkflow.Text = "Preview values reset to the current Revit model state."
@@ -4561,10 +5407,42 @@ class ScheduleBrowserWindow(forms.WPFWindow):
         self._set_active_view("Preview/Edit")
 
     def on_export_project_standards_clicked(self, sender, args):
-        TaskDialog.Show(
-            __title__,
-            "Export Project Standards is not connected yet.\n\nThe button is back in the interface and ready for the next workflow step."
-        )
+        if not os.path.exists(PROJECT_STANDARDS_XAML_PATH):
+            TaskDialog.Show(__title__, "Project Standards dialog file is missing.")
+            return
+
+        dialog = ProjectStandardsWindow(PROJECT_STANDARDS_XAML_PATH)
+        dialog.ShowDialog()
+
+        if not dialog.result_confirmed:
+            return
+
+        if not dialog.selected_sections:
+            TaskDialog.Show(__title__, "Select at least one Project Standards category.")
+            return
+
+        full_path = ask_output_xlsx_path_for_name("Project_Standards")
+        if not full_path:
+            return
+
+        self._set_progress(15, "Preparing standards export")
+
+        try:
+            export_ok = export_project_standards_to_xlsx(full_path, dialog.selected_sections, dialog.open_after_export)
+        except Exception as export_error:
+            self._set_progress(100, "Ready")
+            TaskDialog.Show(
+                __title__,
+                "Project Standards export failed.\n\n{}".format(safe_text(export_error))
+            )
+            return
+
+        if not export_ok:
+            self._set_progress(100, "Ready")
+            return
+
+        self._set_progress(100, "Project standards exported")
+        TaskDialog.Show(__title__, "Project standards exported successfully.")
 
     def _update_preview_panel(self):
         selected_item = self._get_selected_item()
@@ -4596,6 +5474,27 @@ class ScheduleBrowserWindow(forms.WPFWindow):
         preview_rows = self._refresh_preview_grid()
         editable_preview_columns = self._get_preview_editable_column_count()
         pending_changes = self._update_preview_change_state() if self.active_view == "Preview/Edit" else 0
+
+        if self.active_view == "Preview/Edit" and getattr(self, "preview_import_mode", False):
+            source_name = os.path.basename(getattr(self, "preview_import_source_path", "") or "")
+            self.lblPreviewSchedule.Text = "Preview Import"
+            self.lblPreviewParameterCount.Text = "Rows loaded: {} | Editable fields: {}".format(
+                preview_rows,
+                editable_preview_columns
+            )
+            if pending_changes > 0:
+                self.lblPreviewWorkflow.Text = (
+                    "{} imported change(s) are ready for review. Check the grid and press 'Update Model' only when you want to write them into Revit.".format(
+                        pending_changes
+                    )
+                )
+            else:
+                self.lblPreviewWorkflow.Text = (
+                    "Imported workbook loaded from '{}'. Nothing is written to Revit until you press 'Update Model'.".format(
+                        source_name or "Excel"
+                    )
+                )
+            return
 
         if self.active_view == "Spatial" and selected_spatial_category is not None:
             self.lblPreviewSchedule.Text = "Spatial: {}".format(selected_spatial_category.Name)
@@ -5648,6 +6547,18 @@ class ScheduleBrowserWindow(forms.WPFWindow):
             self._commit_preview_edits()
             return
 
+        try:
+            ctx = self.btnImportExcel.ContextMenu
+            if ctx is not None:
+                ctx.PlacementTarget = self.btnImportExcel
+                ctx.IsOpen = True
+                return
+        except Exception:
+            pass
+
+        self.on_import_from_excel_clicked(sender, args)
+
+    def on_import_from_excel_clicked(self, sender, args):
         xlsx_path = ask_input_xlsx_path()
         if not xlsx_path:
             return
@@ -5661,6 +6572,62 @@ class ScheduleBrowserWindow(forms.WPFWindow):
         except Exception as ex:
             self._set_progress(0, "Completed")
             TaskDialog.Show(__title__, "Import Excel failed.\n\n{}".format(safe_text(ex)))
+
+    def on_preview_import_clicked(self, sender, args):
+        xlsx_path = ask_input_xlsx_path()
+        if not xlsx_path:
+            return
+
+        excel_app = None
+        workbooks = None
+        workbook = None
+
+        try:
+            self._set_progress(15, "Opening workbook")
+            excel_app = Excel.ApplicationClass()
+            excel_app.Visible = False
+            excel_app.DisplayAlerts = False
+
+            workbooks = excel_app.Workbooks
+            workbook = workbooks.Open(xlsx_path, False, True)
+
+            self._set_progress(40, "Reading import data")
+            data_info = read_data_sheet_for_import_preview(workbook)
+
+            self._set_progress(65, "Building preview import")
+            table = self._build_preview_table_from_import_data(data_info)
+            self.preview_import_mode = True
+            self.preview_import_table = table
+            self.preview_import_source_path = xlsx_path
+
+            self._set_active_view("Preview/Edit")
+            self._bind_preview_table(table)
+            self._update_preview_panel()
+            self._update_action_buttons()
+            self._update_status()
+            self._set_progress(100, "Preview ready")
+
+        except Exception as ex:
+            self._reset_preview_import_state()
+            self._set_progress(0, "Completed")
+            TaskDialog.Show(__title__, "Preview Import failed.\n\n{}".format(safe_text(ex)))
+
+        finally:
+            try:
+                if workbook is not None:
+                    workbook.Close(False)
+            except Exception:
+                pass
+
+            try:
+                if excel_app is not None:
+                    excel_app.Quit()
+            except Exception:
+                pass
+
+            release_com_object(workbook)
+            release_com_object(workbooks)
+            release_com_object(excel_app)
 
     def on_export_clicked(self, sender, args):
         if self.active_view == "Model Categories":

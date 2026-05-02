@@ -1,0 +1,98 @@
+<Window
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Title="Export Project Standards"
+    Width="500"
+    Height="525"
+    WindowStartupLocation="CenterOwner"
+    ResizeMode="NoResize"
+    Background="#FFF6F7F8"
+    ShowInTaskbar="False">
+    <Grid Margin="22">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <StackPanel Grid.Row="0" Margin="0,0,0,18">
+            <TextBlock
+                Text="Export Project Standards"
+                FontSize="21"
+                FontWeight="SemiBold"
+                Foreground="#FF22272B"/>
+            <TextBlock
+                Text="Select the project standards to export to Excel."
+                FontSize="12.5"
+                Foreground="#FF5F6B73"
+                Margin="0,5,0,0"/>
+        </StackPanel>
+
+        <GroupBox
+            Grid.Row="1"
+            Header="Export Options"
+            Margin="0,0,0,16"
+            Padding="0"
+            Foreground="#FF2F3A40">
+            <StackPanel Margin="14,10,14,12">
+                <CheckBox
+                    x:Name="chkOpenAfterExport"
+                    Content="Open file after export"
+                    IsChecked="True"
+                    FontSize="13"
+                    Foreground="#FF263238"/>
+            </StackPanel>
+        </GroupBox>
+
+        <GroupBox
+            Grid.Row="2"
+            Header="Export content"
+            Margin="0,0,0,22"
+            Padding="0"
+            Foreground="#FF2F3A40">
+            <StackPanel Margin="14,13,14,18">
+                <CheckBox x:Name="chkProjectInformation" Content="Project Information" IsChecked="True" FontSize="13" Foreground="#FF263238" Margin="0,0,0,8"/>
+                <CheckBox x:Name="chkProjectParameters" Content="Project Parameters" IsChecked="True" FontSize="13" Foreground="#FF263238" Margin="0,0,0,8"/>
+                <CheckBox x:Name="chkObjectStyles" Content="Model Objects" IsChecked="True" FontSize="13" Foreground="#FF263238" Margin="0,0,0,8"/>
+                <CheckBox x:Name="chkAnnotationObjects" Content="Annotation Objects" IsChecked="True" FontSize="13" Foreground="#FF263238" Margin="0,0,0,8"/>
+                <CheckBox x:Name="chkAnalyticalModelObjects" Content="Analytical Model Objects" IsChecked="True" FontSize="13" Foreground="#FF263238" Margin="0,0,0,8"/>
+                <CheckBox x:Name="chkLineStyles" Content="Line Styles" IsChecked="True" FontSize="13" Foreground="#FF263238" Margin="0,0,0,8"/>
+                <CheckBox x:Name="chkFamilies" Content="Families" IsChecked="True" FontSize="13" Foreground="#FF263238"/>
+            </StackPanel>
+        </GroupBox>
+
+        <Grid Grid.Row="3">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+
+            <Button
+                x:Name="btnStandardsExcel"
+                Grid.Column="1"
+                Content="Export to Excel"
+                Width="132"
+                Height="34"
+                Margin="0,0,8,0"/>
+            <Button
+                x:Name="btnStandardsGoogle"
+                Grid.Column="2"
+                Content="Google Sheets"
+                Width="132"
+                Height="34"
+                Margin="0,0,8,0"
+                IsEnabled="False"
+                Visibility="Collapsed"
+                ToolTip="Coming soon"/>
+            <Button
+                x:Name="btnStandardsCancel"
+                Grid.Column="3"
+                Content="Cancel"
+                Width="132"
+                Height="34"/>
+        </Grid>
+    </Grid>
+</Window>
