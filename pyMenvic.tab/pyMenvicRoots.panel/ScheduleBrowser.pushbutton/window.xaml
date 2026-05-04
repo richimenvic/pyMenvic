@@ -832,6 +832,8 @@
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto"/>
                             <RowDefinition Height="4"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="4"/>
                             <RowDefinition Height="*"/>
                         </Grid.RowDefinitions>
 
@@ -841,7 +843,40 @@
                                    Foreground="{StaticResource TextSecondary}"
                                    FontSize="12"/>
 
-                        <Grid Grid.Row="2">
+                        <Grid Grid.Row="2"
+                              Margin="0,2,0,2">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="Scope:"
+                                       VerticalAlignment="Center"
+                                       Foreground="{StaticResource TextSecondary}"
+                                       FontSize="12"
+                                       Margin="0,0,8,0"/>
+                            <ComboBox x:Name="cmbModelScope"
+                                      Grid.Column="1"
+                                      Width="170"
+                                      Height="26"
+                                      SelectedIndex="0"
+                                      Background="#FFFFFF"
+                                      Foreground="{StaticResource TextPrimary}"
+                                      BorderBrush="{StaticResource BorderBrushMain}"
+                                      FontSize="12">
+                                <ComboBoxItem Content="Whole Model"/>
+                                <ComboBoxItem Content="Active View"/>
+                                <ComboBoxItem Content="Current Selection"/>
+                            </ComboBox>
+                            <CheckBox x:Name="chkModelExportTypeId"
+                                      Grid.Column="2"
+                                      Content="Export Type ID"
+                                      Margin="14,0,0,0"
+                                      VerticalAlignment="Center"/>
+                        </Grid>
+
+                        <Grid Grid.Row="4">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="0.34*"/>
                                 <ColumnDefinition Width="6"/>
@@ -1212,57 +1247,81 @@
                                             </Viewbox>
                                     </Grid>
 
-                                    <ListBox x:Name="lstModelSelectedParameters"
-                                             Grid.Row="3"
-                                             BorderThickness="0"
-                                             SelectionMode="Extended"
-                                             ItemContainerStyle="{StaticResource ParameterListItemStyle}">
-                                        <ListBox.ItemTemplate>
-                                            <DataTemplate>
-                                                <Grid Margin="6,0">
-                                                    <Grid.ColumnDefinitions>
-                                                        <ColumnDefinition Width="Auto"/>
-                                                        <ColumnDefinition Width="*"/>
-                                                        <ColumnDefinition Width="Auto"/>
-                                                    </Grid.ColumnDefinitions>
-                                                    <Grid Width="16"
-                                                          Height="16"
-                                                          Margin="0,0,8,0"
-                                                          VerticalAlignment="Center">
-                                                        <Rectangle Width="13"
-                                                                   Height="13"
-                                                                   Fill="#8E8E8E"
-                                                                   HorizontalAlignment="Center"
-                                                                   VerticalAlignment="Center"
-                                                                   Style="{StaticResource ParameterSquareStyle}"/>
-                                                        <Polygon Width="14"
-                                                                 Height="14"
-                                                                 Fill="#8E8E8E"
-                                                                 Stretch="Fill"
-                                                                 Points="7,0 14,14 0,14"
-                                                                 HorizontalAlignment="Center"
-                                                                 VerticalAlignment="Center"
-                                                                 Style="{StaticResource ParameterTriangleStyle}"/>
-                                                        <Ellipse Width="15"
-                                                                 Height="15"
-                                                                 Fill="#8E8E8E"
-                                                                 HorizontalAlignment="Center"
-                                                                 VerticalAlignment="Center"
-                                                                 Style="{StaticResource ParameterCircleStyle}"/>
+                                    <Grid Grid.Row="3">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+
+                                        <ListBox x:Name="lstModelSelectedParameters"
+                                                 Grid.Column="0"
+                                                 BorderThickness="0"
+                                                 SelectionMode="Extended"
+                                                 ItemContainerStyle="{StaticResource ParameterListItemStyle}">
+                                            <ListBox.ItemTemplate>
+                                                <DataTemplate>
+                                                    <Grid Margin="6,0">
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="Auto"/>
+                                                            <ColumnDefinition Width="*"/>
+                                                            <ColumnDefinition Width="Auto"/>
+                                                        </Grid.ColumnDefinitions>
+                                                        <Grid Width="16"
+                                                              Height="16"
+                                                              Margin="0,0,8,0"
+                                                              VerticalAlignment="Center">
+                                                            <Rectangle Width="13"
+                                                                       Height="13"
+                                                                       Fill="#8E8E8E"
+                                                                       HorizontalAlignment="Center"
+                                                                       VerticalAlignment="Center"
+                                                                       Style="{StaticResource ParameterSquareStyle}"/>
+                                                            <Polygon Width="14"
+                                                                     Height="14"
+                                                                     Fill="#8E8E8E"
+                                                                     Stretch="Fill"
+                                                                     Points="7,0 14,14 0,14"
+                                                                     HorizontalAlignment="Center"
+                                                                     VerticalAlignment="Center"
+                                                                     Style="{StaticResource ParameterTriangleStyle}"/>
+                                                            <Ellipse Width="15"
+                                                                     Height="15"
+                                                                     Fill="#8E8E8E"
+                                                                     HorizontalAlignment="Center"
+                                                                     VerticalAlignment="Center"
+                                                                     Style="{StaticResource ParameterCircleStyle}"/>
+                                                        </Grid>
+                                                        <TextBlock Grid.Column="1"
+                                                                   Text="{Binding Name}"
+                                                                   TextTrimming="CharacterEllipsis"
+                                                                   VerticalAlignment="Center"/>
+                                                        <TextBlock Grid.Column="2"
+                                                                   Margin="12,0,0,0"
+                                                                   Text="{Binding Status}"
+                                                                   Foreground="{StaticResource TextSecondary}"
+                                                                   VerticalAlignment="Center"/>
                                                     </Grid>
-                                                    <TextBlock Grid.Column="1"
-                                                               Text="{Binding Name}"
-                                                               TextTrimming="CharacterEllipsis"
-                                                               VerticalAlignment="Center"/>
-                                                    <TextBlock Grid.Column="2"
-                                                               Margin="12,0,0,0"
-                                                               Text="{Binding Status}"
-                                                               Foreground="{StaticResource TextSecondary}"
-                                                               VerticalAlignment="Center"/>
-                                                </Grid>
-                                            </DataTemplate>
-                                        </ListBox.ItemTemplate>
-                                    </ListBox>
+                                                </DataTemplate>
+                                            </ListBox.ItemTemplate>
+                                        </ListBox>
+
+                                        <StackPanel Grid.Column="1"
+                                                    Width="34"
+                                                    Margin="6,6,6,0"
+                                                    VerticalAlignment="Top">
+                                            <Button x:Name="btnModelSelectedMoveUp"
+                                                    Height="28"
+                                                    Margin="0,0,0,6"
+                                                    Content="▲"
+                                                    ToolTip="Move Up"
+                                                    Style="{StaticResource ActionButtonStyle}"/>
+                                            <Button x:Name="btnModelSelectedMoveDown"
+                                                    Height="28"
+                                                    Content="▼"
+                                                    ToolTip="Move Down"
+                                                    Style="{StaticResource ActionButtonStyle}"/>
+                                        </StackPanel>
+                                    </Grid>
 
                                     <Border Grid.Row="4"
                                             BorderBrush="{StaticResource BorderBrushMain}"
@@ -1289,6 +1348,8 @@
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto"/>
                             <RowDefinition Height="4"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="4"/>
                             <RowDefinition Height="*"/>
                         </Grid.RowDefinitions>
 
@@ -1298,7 +1359,40 @@
                                    Foreground="{StaticResource TextSecondary}"
                                    FontSize="12"/>
 
-                        <Grid Grid.Row="2">
+                        <Grid Grid.Row="2"
+                              Margin="0,2,0,2">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="Scope:"
+                                       VerticalAlignment="Center"
+                                       Foreground="{StaticResource TextSecondary}"
+                                       FontSize="12"
+                                       Margin="0,0,8,0"/>
+                            <ComboBox x:Name="cmbAnnotationScope"
+                                      Grid.Column="1"
+                                      Width="170"
+                                      Height="26"
+                                      SelectedIndex="0"
+                                      Background="#FFFFFF"
+                                      Foreground="{StaticResource TextPrimary}"
+                                      BorderBrush="{StaticResource BorderBrushMain}"
+                                      FontSize="12">
+                                <ComboBoxItem Content="Whole Model"/>
+                                <ComboBoxItem Content="Active View"/>
+                                <ComboBoxItem Content="Current Selection"/>
+                            </ComboBox>
+                            <CheckBox x:Name="chkAnnotationExportTypeId"
+                                      Grid.Column="2"
+                                      Content="Export Type ID"
+                                      Margin="14,0,0,0"
+                                      VerticalAlignment="Center"/>
+                        </Grid>
+
+                        <Grid Grid.Row="4">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="0.34*"/>
                                 <ColumnDefinition Width="6"/>
@@ -1669,57 +1763,81 @@
                                         </Viewbox>
                                     </Grid>
 
-                                    <ListBox x:Name="lstAnnotationSelectedParameters"
-                                             Grid.Row="3"
-                                             BorderThickness="0"
-                                             SelectionMode="Extended"
-                                             ItemContainerStyle="{StaticResource ParameterListItemStyle}">
-                                        <ListBox.ItemTemplate>
-                                            <DataTemplate>
-                                                <Grid Margin="6,0">
-                                                    <Grid.ColumnDefinitions>
-                                                        <ColumnDefinition Width="Auto"/>
-                                                        <ColumnDefinition Width="*"/>
-                                                        <ColumnDefinition Width="Auto"/>
-                                                    </Grid.ColumnDefinitions>
-                                                    <Grid Width="16"
-                                                          Height="16"
-                                                          Margin="0,0,8,0"
-                                                          VerticalAlignment="Center">
-                                                        <Rectangle Width="13"
-                                                                   Height="13"
-                                                                   Fill="#8E8E8E"
-                                                                   HorizontalAlignment="Center"
-                                                                   VerticalAlignment="Center"
-                                                                   Style="{StaticResource ParameterSquareStyle}"/>
-                                                        <Polygon Width="14"
-                                                                 Height="14"
-                                                                 Fill="#8E8E8E"
-                                                                 Stretch="Fill"
-                                                                 Points="7,0 14,14 0,14"
-                                                                 HorizontalAlignment="Center"
-                                                                 VerticalAlignment="Center"
-                                                                 Style="{StaticResource ParameterTriangleStyle}"/>
-                                                        <Ellipse Width="15"
-                                                                 Height="15"
-                                                                 Fill="#8E8E8E"
-                                                                 HorizontalAlignment="Center"
-                                                                 VerticalAlignment="Center"
-                                                                 Style="{StaticResource ParameterCircleStyle}"/>
+                                    <Grid Grid.Row="3">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+
+                                        <ListBox x:Name="lstAnnotationSelectedParameters"
+                                                 Grid.Column="0"
+                                                 BorderThickness="0"
+                                                 SelectionMode="Extended"
+                                                 ItemContainerStyle="{StaticResource ParameterListItemStyle}">
+                                            <ListBox.ItemTemplate>
+                                                <DataTemplate>
+                                                    <Grid Margin="6,0">
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="Auto"/>
+                                                            <ColumnDefinition Width="*"/>
+                                                            <ColumnDefinition Width="Auto"/>
+                                                        </Grid.ColumnDefinitions>
+                                                        <Grid Width="16"
+                                                              Height="16"
+                                                              Margin="0,0,8,0"
+                                                              VerticalAlignment="Center">
+                                                            <Rectangle Width="13"
+                                                                       Height="13"
+                                                                       Fill="#8E8E8E"
+                                                                       HorizontalAlignment="Center"
+                                                                       VerticalAlignment="Center"
+                                                                       Style="{StaticResource ParameterSquareStyle}"/>
+                                                            <Polygon Width="14"
+                                                                     Height="14"
+                                                                     Fill="#8E8E8E"
+                                                                     Stretch="Fill"
+                                                                     Points="7,0 14,14 0,14"
+                                                                     HorizontalAlignment="Center"
+                                                                     VerticalAlignment="Center"
+                                                                     Style="{StaticResource ParameterTriangleStyle}"/>
+                                                            <Ellipse Width="15"
+                                                                     Height="15"
+                                                                     Fill="#8E8E8E"
+                                                                     HorizontalAlignment="Center"
+                                                                     VerticalAlignment="Center"
+                                                                     Style="{StaticResource ParameterCircleStyle}"/>
+                                                        </Grid>
+                                                        <TextBlock Grid.Column="1"
+                                                                   Text="{Binding Name}"
+                                                                   TextTrimming="CharacterEllipsis"
+                                                                   VerticalAlignment="Center"/>
+                                                        <TextBlock Grid.Column="2"
+                                                                   Margin="12,0,0,0"
+                                                                   Text="{Binding Status}"
+                                                                   Foreground="{StaticResource TextSecondary}"
+                                                                   VerticalAlignment="Center"/>
                                                     </Grid>
-                                                    <TextBlock Grid.Column="1"
-                                                               Text="{Binding Name}"
-                                                               TextTrimming="CharacterEllipsis"
-                                                               VerticalAlignment="Center"/>
-                                                    <TextBlock Grid.Column="2"
-                                                               Margin="12,0,0,0"
-                                                               Text="{Binding Status}"
-                                                               Foreground="{StaticResource TextSecondary}"
-                                                               VerticalAlignment="Center"/>
-                                                </Grid>
-                                            </DataTemplate>
-                                        </ListBox.ItemTemplate>
-                                    </ListBox>
+                                                </DataTemplate>
+                                            </ListBox.ItemTemplate>
+                                        </ListBox>
+
+                                        <StackPanel Grid.Column="1"
+                                                    Width="34"
+                                                    Margin="6,6,6,0"
+                                                    VerticalAlignment="Top">
+                                            <Button x:Name="btnAnnotationSelectedMoveUp"
+                                                    Height="28"
+                                                    Margin="0,0,0,6"
+                                                    Content="▲"
+                                                    ToolTip="Move Up"
+                                                    Style="{StaticResource ActionButtonStyle}"/>
+                                            <Button x:Name="btnAnnotationSelectedMoveDown"
+                                                    Height="28"
+                                                    Content="▼"
+                                                    ToolTip="Move Down"
+                                                    Style="{StaticResource ActionButtonStyle}"/>
+                                        </StackPanel>
+                                    </Grid>
 
                                     <Border Grid.Row="4"
                                             BorderBrush="{StaticResource BorderBrushMain}"
@@ -1746,6 +1864,8 @@
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto"/>
                             <RowDefinition Height="4"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="4"/>
                             <RowDefinition Height="*"/>
                         </Grid.RowDefinitions>
 
@@ -1755,7 +1875,40 @@
                                    FontSize="12"
                                    Text="Select one category, choose elements, review parameters, then export or import Excel changes."/>
 
-                        <Grid Grid.Row="2">
+                        <Grid Grid.Row="2"
+                              Margin="0,2,0,2">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="Scope:"
+                                       VerticalAlignment="Center"
+                                       Foreground="{StaticResource TextSecondary}"
+                                       FontSize="12"
+                                       Margin="0,0,8,0"/>
+                            <ComboBox x:Name="cmbElementsScope"
+                                      Grid.Column="1"
+                                      Width="170"
+                                      Height="26"
+                                      SelectedIndex="0"
+                                      Background="#FFFFFF"
+                                      Foreground="{StaticResource TextPrimary}"
+                                      BorderBrush="{StaticResource BorderBrushMain}"
+                                      FontSize="12">
+                                <ComboBoxItem Content="Whole Model"/>
+                                <ComboBoxItem Content="Active View"/>
+                                <ComboBoxItem Content="Current Selection"/>
+                            </ComboBox>
+                            <CheckBox x:Name="chkElementsExportTypeId"
+                                      Grid.Column="2"
+                                      Content="Export Type ID"
+                                      Margin="14,0,0,0"
+                                      VerticalAlignment="Center"/>
+                        </Grid>
+
+                        <Grid Grid.Row="4">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="0.34*"/>
                                 <ColumnDefinition Width="6"/>
@@ -2215,57 +2368,81 @@
                                         </Viewbox>
                                     </Grid>
 
-                                    <ListBox x:Name="lstElementSelectedParameters"
-                                             Grid.Row="3"
-                                             BorderThickness="0"
-                                             SelectionMode="Extended"
-                                             ItemContainerStyle="{StaticResource ParameterListItemStyle}">
-                                        <ListBox.ItemTemplate>
-                                            <DataTemplate>
-                                                <Grid Margin="6,0">
-                                                    <Grid.ColumnDefinitions>
-                                                        <ColumnDefinition Width="Auto"/>
-                                                        <ColumnDefinition Width="*"/>
-                                                        <ColumnDefinition Width="Auto"/>
-                                                    </Grid.ColumnDefinitions>
-                                                    <Grid Width="16"
-                                                          Height="16"
-                                                          Margin="0,0,8,0"
-                                                          VerticalAlignment="Center">
-                                                        <Rectangle Width="13"
-                                                                   Height="13"
-                                                                   Fill="#8E8E8E"
-                                                                   HorizontalAlignment="Center"
-                                                                   VerticalAlignment="Center"
-                                                                   Style="{StaticResource ParameterSquareStyle}"/>
-                                                        <Polygon Width="14"
-                                                                 Height="14"
-                                                                 Fill="#8E8E8E"
-                                                                 Stretch="Fill"
-                                                                 Points="7,0 14,14 0,14"
-                                                                 HorizontalAlignment="Center"
-                                                                 VerticalAlignment="Center"
-                                                                 Style="{StaticResource ParameterTriangleStyle}"/>
-                                                        <Ellipse Width="15"
-                                                                 Height="15"
-                                                                 Fill="#8E8E8E"
-                                                                 HorizontalAlignment="Center"
-                                                                 VerticalAlignment="Center"
-                                                                 Style="{StaticResource ParameterCircleStyle}"/>
+                                    <Grid Grid.Row="3">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+
+                                        <ListBox x:Name="lstElementSelectedParameters"
+                                                 Grid.Column="0"
+                                                 BorderThickness="0"
+                                                 SelectionMode="Extended"
+                                                 ItemContainerStyle="{StaticResource ParameterListItemStyle}">
+                                            <ListBox.ItemTemplate>
+                                                <DataTemplate>
+                                                    <Grid Margin="6,0">
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="Auto"/>
+                                                            <ColumnDefinition Width="*"/>
+                                                            <ColumnDefinition Width="Auto"/>
+                                                        </Grid.ColumnDefinitions>
+                                                        <Grid Width="16"
+                                                              Height="16"
+                                                              Margin="0,0,8,0"
+                                                              VerticalAlignment="Center">
+                                                            <Rectangle Width="13"
+                                                                       Height="13"
+                                                                       Fill="#8E8E8E"
+                                                                       HorizontalAlignment="Center"
+                                                                       VerticalAlignment="Center"
+                                                                       Style="{StaticResource ParameterSquareStyle}"/>
+                                                            <Polygon Width="14"
+                                                                     Height="14"
+                                                                     Fill="#8E8E8E"
+                                                                     Stretch="Fill"
+                                                                     Points="7,0 14,14 0,14"
+                                                                     HorizontalAlignment="Center"
+                                                                     VerticalAlignment="Center"
+                                                                     Style="{StaticResource ParameterTriangleStyle}"/>
+                                                            <Ellipse Width="15"
+                                                                     Height="15"
+                                                                     Fill="#8E8E8E"
+                                                                     HorizontalAlignment="Center"
+                                                                     VerticalAlignment="Center"
+                                                                     Style="{StaticResource ParameterCircleStyle}"/>
+                                                        </Grid>
+                                                        <TextBlock Grid.Column="1"
+                                                                   Text="{Binding Name}"
+                                                                   TextTrimming="CharacterEllipsis"
+                                                                   VerticalAlignment="Center"/>
+                                                        <TextBlock Grid.Column="2"
+                                                                   Margin="12,0,0,0"
+                                                                   Text="{Binding Status}"
+                                                                   Foreground="{StaticResource TextSecondary}"
+                                                                   VerticalAlignment="Center"/>
                                                     </Grid>
-                                                    <TextBlock Grid.Column="1"
-                                                               Text="{Binding Name}"
-                                                               TextTrimming="CharacterEllipsis"
-                                                               VerticalAlignment="Center"/>
-                                                    <TextBlock Grid.Column="2"
-                                                               Margin="12,0,0,0"
-                                                               Text="{Binding Status}"
-                                                               Foreground="{StaticResource TextSecondary}"
-                                                               VerticalAlignment="Center"/>
-                                                </Grid>
-                                            </DataTemplate>
-                                        </ListBox.ItemTemplate>
-                                    </ListBox>
+                                                </DataTemplate>
+                                            </ListBox.ItemTemplate>
+                                        </ListBox>
+
+                                        <StackPanel Grid.Column="1"
+                                                    Width="34"
+                                                    Margin="6,6,6,0"
+                                                    VerticalAlignment="Top">
+                                            <Button x:Name="btnElementSelectedMoveUp"
+                                                    Height="28"
+                                                    Margin="0,0,0,6"
+                                                    Content="▲"
+                                                    ToolTip="Move Up"
+                                                    Style="{StaticResource ActionButtonStyle}"/>
+                                            <Button x:Name="btnElementSelectedMoveDown"
+                                                    Height="28"
+                                                    Content="▼"
+                                                    ToolTip="Move Down"
+                                                    Style="{StaticResource ActionButtonStyle}"/>
+                                        </StackPanel>
+                                    </Grid>
 
                                     <Border Grid.Row="4"
                                             BorderBrush="{StaticResource BorderBrushMain}"

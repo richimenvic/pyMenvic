@@ -10,12 +10,13 @@ clr.AddReference("PresentationFramework")
 clr.AddReference("PresentationCore")
 clr.AddReference("WindowsBase")
 
-from System import Action, Uri
+from System import Action
+from System.IO import FileStream, FileMode, FileAccess
 from System.Collections.ObjectModel import ObservableCollection
 from System import Enum
 from System.Windows import LogicalTreeHelper
 from System.Windows.Controls import Button, CheckBox, DataGrid, DataGridEditingUnit, TextBlock
-from System.Windows.Media.Imaging import BitmapImage
+from System.Windows.Media.Imaging import BitmapImage, BitmapCacheOption
 
 from Autodesk.Revit.DB import BuiltInParameter, Element, ElementId, FilteredElementCollector, LabelUtils, ParameterFilterElement, View
 from pyrevit import forms, revit, script
@@ -43,6 +44,21 @@ UI_STRINGS = _load_ui_strings()
 
 def _ui_text(text):
     return UI_STRINGS.get(text, text)
+
+
+def _element_id_value(element_id):
+    """Return a stable integer value for ElementId across Revit versions."""
+    if element_id is None:
+        return None
+    for attr_name in ("Value", "IntegerValue"):
+        try:
+            return int(getattr(element_id, attr_name))
+        except Exception:
+            pass
+    try:
+        return int(element_id)
+    except Exception:
+        return str(element_id)
 
 
 def _set_localized_property(obj, property_name):
@@ -142,10 +158,24 @@ class ManageFiltersWindow(forms.WPFWindow):
         self._reload_rows()
 
     def _load_header_logo(self):
+        stream = None
         try:
-            self.HeaderLogoImage.Source = BitmapImage(Uri(LOGO_FILE))
+            stream = FileStream(LOGO_FILE, FileMode.Open, FileAccess.Read)
+            image = BitmapImage()
+            image.BeginInit()
+            image.StreamSource = stream
+            image.CacheOption = BitmapCacheOption.OnLoad
+            image.EndInit()
+            image.Freeze()
+            self.HeaderLogoImage.Source = image
         except Exception:
             pass
+        finally:
+            if stream is not None:
+                try:
+                    stream.Close()
+                except Exception:
+                    pass
 
     def _element_name(self, element):
         try:
@@ -168,7 +198,7 @@ class ManageFiltersWindow(forms.WPFWindow):
         values = []
         for category_id in category_ids:
             try:
-                values.append(str(category_id.IntegerValue))
+                values.append(str(_element_id_value(category_id)))
             except Exception:
                 values.append(str(category_id))
         return "|".join(sorted(values))
@@ -189,7 +219,7 @@ class ManageFiltersWindow(forms.WPFWindow):
             except Exception:
                 pass
             try:
-                names.append(str(category_id.IntegerValue))
+                names.append(str(_element_id_value(category_id)))
             except Exception:
                 names.append(str(category_id))
 
@@ -216,7 +246,7 @@ class ManageFiltersWindow(forms.WPFWindow):
             pass
 
         try:
-            integer_value = parameter_id.IntegerValue
+            integer_value = _element_id_value(parameter_id)
         except Exception:
             try:
                 integer_value = int(parameter_id)
@@ -352,7 +382,7 @@ class ManageFiltersWindow(forms.WPFWindow):
 
         filter_usage = {}
         for filt in filters:
-            filter_usage[filt.Id.IntegerValue] = {"views": [], "templates": []}
+            filter_usage[_element_id_value(filt.Id)] = {"views": [], "templates": []}
 
         for view in FilteredElementCollector(doc).OfClass(View):
             try:
@@ -363,7 +393,7 @@ class ManageFiltersWindow(forms.WPFWindow):
                 continue
 
             for filter_id in filter_ids:
-                usage = filter_usage.get(filter_id.IntegerValue)
+                usage = filter_usage.get(_element_id_value(filter_id))
                 if usage is None:
                     continue
                 view_name = self._element_name(view)
@@ -390,10 +420,10 @@ class ManageFiltersWindow(forms.WPFWindow):
                 duplicate_group = group_key
                 duplicate_type = "Name Duplicate"
 
-            usage = filter_usage.get(filt.Id.IntegerValue, {"views": [], "templates": []})
+            usage = filter_usage.get(_element_id_value(filt.Id), {"views": [], "templates": []})
             rows.append(
                 FilterRow(
-                    filt.Id.IntegerValue,
+                    _element_id_value(filt.Id),
                     self._element_name(filt),
                     sorted(usage["views"]),
                     sorted(usage["templates"]),

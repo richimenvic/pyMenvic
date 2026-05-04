@@ -9,11 +9,11 @@ clr.AddReference("PresentationFramework")
 clr.AddReference("PresentationCore")
 clr.AddReference("WindowsBase")
 
-from System import Uri
 from System.Collections.ObjectModel import ObservableCollection
+from System.IO import FileStream, FileMode, FileAccess
 from System.Windows import LogicalTreeHelper
 from System.Windows.Controls import Button, CheckBox, DataGrid, DataGridEditingUnit, TextBlock
-from System.Windows.Media.Imaging import BitmapImage
+from System.Windows.Media.Imaging import BitmapImage, BitmapCacheOption
 
 from Autodesk.Revit.DB import (
     Element,
@@ -44,6 +44,21 @@ def _load_ui_strings():
 
 
 UI_STRINGS = _load_ui_strings()
+
+def _element_id_value(element_id):
+    """Return a stable numeric value for Revit ElementId across Revit versions."""
+    if element_id is None:
+        return None
+    for attr_name in ("Value", "IntegerValue"):
+        try:
+            return int(getattr(element_id, attr_name))
+        except Exception:
+            pass
+    try:
+        return int(element_id)
+    except Exception:
+        return str(element_id)
+
 
 
 def _ui_text(text):
@@ -159,10 +174,27 @@ class ReplaceFiltersWindow(forms.WPFWindow):
         return sorted(items, key=lambda item: item.Name.lower())
 
     def _load_header_logo(self):
+        stream = None
         try:
-            self.HeaderLogoImage.Source = BitmapImage(Uri(LOGO_FILE))
+            stream = FileStream(LOGO_FILE, FileMode.Open, FileAccess.Read)
+            bitmap = BitmapImage()
+            bitmap.BeginInit()
+            bitmap.CacheOption = BitmapCacheOption.OnLoad
+            bitmap.StreamSource = stream
+            bitmap.EndInit()
+            try:
+                bitmap.Freeze()
+            except Exception:
+                pass
+            self.HeaderLogoImage.Source = bitmap
         except Exception:
             pass
+        finally:
+            if stream:
+                try:
+                    stream.Close()
+                except Exception:
+                    pass
 
     def _filter_name(self, filter_element):
         try:
@@ -202,7 +234,7 @@ class ReplaceFiltersWindow(forms.WPFWindow):
         for view in FilteredElementCollector(doc).OfClass(View):
             try:
                 if str(view.ViewType) == "DrawingSheet":
-                    sheet_names[view.Id.IntegerValue] = self._sheet_label(view)
+                    sheet_names[_element_id_value(view.Id)] = self._sheet_label(view)
             except Exception:
                 continue
 
@@ -210,8 +242,8 @@ class ReplaceFiltersWindow(forms.WPFWindow):
 
         for viewport in FilteredElementCollector(doc).OfClass(Viewport):
             try:
-                view_id = viewport.ViewId.IntegerValue
-                sheet_id = viewport.SheetId.IntegerValue
+                view_id = _element_id_value(viewport.ViewId)
+                sheet_id = _element_id_value(viewport.SheetId)
                 if sheet_id in sheet_names:
                     placed.setdefault(view_id, []).append(sheet_names[sheet_id])
             except Exception:
@@ -229,8 +261,8 @@ class ReplaceFiltersWindow(forms.WPFWindow):
             except Exception:
                 pass
             try:
-                owner_view_id = schedule_instance.OwnerViewId.IntegerValue
-                schedule_id = schedule_instance.ScheduleId.IntegerValue
+                owner_view_id = _element_id_value(schedule_instance.OwnerViewId)
+                schedule_id = _element_id_value(schedule_instance.ScheduleId)
                 if owner_view_id in sheet_names:
                     placed.setdefault(schedule_id, []).append(sheet_names[owner_view_id])
             except Exception:
@@ -312,13 +344,13 @@ class ReplaceFiltersWindow(forms.WPFWindow):
             except Exception:
                 continue
 
-            has_source = any(fid.IntegerValue == source_id.IntegerValue for fid in filter_ids)
+            has_source = any(_element_id_value(fid) == _element_id_value(source_id) for fid in filter_ids)
             if not has_source:
                 continue
 
             has_target = False
             if target_id is not None:
-                has_target = any(fid.IntegerValue == target_id.IntegerValue for fid in filter_ids)
+                has_target = any(_element_id_value(fid) == _element_id_value(target_id) for fid in filter_ids)
 
             source_visible = self._get_filter_visibility(view, source_id)
             source_enabled = self._get_filter_enabled(view, source_id)
@@ -333,10 +365,10 @@ class ReplaceFiltersWindow(forms.WPFWindow):
                 if target_enabled is None:
                     target_enabled = True
 
-            sheet_labels = self.sheet_map.get(view.Id.IntegerValue, [])
+            sheet_labels = self.sheet_map.get(_element_id_value(view.Id), [])
             rows.append(
                 FilterUsageRow(
-                    view.Id.IntegerValue,
+                    _element_id_value(view.Id),
                     self._element_name(view),
                     self._view_kind_name(view),
                     ", ".join(sheet_labels) if sheet_labels else "-",
@@ -376,7 +408,7 @@ class ReplaceFiltersWindow(forms.WPFWindow):
                 issues += 1
                 continue
 
-            if source.ElementId.IntegerValue == target.ElementId.IntegerValue:
+            if _element_id_value(source.ElementId) == _element_id_value(target.ElementId):
                 row.Status = self._status_text("Same filter")
                 row.Include = False
                 row.Match = _ui_text("Same")
@@ -519,9 +551,9 @@ class ReplaceFiltersWindow(forms.WPFWindow):
         target_exists = False
 
         for idx, filter_id in enumerate(ordered_filters):
-            if filter_id.IntegerValue == source_id.IntegerValue:
+            if _element_id_value(filter_id) == _element_id_value(source_id):
                 source_index = idx
-            if filter_id.IntegerValue == target_id.IntegerValue:
+            if _element_id_value(filter_id) == _element_id_value(target_id):
                 target_exists = True
 
         if source_index < 0:
@@ -542,7 +574,7 @@ class ReplaceFiltersWindow(forms.WPFWindow):
         desired_enabled = None
 
         try:
-            row = self._row_map_by_view_id.get(view.Id.IntegerValue)
+            row = self._row_map_by_view_id.get(_element_id_value(view.Id))
         except Exception:
             row = None
 
@@ -602,7 +634,7 @@ class ReplaceFiltersWindow(forms.WPFWindow):
             forms.alert(_ui_text("Select a source filter and a target filter."), title=_ui_text("Replace Filters"), exitscript=False)
             return
 
-        if source.ElementId.IntegerValue == target.ElementId.IntegerValue:
+        if _element_id_value(source.ElementId) == _element_id_value(target.ElementId):
             forms.alert(_ui_text("The source filter and target filter cannot be the same."), title=_ui_text("Replace Filters"), exitscript=False)
             return
 

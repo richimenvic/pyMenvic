@@ -197,6 +197,44 @@ def mm_to_ft(mm):
 def ft_to_mm(ft):
     return float(ft) * 304.8
 
+
+def element_id_int(eid, default=-1):
+    """
+    Devuelve el valor entero de un ElementId de forma compatible
+    con Revit 2020-2026+.
+
+    Revit antiguo suele exponer IntegerValue.
+    Revit nuevo puede exponer Value.
+    No usar eid.IntegerValue directamente en el script.
+    """
+    if eid is None:
+        return default
+
+    try:
+        if eid == DB.ElementId.InvalidElementId:
+            return default
+    except:
+        pass
+
+    try:
+        v = getattr(eid, "Value")
+        if v is not None:
+            return int(v)
+    except:
+        pass
+
+    try:
+        v = getattr(eid, "IntegerValue")
+        if v is not None:
+            return int(v)
+    except:
+        pass
+
+    try:
+        return int(str(eid))
+    except:
+        return default
+
 def _nearest_key(value, keys, tol):
     best_key = None
     best_d = 1e9
@@ -541,7 +579,7 @@ def get_footprint(tt):
         round(width, 6),
         bold, italic, underline,
         bg,
-        arrow_id.IntegerValue if arrow_id else -1,
+        element_id_int(arrow_id),
         box
     )
 
@@ -818,7 +856,7 @@ def create_office_standard_types():
 modo = forms.CommandSwitchWindow.show(
     ["RUN: CLEAN AND STANDARDIZE", "ADD STANDARD FONTS", "RENAME ONLY", "CANCEL"],
     message=(
-        "pyMenvic | Text Style Standardizer (v2.4.9)\n\n"
+        "pyMenvic | Text Style Standardizer (v2.4.10)\n\n"
         "IMPORTANTE (medido): TEXT_BACKGROUND 1=Transparent, 0=Opaque\n"
         "(T) = Transparent\n"
         "STANDARD = siempre Arrow 30 Degree\n"
@@ -878,7 +916,7 @@ def ejecutar(rename_only=False):
             changed, reason = snap_text_size_param(tt)
             if changed:
                 count_size_snapped += 1
-                log_size.append((tt.Id.IntegerValue, name, reason))
+                log_size.append((element_id_int(tt.Id), name, reason))
 
     # C) Merge duplicates
     if (not rename_only) and MERGE_DUPLICATES:
@@ -896,7 +934,7 @@ def ejecutar(rename_only=False):
 
         fp_canonical = {}
         for fp, tlist in fp_to_types.items():
-            fp_canonical[fp] = sorted(tlist, key=lambda x: x.Id.IntegerValue)[0]
+            fp_canonical[fp] = sorted(tlist, key=lambda x: element_id_int(x.Id))[0]
 
         for fp, tlist in fp_to_types.items():
             if len(tlist) <= 1:
@@ -958,10 +996,10 @@ def ejecutar(rename_only=False):
                 existing_names.add(new_name)
             else:
                 count_rename_failed += 1
-                failed_rename.append((tt.Id.IntegerValue, old_name, new_name, "did-not-stick (after='{}')".format(after)))
+                failed_rename.append((element_id_int(tt.Id), old_name, new_name, "did-not-stick (after='{}')".format(after)))
         except Exception as ex:
             count_rename_failed += 1
-            failed_rename.append((tt.Id.IntegerValue, old_name, new_name, "rename-failed: {}".format(str(ex).splitlines()[0])))
+            failed_rename.append((element_id_int(tt.Id), old_name, new_name, "rename-failed: {}".format(str(ex).splitlines()[0])))
 
     if rename_only:
         return
@@ -991,7 +1029,7 @@ def ejecutar(rename_only=False):
         created_standard.extend(c)
         failed_standard.extend(f)
 
-with revit.Transaction("pyMenvic | Text Style Standardizer (v2.4.9)"):
+with revit.Transaction("pyMenvic | Text Style Standardizer (v2.4.10)"):
     if modo == "RUN: CLEAN AND STANDARDIZE":
         ejecutar(rename_only=False)
     elif modo == "ADD STANDARD FONTS":
@@ -1005,7 +1043,7 @@ with revit.Transaction("pyMenvic | Text Style Standardizer (v2.4.9)"):
 # REPORT
 # ============================================================
 
-output.print_md("# pyMenvic | Text Style Standardizer (v2.4.9) — {}".format(modo))
+output.print_md("# pyMenvic | Text Style Standardizer (v2.4.10) — {}".format(modo))
 output.print_md("**(T)=Transparent** | TEXT_BACKGROUND: 1=Transparent, 0=Opaque")
 output.print_md("**STANDARD:** Arial + Opaque + W1 + sin B/I/L + sin Box + **Arrow 30 Degree**")
 output.print_md("## Resumen")

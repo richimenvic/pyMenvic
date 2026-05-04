@@ -64,9 +64,9 @@ version: 1.0.0
 help_url: https://www.menvic.com
 
 min_revit_version: 2020
-max_revit_version: 2026
+max_revit_version: 2027
 
-context: doc-project
+context: zero-doc
 
 engine:
   clean: true

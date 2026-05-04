@@ -10,11 +10,11 @@ clr.AddReference("PresentationFramework")
 clr.AddReference("PresentationCore")
 clr.AddReference("WindowsBase")
 
-from System import Uri
 from System.Collections.ObjectModel import ObservableCollection
+from System.IO import FileStream, FileMode, FileAccess
 from System.Windows import LogicalTreeHelper
 from System.Windows.Controls import Button, CheckBox, DataGrid, DataGridEditingUnit, TextBlock
-from System.Windows.Media.Imaging import BitmapImage
+from System.Windows.Media.Imaging import BitmapImage, BitmapCacheOption
 
 from Autodesk.Revit.DB import Element, FilteredElementCollector, ParameterFilterElement, ViewFamily, ViewFamilyType
 from pyrevit import forms, revit, script
@@ -38,6 +38,42 @@ def _load_ui_strings():
 
 
 UI_STRINGS = _load_ui_strings()
+
+def _element_id_value(element_id):
+    if element_id is None:
+        return None
+    for attr_name in ("Value", "IntegerValue"):
+        try:
+            return int(getattr(element_id, attr_name))
+        except Exception:
+            pass
+    try:
+        return int(element_id)
+    except Exception:
+        return str(element_id)
+
+
+def _load_bitmap_from_file(file_path):
+    if not file_path:
+        return None
+    stream = None
+    try:
+        stream = FileStream(file_path, FileMode.Open, FileAccess.Read)
+        bitmap = BitmapImage()
+        bitmap.BeginInit()
+        bitmap.CacheOption = BitmapCacheOption.OnLoad
+        bitmap.StreamSource = stream
+        bitmap.EndInit()
+        bitmap.Freeze()
+        return bitmap
+    except Exception:
+        return None
+    finally:
+        try:
+            if stream:
+                stream.Close()
+        except Exception:
+            pass
 
 
 def _ui_text(text):
@@ -144,7 +180,9 @@ class RenameFiltersWindow(forms.WPFWindow):
 
     def _load_header_logo(self):
         try:
-            self.HeaderLogoImage.Source = BitmapImage(Uri(LOGO_FILE))
+            bitmap = _load_bitmap_from_file(LOGO_FILE)
+            if bitmap is not None:
+                self.HeaderLogoImage.Source = bitmap
         except Exception:
             pass
 
@@ -344,7 +382,7 @@ class RenameFiltersWindow(forms.WPFWindow):
                 proposed_name = self._format_section_suggestion_name(section_suggestion)
 
             proposed_name = self._normalize_name(proposed_name)
-            rows.append(FilterRenameRow(filt.Id.IntegerValue, current_name, proposed_name, section_suggestion, False))
+            rows.append(FilterRenameRow(_element_id_value(filt.Id), current_name, proposed_name, section_suggestion, False))
 
         return rows
 
@@ -567,7 +605,7 @@ class RenameFiltersWindow(forms.WPFWindow):
 
         applied = 0
         skipped = []
-        by_id = {f.Id.IntegerValue: f for f in self.filters}
+        by_id = {_element_id_value(f.Id): f for f in self.filters}
 
         with revit.Transaction("Filter Standardizer"):
             for row in rows:
@@ -695,7 +733,7 @@ class ViewTypesEditorWindow(forms.WPFWindow):
                 family_name = str(view_type.ViewFamily)
             except Exception:
                 family_name = "Unknown"
-            self.all_rows.append(ViewTypeEditRow(view_type.Id.IntegerValue, current_name, current_name, family_name, False))
+            self.all_rows.append(ViewTypeEditRow(_element_id_value(view_type.Id), current_name, current_name, family_name, False))
         families = sorted(set(row.ViewFamilyName for row in self.all_rows))
         self.ViewFamilyFilterComboBox.ItemsSource = ["All View Families"] + families
         self.ViewFamilyFilterComboBox.SelectedIndex = 0
@@ -756,7 +794,7 @@ class ViewTypesEditorWindow(forms.WPFWindow):
         if not confirm:
             return
 
-        by_id = {view_type.Id.IntegerValue: view_type for view_type in self._collect_view_types()}
+        by_id = {_element_id_value(view_type.Id): view_type for view_type in self._collect_view_types()}
         renamed = []
         with revit.Transaction("Rename View Types"):
             for row in self.all_rows:

@@ -50,6 +50,26 @@ from collections import OrderedDict
 from Autodesk.Revit import Exceptions
 
 # -----------------------------
+# Revit 2026+ safe ElementId integer helper
+# -----------------------------
+def element_id_int(eid, default=-1):
+    """Return a stable integer from ElementId across Revit versions."""
+    if eid is None:
+        return default
+    try:
+        return int(eid.IntegerValue)
+    except:
+        pass
+    try:
+        return int(eid.Value)
+    except:
+        pass
+    try:
+        return int(str(eid))
+    except:
+        return default
+
+# -----------------------------
 # Count usage of each TextNoteType in the whole project
 # -----------------------------
 use_count = {}  # typeId int -> count
@@ -64,7 +84,7 @@ try:
         try:
             tid = tn.GetTypeId()
             if tid:
-                k = tid.IntegerValue
+                k = element_id_int(tid)
                 use_count[k] = use_count.get(k, 0) + 1
         except:
             pass
@@ -87,7 +107,7 @@ for txt_t in txt_types:
     except:
         name = "<Unnamed>"
 
-    c = use_count.get(txt_t.Id.IntegerValue, 0)
+    c = use_count.get(element_id_int(txt_t.Id), 0)
     label = "{} ({})".format(name, c)
 
     text_style_dict[txt_t] = label

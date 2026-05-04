@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 __title__ = "Export Selected Families"
-__doc__ = "Selector en arbol por categoria/familia, exportacion por categoria y reporte de categorias no incluidas en la lista base."
+__doc__ = "Tree selector by category/family, export by category, and report for categories outside the base list."
 
 import os
 import re
@@ -19,6 +19,8 @@ from pyrevit import revit, DB, forms, script
 
 doc = revit.doc
 output = script.get_output()
+SCRIPT_DIR = os.path.dirname(__file__)
+XAML_PATH = os.path.join(SCRIPT_DIR, "FamilySelector.xaml")
 
 
 # =========================================================
@@ -289,6 +291,28 @@ def normalize_code(name):
     return base.lower()
 
 
+
+def get_element_id_value(element_id):
+    """Return a stable integer value for Revit ElementId across API versions."""
+    if element_id is None:
+        return None
+
+    try:
+        return int(element_id.IntegerValue)
+    except:
+        pass
+
+    try:
+        return int(element_id.Value)
+    except:
+        pass
+
+    try:
+        return int(str(element_id))
+    except:
+        return None
+
+
 def ensure_folder(path):
     if not os.path.exists(path):
         os.makedirs(path)
@@ -329,7 +353,7 @@ def find_existing_file(folder, family_name):
 
 
 # =========================================================
-# RECOLECCION
+# COLLECTION
 # =========================================================
 
 def get_editable_families():
@@ -370,51 +394,7 @@ def build_category_map(families):
 # WPF TREE SELECTOR
 # =========================================================
 
-XAML_TEMPLATE = r"""<Window
-    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    Title="Selecciona categorías y familias"
-    Height="900" Width="860"
-    WindowStartupLocation="CenterScreen"
-    ResizeMode="CanResize">
-    <Grid Margin="10">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-        </Grid.RowDefinitions>
-
-        <TextBlock Grid.Row="0" Text="Filtro:" Margin="0,0,0,6" FontWeight="Bold"/>
-        <TextBox x:Name="tbSearch" Grid.Row="1" Height="28" Margin="0,0,0,10"/>
-
-        <Border Grid.Row="2" BorderBrush="#FFB7B7B7" BorderThickness="1" Padding="4">
-            <TreeView x:Name="tvFamilies"/>
-        </Border>
-
-        <TextBlock x:Name="txtStatus" Grid.Row="3" Margin="0,8,0,8" Text="0 familias seleccionadas."/>
-
-        <Grid Grid.Row="4">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="2*"/>
-            </Grid.ColumnDefinitions>
-
-            <Button x:Name="btnCheckAll" Grid.Column="0" Content="Check All" Margin="0,0,6,0" Height="32"/>
-            <Button x:Name="btnUncheckAll" Grid.Column="1" Content="Uncheck All" Margin="0,0,6,0" Height="32"/>
-            <Button x:Name="btnExpandAll" Grid.Column="2" Content="Expand All" Margin="0,0,6,0" Height="32"/>
-            <Button x:Name="btnCollapseAll" Grid.Column="3" Content="Collapse All" Margin="0,0,6,0" Height="32"/>
-            <Button x:Name="btnAccept" Grid.Column="4" Content="Exportar seleccionadas" Height="32"/>
-        </Grid>
-    </Grid>
-</Window>
-"""
-
-
+# XAML UI is stored externally as FamilySelector.xaml in the same bundle folder.
 class FamilyTreeWindow(forms.WPFWindow):
     def __init__(self, xaml_source, category_map):
         forms.WPFWindow.__init__(self, xaml_source)
@@ -427,7 +407,7 @@ class FamilyTreeWindow(forms.WPFWindow):
 
         for cat_name, fams in self.category_map.items():
             for fam in fams:
-                self.family_by_id[fam.Id.IntegerValue] = fam
+                self.family_by_id[get_element_id_value(fam.Id)] = fam
 
         self.tbSearch.TextChanged += self.on_search_changed
         self.btnCheckAll.Click += self.on_check_all
@@ -467,7 +447,7 @@ class FamilyTreeWindow(forms.WPFWindow):
             cat_cb.Content = u"{} ({})".format(cat_name, len(all_fams))
             cat_cb.Tag = ("category", cat_name)
             cat_cb.IsThreeState = True
-            cat_cb.Margin = Thickness(2)
+            cat_cb.Margin = Thickness(1)
             cat_cb.Checked += self.on_category_checked
             cat_cb.Unchecked += self.on_category_unchecked
 
@@ -478,10 +458,10 @@ class FamilyTreeWindow(forms.WPFWindow):
 
                 fam_cb = CheckBox()
                 fam_cb.Content = fam.Name
-                fam_cb.Tag = ("family", fam.Id.IntegerValue, cat_name)
-                fam_cb.Margin = Thickness(2)
+                fam_cb.Tag = ("family", get_element_id_value(fam.Id), cat_name)
+                fam_cb.Margin = Thickness(1)
 
-                if fam.Id.IntegerValue in self.checked_ids:
+                if get_element_id_value(fam.Id) in self.checked_ids:
                     fam_cb.IsChecked = True
                 else:
                     fam_cb.IsChecked = False
@@ -503,7 +483,7 @@ class FamilyTreeWindow(forms.WPFWindow):
         tag = cat_cb.Tag
         cat_name = tag[1]
 
-        fam_ids = [f.Id.IntegerValue for f in self.category_map.get(cat_name, [])]
+        fam_ids = [get_element_id_value(f.Id) for f in self.category_map.get(cat_name, [])]
         checked_count = sum(1 for fid in fam_ids if fid in self.checked_ids)
 
         self._updating = True
@@ -521,7 +501,10 @@ class FamilyTreeWindow(forms.WPFWindow):
 
     def update_status(self):
         total = len(self.checked_ids)
-        self.txtStatus.Text = u"{} familias seleccionadas.".format(total)
+        if total == 1:
+            self.txtStatus.Text = u"1 family selected."
+        else:
+            self.txtStatus.Text = u"{} families selected.".format(total)
 
     def on_search_changed(self, sender, args):
         self.build_tree(self.tbSearch.Text)
@@ -534,7 +517,7 @@ class FamilyTreeWindow(forms.WPFWindow):
         cat_name = tag[1]
 
         for fam in self.category_map.get(cat_name, []):
-            self.checked_ids.add(fam.Id.IntegerValue)
+            self.checked_ids.add(get_element_id_value(fam.Id))
 
         self.build_tree(self.tbSearch.Text)
 
@@ -546,7 +529,7 @@ class FamilyTreeWindow(forms.WPFWindow):
         cat_name = tag[1]
 
         for fam in self.category_map.get(cat_name, []):
-            fid = fam.Id.IntegerValue
+            fid = get_element_id_value(fam.Id)
             if fid in self.checked_ids:
                 self.checked_ids.remove(fid)
 
@@ -596,16 +579,9 @@ class FamilyTreeWindow(forms.WPFWindow):
         self.Close()
 
 
-def create_temp_xaml():
-    temp_dir = tempfile.mkdtemp(prefix="pyMenvic_UI_")
-    xaml_path = os.path.join(temp_dir, "family_selector.xaml")
-    with open(xaml_path, "w") as fp:
-        fp.write(XAML_TEMPLATE)
-    return temp_dir, xaml_path
-
 
 # =========================================================
-# EXPORTACION
+# EXPORT
 # =========================================================
 
 def export_family(family, root_folder, version_suffix, stats):
@@ -645,15 +621,15 @@ def export_family(family, root_folder, version_suffix, stats):
                 os.remove(existing_path)
 
             stats["updated"] += 1
-            output.print_md(u"Actualizada: **{}**".format(family.Name))
+            output.print_md(u"Updated: **{}**".format(family.Name))
         else:
             shutil.copy2(temp_path, target_path)
             stats["created"] += 1
-            output.print_md(u"Creada: **{}**".format(family.Name))
+            output.print_md(u"Created: **{}**".format(family.Name))
 
     except Exception as ex:
         stats["failed"] += 1
-        output.print_md(u"Error con **{}**: `{}`".format(family.Name, str(ex)))
+        output.print_md(u"Error with **{}**: `{}`".format(family.Name, str(ex)))
     finally:
         if fam_doc:
             try:
@@ -670,11 +646,11 @@ def export_family(family, root_folder, version_suffix, stats):
 
 def print_missing_categories_report():
     if DISCOVERED_EXTRA_CATEGORIES:
-        output.print_md("## Categorías encontradas fuera de tu lista base")
+        output.print_md("## Categories found outside the base list")
         for cname in sorted(DISCOVERED_EXTRA_CATEGORIES):
             output.print_md("- {}".format(cname))
     else:
-        output.print_md("## No se detectaron categorías fuera de tu lista base")
+        output.print_md("## No categories outside the base list were detected")
 
 
 # =========================================================
@@ -685,34 +661,28 @@ def main():
     families = get_editable_families()
 
     if not families:
-        forms.alert("No se encontraron familias editables/exportables en este proyecto.")
+        forms.alert("No editable/exportable families were found in this project.")
         return
 
     category_map = build_category_map(families)
 
-    ui_temp_dir = None
-    xaml_path = None
-    try:
-        ui_temp_dir, xaml_path = create_temp_xaml()
-        selector = FamilyTreeWindow(xaml_path, category_map)
-        selector.ShowDialog()
-        selected_families = selector.result
-    finally:
-        if ui_temp_dir and os.path.exists(ui_temp_dir):
-            try:
-                shutil.rmtree(ui_temp_dir, ignore_errors=True)
-            except:
-                pass
+    if not os.path.exists(XAML_PATH):
+        forms.alert("FamilySelector.xaml was not found in the ExportFamilies.pushbutton folder.")
+        return
+
+    selector = FamilyTreeWindow(XAML_PATH, category_map)
+    selector.ShowDialog()
+    selected_families = selector.result
 
     if not selected_families:
         return
 
-    folder = forms.pick_folder(title="Selecciona carpeta destino para exportar familias")
+    folder = forms.pick_folder(title="Select destination folder to export families")
     if not folder:
         return
 
     confirm = forms.alert(
-        "Se exportarán {} familias.\n\n¿Continuar?".format(len(selected_families)),
+        "{} families will be exported.\n\nContinue?".format(len(selected_families)),
         yes=True,
         no=True
     )
@@ -731,10 +701,10 @@ def main():
     extra_count = len(DISCOVERED_EXTRA_CATEGORIES)
     extra_msg = ""
     if extra_count > 0:
-        extra_msg = "\n\nCategorías fuera de tu lista base detectadas: {}".format(extra_count)
+        extra_msg = "\n\nCategories outside the base list detected: {}".format(extra_count)
 
     forms.alert(
-        "Proceso terminado.\n\nCreadas: {}\nActualizadas: {}\nErrores: {}{}".format(
+        "Process completed.\n\nCreated: {}\nUpdated: {}\nErrors: {}{}".format(
             stats["created"], stats["updated"], stats["failed"], extra_msg
         )
     )

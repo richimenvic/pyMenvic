@@ -7,60 +7,13 @@ __author__ = "Ricardo J. Mendieta"
 pyMENVIC | STANDARDIZE LINE STYLES
 Revit + pyRevit
 
-Descripción
------------
-Herramienta avanzada para estandarizar los estilos de línea
-(LineStyles) dentro del proyecto según el estándar de
-oficina definido para pyMENVIC.
+Herramienta para limpiar, crear y estandarizar Line Styles.
+Compatible con Revit 2020-2026.
 
-El script puede:
-
-- limpiar estilos duplicados
-- normalizar pesos de línea
-- ajustar patrones de línea
-- unificar colores
-- renombrar estilos según estándar
-- eliminar estilos no utilizados
-- crear automáticamente estilos estándar
-
-Estándar de Oficina
--------------------
-Configuración controlada por:
-
-- Line Weight (grosor)
-- Line Pattern (patrón)
-- Color (RGB)
-
-Convención de nombres:
-DISCIPLINA_USO_PESO
-
-Ejemplos:
-A-CUT-01  
-A-PROJ-02  
-A-ANNO-01  
-
-Reglas importantes
-------------------
-- No se eliminan estilos en uso.
-- Los duplicados se fusionan si coinciden en propiedades.
-- Los nombres se ajustan al estándar automáticamente.
-- Se respetan subcategorías críticas del sistema.
-
-Funciones principales
----------------------
-RUN: CLEAN AND STANDARDIZE
-    Limpia, normaliza, renombra y purga estilos.
-
-ADD STANDARD STYLES
-    Crea los estilos estándar de oficina.
-
-RENAME ONLY
-    Solo renombra los estilos según configuración.
-
-Autor
------
-Ricardo J. Mendieta  
-pyMENVIC – Ayudas para MENVIC ARQ
+Corrección importante:
+- No usa ElementId.IntegerValue directamente.
+- Usa element_id_value() para compatibilidad con Revit 2024-2026,
+  donde algunos ElementId exponen Value en lugar de IntegerValue.
 ==========================================================
 """
 
@@ -117,6 +70,32 @@ for _rgb, _name in COLOR_MAP.items():
             NAME_TO_RGB[nm] = _rgb
     except Exception:
         pass
+
+
+# ----------------------------------------------------------
+# REVIT 2024-2026 COMPATIBILITY HELPERS
+# ----------------------------------------------------------
+def element_id_value(element_id):
+    """Return ElementId numeric value compatible with Revit 2020-2026."""
+    if element_id is None:
+        return None
+
+    try:
+        return element_id.IntegerValue
+    except Exception:
+        pass
+
+    try:
+        return element_id.Value
+    except Exception:
+        pass
+
+    return None
+
+
+def is_valid_element_id(element_id):
+    value = element_id_value(element_id)
+    return value is not None and value != -1
 
 
 # ----------------------------------------------------------
@@ -251,7 +230,7 @@ def find_hidden_pattern_id():
 def get_pattern_name(cat, gtype):
     try:
         pid = cat.GetLinePatternId(gtype)
-        if not pid or pid.IntegerValue == -1:
+        if not is_valid_element_id(pid):
             return None, None
         pel = doc.GetElement(pid)
         if isinstance(pel, DB.LinePatternElement):
@@ -271,11 +250,13 @@ def apply_props(subcat, weight, color_obj, pattern_id, gtype=GTYPE):
         subcat.LineColor = color_obj
     except Exception:
         pass
+
     try:
         subcat.SetLineWeight(int(weight), gtype)
     except Exception:
         pass
-    if pattern_id and pattern_id.IntegerValue != -1:
+
+    if is_valid_element_id(pattern_id):
         try:
             pel = doc.GetElement(pattern_id)
             if isinstance(pel, DB.LinePatternElement):
@@ -292,8 +273,9 @@ def count_curve_usage():
             try:
                 ls = cv.LineStyle
                 if ls:
-                    sid = ls.Id.IntegerValue
-                    usage[sid] = usage.get(sid, 0) + 1
+                    sid = element_id_value(ls.Id)
+                    if sid is not None:
+                        usage[sid] = usage.get(sid, 0) + 1
             except Exception:
                 pass
     except Exception:
@@ -305,7 +287,7 @@ def get_graphics_style_id(subcat, gtype=GTYPE):
     try:
         gs = subcat.GetGraphicsStyle(gtype)
         if gs:
-            return gs.Id.IntegerValue
+            return element_id_value(gs.Id)
     except Exception:
         pass
     return None
@@ -712,14 +694,19 @@ def run_clean_and_standardize(mode="full"):
             except Exception:
                 continue
 
+            canon_sub_id = element_id_value(canon_sub.Id)
+
             for s in subs:
                 try:
-                    if s.Id.IntegerValue == canon_sub.Id.IntegerValue:
+                    if element_id_value(s.Id) == canon_sub_id:
                         continue
                     old_gs = s.GetGraphicsStyle(gtype)
                     if not old_gs:
                         continue
-                    old_gsid_to_new_gs[old_gs.Id.IntegerValue] = canon_gs
+                    old_gsid = element_id_value(old_gs.Id)
+                    if old_gsid is None:
+                        continue
+                    old_gsid_to_new_gs[old_gsid] = canon_gs
                     subcats_to_try_delete.append(s.Id)
                     mapped += 1
                 except Exception:
@@ -731,7 +718,7 @@ def run_clean_and_standardize(mode="full"):
                 ls = cv.LineStyle
                 if not ls:
                     continue
-                old_id = ls.Id.IntegerValue
+                old_id = element_id_value(ls.Id)
                 if old_id in old_gsid_to_new_gs:
                     cv.LineStyle = old_gsid_to_new_gs[old_id]
                     reassigned += 1
@@ -747,8 +734,13 @@ def run_clean_and_standardize(mode="full"):
     with DB.Transaction(doc, "MENVIC: Purge Line Styles") as t2:
         t2.Start()
 
+        seen_delete_ids = set()
         for sid in subcats_to_try_delete:
             try:
+                sid_value = element_id_value(sid)
+                if sid_value in seen_delete_ids:
+                    continue
+                seen_delete_ids.add(sid_value)
                 doc.Delete(sid)
                 deleted_ok += 1
             except Exception:
@@ -826,12 +818,12 @@ def show_main_menu():
     try:
         return forms.CommandSwitchWindow.show(
             options,
-            message="pyMenvic | Line Style Standardizer (v2.4.9)",
+            message="pyMenvic | Line Style Standardizer (v2.4.10)",
         )
     except Exception:
         return forms.SelectFromList.show(
             options,
-            title="pyMenvic | Line Style Standardizer (v2.4.9)",
+            title="pyMenvic | Line Style Standardizer (v2.4.10)",
             multiselect=False,
             button_name="Run",
         )
