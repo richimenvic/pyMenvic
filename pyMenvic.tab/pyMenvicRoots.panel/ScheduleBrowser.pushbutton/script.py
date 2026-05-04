@@ -75,7 +75,7 @@ clr.AddReference("System.Data")
 clr.AddReference("System.Windows.Forms")
 from System import Array, Object, Type, Activator
 from System.Data import DataTable
-from System.Reflection import BindingFlags
+from System.Reflection import BindingFlags, Missing
 from System.Runtime.InteropServices import Marshal
 from Microsoft.Win32 import SaveFileDialog, OpenFileDialog
 from System.Windows import Visibility, FontWeights, Style, Setter, DataTrigger
@@ -192,6 +192,59 @@ def build_com_args(args):
     return Array[Object]([unwrap_com_value(arg) for arg in args])
 
 
+def get_com_missing_value():
+    try:
+        return Missing.Value
+    except Exception:
+        pass
+
+    try:
+        return Type.Missing
+    except Exception:
+        return None
+
+
+def get_excel_save_as_file_format(path_value):
+    try:
+        path_text = str(path_value).lower()
+    except Exception:
+        path_text = ""
+
+    if path_text.endswith(".xlsx"):
+        return 51
+    if path_text.endswith(".xls"):
+        return 56
+    if path_text.endswith(".xlsm"):
+        return 52
+
+    return get_com_missing_value()
+
+
+def build_excel_save_as_args(args):
+    if not args:
+        return build_com_args(args)
+
+    filename = unwrap_com_value(args[0])
+    missing = get_com_missing_value()
+    file_format = get_excel_save_as_file_format(filename)
+
+    save_as_args = [
+        filename,
+        file_format,
+        missing,
+        missing,
+        missing,
+        missing,
+        missing,
+        missing,
+        missing,
+        missing,
+        missing,
+        True
+    ]
+    return Array[Object](save_as_args)
+
+
 EXCEL_COM_METHOD_NAMES = set([
     "Add",
     "Open",
@@ -216,20 +269,43 @@ class ComMethodWrapper(object):
         self._method_name = method_name
 
     def __call__(self, *args):
+        last_error = None
+        method_name = self._method_name
+
+        if method_name == "SaveAs":
+            try:
+                result = self._com_object.GetType().InvokeMember(
+                    method_name,
+                    BindingFlags.InvokeMethod | BindingFlags.Public | BindingFlags.Instance,
+                    None,
+                    self._com_object,
+                    build_excel_save_as_args(args)
+                )
+                return wrap_com_value(result)
+            except Exception as ex:
+                last_error = ex
+
         for flags in (BindingFlags.InvokeMethod, BindingFlags.GetProperty):
             try:
                 result = self._com_object.GetType().InvokeMember(
-                    self._method_name,
+                    method_name,
                     flags | BindingFlags.Public | BindingFlags.Instance,
                     None,
                     self._com_object,
                     build_com_args(args)
                 )
                 return wrap_com_value(result)
-            except Exception:
-                pass
+            except Exception as ex:
+                last_error = ex
 
-        raise Exception("COM member '{}' could not be invoked.".format(self._method_name))
+        details = ""
+        try:
+            if last_error is not None:
+                details = " {}".format(str(last_error))
+        except Exception:
+            details = ""
+
+        raise Exception("COM member '{}' could not be invoked.{}".format(method_name, details))
 
     def __getitem__(self, key):
         if isinstance(key, tuple):
