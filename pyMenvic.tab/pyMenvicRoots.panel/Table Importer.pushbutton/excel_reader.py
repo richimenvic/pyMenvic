@@ -211,26 +211,24 @@ def _get_worksheets_via_zipfile(file_path):
 def get_excel_worksheets(file_path):
     """
     Try multiple methods to read worksheet names.
-    1. COM (Excel installed, file not locked)
-    2. openpyxl (if installed)
-    3. ZIP/XML direct read (always works for .xlsx)
+    1. ZIP/XML direct read for .xlsx/.xlsm (no Excel process)\n    2. openpyxl (if installed)\n    3. COM (Excel installed, file not locked)
     """
     if not file_path or not os.path.exists(file_path):
         return []
 
-    result = _get_worksheets_via_com(file_path)
-    if result is not None:
-        return result
+    ext = os.path.splitext(file_path)[1].lower()
+    if ext in ('.xlsx', '.xlsm'):
+        result = _get_worksheets_via_zipfile(file_path)
+        if result is not None:
+            return result
 
     result = _get_worksheets_via_openpyxl(file_path)
     if result is not None:
         return result
 
-    ext = os.path.splitext(file_path)[1].lower()
-    if ext == '.xlsx':
-        result = _get_worksheets_via_zipfile(file_path)
-        if result is not None:
-            return result
+    result = _get_worksheets_via_com(file_path)
+    if result is not None:
+        return result
 
     return []
 
@@ -451,19 +449,19 @@ def get_used_range_address(file_path, worksheet_name):
     if not file_path or not os.path.exists(file_path):
         return "Used Range"
 
-    result = _get_used_range_via_com(file_path, worksheet_name)
-    if result:
-        return result
+    ext = os.path.splitext(file_path)[1].lower()
+    if ext in ('.xlsx', '.xlsm'):
+        result = _get_used_range_via_zipfile(file_path, worksheet_name)
+        if result:
+            return result
 
     result = _get_used_range_via_openpyxl(file_path, worksheet_name)
     if result:
         return result
 
-    ext = os.path.splitext(file_path)[1].lower()
-    if ext == '.xlsx':
-        result = _get_used_range_via_zipfile(file_path, worksheet_name)
-        if result:
-            return result
+    result = _get_used_range_via_com(file_path, worksheet_name)
+    if result:
+        return result
 
     return "Used Range"
 
@@ -610,7 +608,10 @@ def _get_regions_via_com(file_path, worksheet_name):
                         name_text = safe_unicode(name_obj.Name)
                         if "!" in name_text:
                             name_text = name_text.split("!")[-1]
-                        _safe_add_region(regions, u"Name %s" % safe_unicode(name_text), address)
+                        if name_text.lower() == u"_xlnm.print_area":
+                            _safe_add_region(regions, u"Print Area", address)
+                        else:
+                            _safe_add_region(regions, u"Name %s" % safe_unicode(name_text), address)
                 except Exception:
                     pass
                 finally:
@@ -694,7 +695,10 @@ def _get_regions_via_openpyxl(file_path, worksheet_name):
                     destinations = list(dn.destinations)
                     for title, coord in destinations:
                         if safe_unicode(title) == safe_unicode(worksheet_name):
-                            _safe_add_region(regions, u"Name %s" % safe_unicode(name_text), coord)
+                            if name_text.lower() == u"_xlnm.print_area":
+                                _safe_add_region(regions, u"Print Area", coord)
+                            else:
+                                _safe_add_region(regions, u"Name %s" % safe_unicode(name_text), coord)
                 except Exception:
                     pass
         except Exception:
@@ -824,7 +828,10 @@ def _get_regions_via_zipfile(file_path, worksheet_name):
                         name_text = dn.get('name') or 'Unnamed'
                         sheet_name, addr = _parse_defined_name_text(dn.text)
                         if safe_unicode(sheet_name) == safe_unicode(worksheet_name):
-                            _safe_add_region(regions, u"Name %s" % safe_unicode(name_text), addr)
+                            if safe_unicode(name_text).lower() == u"_xlnm.print_area":
+                                _safe_add_region(regions, u"Print Area", addr)
+                            else:
+                                _safe_add_region(regions, u"Name %s" % safe_unicode(name_text), addr)
                     except Exception:
                         pass
 
@@ -841,22 +848,23 @@ def get_excel_regions(file_path, worksheet_name):
     if not file_path or not os.path.exists(file_path):
         return [USED_RANGE_DISPLAY]
 
-    result = _get_regions_via_com(file_path, worksheet_name)
-    if result:
-        return result
+    ext = os.path.splitext(file_path)[1].lower()
+    if ext in ('.xlsx', '.xlsm'):
+        result = _get_regions_via_zipfile(file_path, worksheet_name)
+        if result:
+            return result
 
     result = _get_regions_via_openpyxl(file_path, worksheet_name)
     if result:
         return result
 
-    ext = os.path.splitext(file_path)[1].lower()
-    if ext == '.xlsx':
-        result = _get_regions_via_zipfile(file_path, worksheet_name)
-        if result:
-            return result
+    result = _get_regions_via_com(file_path, worksheet_name)
+    if result:
+        return result
 
     used = get_used_range_address(file_path, worksheet_name)
     if used and used != USED_RANGE_KEY:
         return [USED_RANGE_DISPLAY]
     return [USED_RANGE_DISPLAY]
+
 

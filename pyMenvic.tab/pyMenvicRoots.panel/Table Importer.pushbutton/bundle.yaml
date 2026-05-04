@@ -4,7 +4,7 @@ title:
 
 tooltip:
   en_us: |
-    Import Excel tables into Revit views through a dedicated table import interface.
+    Stage linked Excel tables with worksheet, region, path, and batch controls.
     _______________________________________________________________
     Table Importer - pyMENVIC is a pyMENVIC productivity tool designed to simplify
     the process of bringing external Excel-based information into Revit views.
@@ -17,7 +17,7 @@ tooltip:
 
     Ideal for legends, schedules, technical tables, and external project information.
   es_es: |
-    Importa tablas de Excel a vistas de Revit mediante una interfaz dedicada.
+    Prepara tablas vinculadas de Excel con controles de hoja, region, ruta y acciones por lote.
     _______________________________________________________________
     Table Importer - pyMENVIC es una herramienta de productividad de pyMENVIC diseñada
     para simplificar la incorporación de información externa basada en Excel dentro de Revit.
@@ -43,7 +43,7 @@ description:
     fácil de coordinar.
 
 author: Ricardo J. Mendieta | pyMENVIC
-version: 1.0.0
+version: 1.1.0
 # highlight: NEW
 
 help_url: https://www.menvic.com
