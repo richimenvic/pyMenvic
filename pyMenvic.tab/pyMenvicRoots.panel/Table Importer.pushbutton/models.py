@@ -35,7 +35,8 @@ class TableEntry(INotifyPropertyChanged):
         file_path="",
         path_mode="Absolute",
         revit_view_id=None,
-        table_entry_uid=None
+        table_entry_uid=None,
+        created_element_ids=None
     ):
         self._selected = selected
         self._status = status
@@ -55,6 +56,7 @@ class TableEntry(INotifyPropertyChanged):
         self._path_mode = path_mode
         self._revit_view_id = revit_view_id
         self._table_entry_uid = table_entry_uid
+        self._created_element_ids = list(created_element_ids or [])
         self._handlers = []
 
     def add_PropertyChanged(self, handler):
@@ -224,6 +226,17 @@ class TableEntry(INotifyPropertyChanged):
     def TableEntryUid(self, value):
         self._set("_table_entry_uid", "TableEntryUid", value)
 
+    @property
+    def CreatedElementIds(self):
+        return self._created_element_ids
+
+    @CreatedElementIds.setter
+    def CreatedElementIds(self, value):
+        if value is None:
+            value = []
+        self._created_element_ids = list(value)
+        self._notify("CreatedElementIds")
+
     def to_dict(self):
         return {
             "selected": self._selected,
@@ -244,6 +257,7 @@ class TableEntry(INotifyPropertyChanged):
             "path_mode": self._path_mode,
             "revit_view_id": self._revit_view_id,
             "table_entry_uid": self._table_entry_uid,
+            "created_element_ids": list(self._created_element_ids) if self._created_element_ids else [],
         }
 
     @staticmethod
@@ -274,5 +288,6 @@ class TableEntry(INotifyPropertyChanged):
             file_path=file_path,
             path_mode=_get(data, "path_mode", "Absolute"),
             revit_view_id=_get(data, "revit_view_id", None),
-            table_entry_uid=_get(data, "table_entry_uid", None)
+            table_entry_uid=_get(data, "table_entry_uid", None),
+            created_element_ids=_get(data, "created_element_ids", None)
         )

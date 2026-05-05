@@ -216,14 +216,14 @@
                         <RowDefinition Height="14"/>
                         <RowDefinition Height="12"/>
                         <RowDefinition Height="4"/>
-                        <RowDefinition Height="10"/>
+                        <RowDefinition Height="0"/>
                     </Grid.RowDefinitions>
-                    <Image x:Name="LogoImage" Grid.RowSpan="4" Width="32" Height="32" Stretch="Uniform" HorizontalAlignment="Left" VerticalAlignment="Center"/>
+                    <Image x:Name="LogoImage" Grid.RowSpan="3" Width="30" Height="30" Stretch="Uniform" HorizontalAlignment="Left" VerticalAlignment="Center"/>
                     <TextBlock x:Name="StatusTextBlock" Grid.Column="1" Text="Status: Ready" VerticalAlignment="Center" FontWeight="SemiBold" Foreground="{StaticResource TextBrush}" FontSize="12" TextTrimming="CharacterEllipsis"/>
                     <TextBlock x:Name="VersionTextBlock" Grid.Column="2" VerticalAlignment="Center" Margin="8,0,0,0" Foreground="{StaticResource MutedTextBrush}" FontSize="11"/>
                     <TextBlock x:Name="ProgressTextBlock" Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" Text="Ready   100%" VerticalAlignment="Center" Foreground="{StaticResource SecondaryTextBrush}" FontSize="11"/>
                     <ProgressBar x:Name="ApplyProgressBar" Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="2" Height="4" Minimum="0" Maximum="100" Value="100" Foreground="#8BC34A" Background="#E9E9E9" BorderBrush="{StaticResource LineBrush}" BorderThickness="0"/>
-                    <TextBlock x:Name="ProgressDetailTextBlock" Grid.Row="3" Grid.Column="1" Grid.ColumnSpan="2" Text="Ready." VerticalAlignment="Center" Foreground="{StaticResource MutedTextBrush}" FontSize="10" TextTrimming="CharacterEllipsis"/>
+                    <TextBlock x:Name="ProgressDetailTextBlock" Grid.Row="3" Grid.Column="1" Grid.ColumnSpan="2" Text="Ready." Visibility="Collapsed"/>
                 </Grid>
             </Border>
         </Grid>
@@ -234,9 +234,9 @@
                 <ColumnDefinition Width="Auto"/>
                 <ColumnDefinition Width="Auto"/>
                 <ColumnDefinition Width="18"/>
-                <ColumnDefinition Width="300"/>
+                <ColumnDefinition Width="520"/>
                 <ColumnDefinition Width="10"/>
-                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="0"/>
             </Grid.ColumnDefinitions>
             <Button x:Name="AddTablesButton" Grid.Column="0" Width="132" Style="{StaticResource GoldButton}" Content="Add Tables"/>
             <Button x:Name="BatchActionsButton" Grid.Column="1" Width="152" Content="Batch Actions">
@@ -245,6 +245,7 @@
                         <MenuItem x:Name="BatchUpdateViewsMenuItem" Header="Update Views"/>
                         <MenuItem x:Name="BatchDuplicateViewsMenuItem" Header="Duplicate Views"/>
                         <MenuItem x:Name="BatchReloadFromMenuItem" Header="Reload From"/>
+                        <MenuItem x:Name="BatchResetLegacyContentMenuItem" Header="Reset Legacy Content"/>
                         <Separator/>
                         <MenuItem x:Name="BatchAbsolutePathMenuItem" Header="Absolute Path"/>
                         <MenuItem x:Name="BatchRelativePathMenuItem" Header="Relative Path"/>
@@ -264,9 +265,7 @@
                 <TextBlock Text="Search" IsHitTestVisible="False" Foreground="{StaticResource SecondaryTextBrush}" Margin="12,0,0,0" VerticalAlignment="Center" HorizontalAlignment="Left"/>
                 <TextBlock Text="..." IsHitTestVisible="False" Foreground="{StaticResource SecondaryTextBrush}" Margin="0,0,10,2" VerticalAlignment="Center" HorizontalAlignment="Right"/>
             </Grid>
-            <Border Grid.Column="6" Background="{StaticResource PanelBrush}" BorderBrush="{StaticResource LineBrush}" BorderThickness="1" CornerRadius="3" Height="34" Padding="10,0">
-                <TextBlock x:Name="CompletedTextBlock" Text="Completed 0%" VerticalAlignment="Center" Foreground="{StaticResource SecondaryTextBrush}"/>
-            </Border>
+            <TextBlock x:Name="CompletedTextBlock" Grid.Column="6" Visibility="Collapsed" Text=""/>
         </Grid>
 
         <Border Grid.Row="2" Background="{StaticResource PanelBrush}" BorderBrush="{StaticResource LineBrush}" BorderThickness="1">
@@ -292,6 +291,7 @@
                             <MenuItem x:Name="RowUpdateViewsMenuItem" Header="Update Views"/>
                             <MenuItem x:Name="RowDuplicateViewsMenuItem" Header="Duplicate Views"/>
                             <MenuItem x:Name="RowReloadFromMenuItem" Header="Reload From"/>
+                            <MenuItem x:Name="RowResetLegacyContentMenuItem" Header="Reset Legacy Content"/>
                             <Separator/>
                             <MenuItem x:Name="RowAbsolutePathMenuItem" Header="Absolute Path"/>
                             <MenuItem x:Name="RowRelativePathMenuItem" Header="Relative Path"/>

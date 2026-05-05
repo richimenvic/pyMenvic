@@ -46,7 +46,7 @@ script_dir = os.path.dirname(__file__)
 if script_dir not in sys.path:
     sys.path.append(script_dir)
 
-TOOL_VERSION = "MVP 0.3.17"
+TOOL_VERSION = "MVP 0.3.20"
 DEBUG_OUTPUT = False
 USE_WRAPPED_TEXT_NOTES = False
 
@@ -78,15 +78,15 @@ TABLE_TEXT_SIZE_MM = 1.8
 TEXT_SIZE_SCALE = 1.0
 MIN_TEXT_SIZE_FT = TABLE_TEXT_SIZE_MM / 304.8
 MAX_TEXT_SIZE_FT = 0.012
-APPROX_TEXT_CHAR_WIDTH_FACTOR = 0.70
+APPROX_TEXT_CHAR_WIDTH_FACTOR = 1.80
 MAX_CELL_TEXT_CHARS = 120
 MIN_COL_WIDTH_FT = 0.25
 MAX_COL_WIDTH_FT = 3.00
 MIN_ROW_HEIGHT_FT = 0.18
 MAX_ROW_HEIGHT_FT = 0.60
-TEXT_PADDING_X = 0.015
-TEXT_PADDING_Y = 0.015
-APPROX_CHARS_PER_FOOT = 14
+TEXT_PADDING_X = 0.030
+TEXT_PADDING_Y = 0.025
+APPROX_CHARS_PER_FOOT = 8
 ROW_HEIGHT_SCALE = EXCEL_ROW_HEIGHT_SCALE
 TABLE_TEXT_OFFSET_X = TEXT_PADDING_X
 TABLE_TEXT_OFFSET_Y = TEXT_PADDING_Y
@@ -96,13 +96,17 @@ TABLE_CHAR_WIDTH = 0.045
 TABLE_MIN_ROW_HEIGHT = MIN_ROW_HEIGHT_FT
 TABLE_MAX_ROW_HEIGHT = MAX_ROW_HEIGHT_FT
 TABLE_LINE_HEIGHT = 0.15
-TABLE_TEXT_TYPE_NAME = "MENVIC_TABLE_TEXT_1.8mm"
+TABLE_TEXT_TYPE_NAME = "Arial 1.80mm"
 TABLE_TEXT_SIZE = TABLE_TEXT_SIZE_MM / 304.8
 FALLBACK_TABLE_FONT = "Arial"
 TEXT_NOTE_WIDTH_WARNING_PRINTED = False
 TABLE_IMPORTER_TOOL_NAME = "pyMENVIC_TABLE_IMPORTER"
 TABLE_IMPORTER_CREATED_BY = "Table Importer"
 TABLE_IMPORTER_TAG_PREFIX = "pyMENVIC_TABLE_IMPORTER|"
+STANDARD_TABLE_TEXT_TYPE_NAME = "Arial 1.80mm"
+STANDARD_TABLE_TEXT_SIZE_MM = 1.80
+STANDARD_TEXT_SIZE_TOL_MM = 0.06
+TABLE_TEXT_STYLE_WARNING = False
 
 
 def safe_unicode(value):
@@ -582,32 +586,175 @@ def get_table_text_font(table_data):
     return FALLBACK_TABLE_FONT
 
 
-def get_table_text_note_type(doc, font_name=None):
-    text_size = get_table_text_size()
-    table_font = clean_display_text(font_name) or FALLBACK_TABLE_FONT
+def get_text_type_name(note_type):
+    if note_type is None:
+        return u""
     try:
-        for note_type in FilteredElementCollector(doc).OfClass(TextNoteType):
-            try:
-                if safe_unicode(note_type.Name) == TABLE_TEXT_TYPE_NAME:
-                    set_text_note_type_size(note_type, text_size)
-                    set_text_note_type_font(note_type, table_font)
-                    return note_type
-            except Exception:
-                pass
+        p = note_type.get_Parameter(DB.BuiltInParameter.SYMBOL_NAME_PARAM)
+        if p:
+            value = safe_unicode(p.AsString())
+            if value:
+                return clean_display_text(value)
     except Exception:
         pass
-
-    default_type = get_default_text_note_type(doc)
-    if default_type is None:
-        return None
-
     try:
-        new_type = default_type.Duplicate(TABLE_TEXT_TYPE_NAME)
-        set_text_note_type_size(new_type, text_size)
-        set_text_note_type_font(new_type, table_font)
-        return new_type
+        return clean_display_text(note_type.Name)
     except Exception:
-        return default_type
+        return u""
+
+
+def get_text_type_font(note_type):
+    if note_type is None:
+        return u""
+    try:
+        p = note_type.get_Parameter(DB.BuiltInParameter.TEXT_FONT)
+        if p:
+            return clean_display_text(p.AsString())
+    except Exception:
+        pass
+    try:
+        p = note_type.LookupParameter("Text Font")
+        if p:
+            return clean_display_text(p.AsString())
+    except Exception:
+        pass
+    return u""
+
+
+def get_text_type_size_mm(note_type):
+    try:
+        p = note_type.get_Parameter(DB.BuiltInParameter.TEXT_SIZE)
+        if p:
+            return float(p.AsDouble()) * 304.8
+    except Exception:
+        pass
+    return None
+
+
+def is_bad_table_importer_text_type_name(type_name):
+    """Return True for legacy/custom Table Importer text styles that should not be reused."""
+    name = clean_display_text(type_name).strip().lower()
+    if not name:
+        return False
+    if "menvic_table_text" in name:
+        return True
+    if "table importer" in name:
+        return True
+    return False
+
+
+def is_allowed_table_text_type(note_type):
+    try:
+        return not is_bad_table_importer_text_type_name(get_text_type_name(note_type))
+    except Exception:
+        return False
+
+
+def is_name_match(value, candidates):
+    clean_value = clean_display_text(value).strip().lower()
+    for candidate in candidates:
+        if clean_value == clean_display_text(candidate).strip().lower():
+            return True
+    return False
+
+
+def is_office_standard_table_text_type(note_type, min_size_mm=STANDARD_TABLE_TEXT_SIZE_MM):
+    try:
+        if not is_allowed_table_text_type(note_type):
+            return False
+        font_name = get_text_type_font(note_type).strip().lower()
+        if font_name != FALLBACK_TABLE_FONT.lower():
+            return False
+        size_mm = get_text_type_size_mm(note_type)
+        if size_mm is None:
+            return False
+        return abs(float(size_mm) - float(min_size_mm)) <= STANDARD_TEXT_SIZE_TOL_MM
+    except Exception:
+        return False
+
+
+def get_table_text_note_type(doc, font_name=None):
+    """
+    Use the existing pyMENVIC office-standard text style.
+
+    This tool must not create custom Table Importer text types. It looks for
+    Arial 1.80mm first, then for an Arial TextNoteType at 1.80mm, then for the
+    nearest Arial standard type >= 1.80mm. If no standard is found, it falls
+    back to the first available TextNoteType without modifying it.
+    """
+    global TABLE_TEXT_STYLE_WARNING
+
+    all_types = []
+    try:
+        all_types = list(FilteredElementCollector(doc).OfClass(TextNoteType))
+    except Exception:
+        all_types = []
+
+    # 1) Exact/known office standard names. Never reuse legacy Table Importer types.
+    standard_name_candidates = [
+        STANDARD_TABLE_TEXT_TYPE_NAME,
+        "Arial 1.8mm",
+        "1.80mm Arial",
+        "1.8mm Arial",
+        "1.80 mm Arial",
+        "1.8 mm Arial",
+    ]
+    for note_type in all_types:
+        try:
+            type_name = get_text_type_name(note_type)
+            if is_allowed_table_text_type(note_type) and is_name_match(type_name, standard_name_candidates):
+                return note_type
+        except Exception:
+            pass
+
+    # 2) Any Arial 1.80mm type.
+    for note_type in all_types:
+        try:
+            if is_office_standard_table_text_type(note_type, STANDARD_TABLE_TEXT_SIZE_MM):
+                return note_type
+        except Exception:
+            pass
+
+    # 3) Nearest Arial type >= 1.80mm.
+    best_type = None
+    best_size = None
+    for note_type in all_types:
+        try:
+            if not is_allowed_table_text_type(note_type):
+                continue
+            if get_text_type_font(note_type).strip().lower() != FALLBACK_TABLE_FONT.lower():
+                continue
+            size_mm = get_text_type_size_mm(note_type)
+            if size_mm is None:
+                continue
+            if size_mm + STANDARD_TEXT_SIZE_TOL_MM < STANDARD_TABLE_TEXT_SIZE_MM:
+                continue
+            if best_size is None or float(size_mm) < float(best_size):
+                best_size = size_mm
+                best_type = note_type
+        except Exception:
+            pass
+    if best_type is not None:
+        if DEBUG_OUTPUT:
+            print("Table Importer: Arial 1.80mm not found. Using nearest Arial text style '%s'." % safe_unicode(get_text_type_name(best_type)))
+        return best_type
+
+    # 4) Fallback only. Do not modify or duplicate. Prefer a non-Table-Importer type.
+    fallback = None
+    for note_type in all_types:
+        try:
+            if is_allowed_table_text_type(note_type):
+                fallback = note_type
+                break
+        except Exception:
+            pass
+    if fallback is None:
+        fallback = get_default_text_note_type(doc)
+    if fallback is not None and not TABLE_TEXT_STYLE_WARNING:
+        TABLE_TEXT_STYLE_WARNING = True
+        if DEBUG_OUTPUT:
+            print("Table Importer: standard text style Arial 1.80mm not found. Using fallback text style '%s'." % safe_unicode(get_text_type_name(fallback)))
+    return fallback
 
 
 def get_text_note_type_size(note_type):
@@ -810,17 +957,94 @@ def _collect_tagged_elements_of_class(doc, view, entry, element_class):
     return ids
 
 
+def is_table_importer_deletable_class(element):
+    try:
+        if isinstance(element, TextNote):
+            return True
+    except Exception:
+        pass
+    try:
+        if isinstance(element, DB.CurveElement):
+            return True
+    except Exception:
+        pass
+    return False
+
+
+def remember_created_element(entry, element):
+    if entry is None or element is None:
+        return
+    try:
+        element_id_value = get_element_id_value(element.Id)
+        if element_id_value is None:
+            return
+        current = []
+        try:
+            current = list(getattr(entry, "CreatedElementIds", []) or [])
+        except Exception:
+            current = []
+        text_id = safe_unicode(element_id_value)
+        if text_id not in current:
+            current.append(text_id)
+            entry.CreatedElementIds = current
+    except Exception:
+        pass
+
+
+def _collect_stored_created_element_ids(doc, view, entry):
+    ids = []
+    try:
+        raw_ids = list(getattr(entry, "CreatedElementIds", []) or [])
+    except Exception:
+        raw_ids = []
+    for raw_id in raw_ids:
+        element_id = make_element_id(raw_id)
+        if element_id is None:
+            continue
+        try:
+            element = doc.GetElement(element_id)
+        except Exception:
+            element = None
+        if element is None:
+            continue
+        try:
+            if not _same_element_id(element.OwnerViewId, view.Id):
+                continue
+        except Exception:
+            continue
+        if not is_table_importer_deletable_class(element):
+            continue
+        ids.append(element.Id)
+    return ids
+
+
 def clear_table_importer_view(view, entry):
     doc = get_revit_document()
     if doc is None:
         raise Exception("No active Revit document.")
 
     ensure_table_entry_uid(entry)
+
+    # Normal regeneration is intentionally strict:
+    # - delete elements stored as created by this entry, or
+    # - delete elements carrying the Table Importer internal tag for this entry.
+    # Untagged/manual TextNotes, manual DetailCurves, symbols, dimensions, tags,
+    # images, filled regions, and family instances are preserved.
+    stored_ids = _collect_stored_created_element_ids(doc, view, entry)
     text_note_ids = _collect_tagged_elements_of_class(doc, view, entry, TextNote)
     curve_ids = _collect_tagged_elements_of_class(doc, view, entry, DB.CurveElement)
+
     ids_to_delete = []
-    ids_to_delete.extend(text_note_ids)
-    ids_to_delete.extend(curve_ids)
+    seen = {}
+    for element_id in stored_ids + text_note_ids + curve_ids:
+        try:
+            key = safe_unicode(get_element_id_value(element_id))
+            if key in seen:
+                continue
+            seen[key] = True
+            ids_to_delete.append(element_id)
+        except Exception:
+            ids_to_delete.append(element_id)
 
     deleted = 0
     for element_id in ids_to_delete:
@@ -828,10 +1052,17 @@ def clear_table_importer_view(view, entry):
             doc.Delete(element_id)
             deleted += 1
         except Exception as ex:
-            print("Table Importer: could not delete view element '%s': %s" % (safe_unicode(element_id), safe_unicode(ex)))
+            if DEBUG_OUTPUT:
+                print("Table Importer: could not delete tagged/stored element '%s': %s" % (safe_unicode(element_id), safe_unicode(ex)))
+
+    try:
+        entry.CreatedElementIds = []
+    except Exception:
+        pass
+
     if DEBUG_OUTPUT:
         try:
-            print("Table Importer: regeneration deleted %s tagged TextNote element(s) and %s tagged CurveElement element(s)." % (len(text_note_ids), len(curve_ids)))
+            print("Table Importer: regeneration deleted %s stored/tagged element(s). Untagged manual content ignored." % deleted)
         except Exception:
             pass
     return deleted
@@ -845,8 +1076,9 @@ def reset_table_view_legacy_content(view):
 def update_existing_drafting_view(entry, view, cleanup_legacy=False):
     table_data, row_count, column_count = read_table_data_for_entry(entry)
     clear_table_importer_view(view, entry)
-    if cleanup_legacy:
-        clear_legacy_untagged_table_content(view)
+    # Legacy untagged content is never deleted during normal Apply.
+    # It may be cleared only by a future explicit reset action.
+    cleanup_legacy = False
     draw_table_in_view(view, table_data, entry)
     entry.Status = "Updated"
     return row_count, column_count
@@ -857,6 +1089,7 @@ def _make_line(doc, view, x1, y1, x2, y2, entry=None):
     detail_curve = doc.Create.NewDetailCurve(view, line)
     if entry is not None:
         apply_table_importer_tag(detail_curve, entry)
+        remember_created_element(entry, detail_curve)
     return detail_curve
 
 
@@ -929,17 +1162,32 @@ def fit_text_to_cell(text, cell_width, text_size):
         char_width = float(MIN_TEXT_SIZE_FT) * float(APPROX_TEXT_CHAR_WIDTH_FACTOR)
 
     estimated_width = float(len(value)) * char_width
-    if estimated_width <= available_width:
-        return value
 
     try:
         max_chars = int(available_width / char_width)
     except Exception:
         max_chars = 3
-    if max_chars <= 3:
-        return u"..."
+
+    # Extra safety: Revit TextNotes often display wider than the basic estimate.
+    # Keep the text conservative and single-line; do not let it visually spill into
+    # the next cell.
+    try:
+        conservative_cap = int(float(available_width) / (float(text_size) * 2.20))
+        if conservative_cap > 0 and conservative_cap < max_chars:
+            max_chars = conservative_cap
+    except Exception:
+        pass
+
     if max_chars > MAX_CELL_TEXT_CHARS:
         max_chars = MAX_CELL_TEXT_CHARS
+    if max_chars <= 3:
+        if len(value) > 3 or estimated_width > available_width:
+            return u"..."
+        return value
+
+    if len(value) <= max_chars and estimated_width <= available_width:
+        return value
+
     if max_chars < 6:
         keep = max(1, max_chars - 3)
         return value[:keep] + u"..."
@@ -1416,6 +1664,7 @@ def draw_table_in_view(view, table_data, entry=None):
             text_note = create_text_note_in_cell(doc, view, point, cell_width, display_value, note_type_id)
             if entry is not None:
                 apply_table_importer_tag(text_note, entry)
+                remember_created_element(entry, text_note)
 
 
 class AddTableDialog(object):
@@ -1711,7 +1960,7 @@ class TableImporterWindow(object):
 
     def bind_menu_items(self):
         names = [
-            "UpdateViews", "DuplicateViews", "ReloadFrom", "AbsolutePath", "RelativePath",
+            "UpdateViews", "DuplicateViews", "ReloadFrom", "ResetLegacyContent", "AbsolutePath", "RelativePath",
             "OpenFiles", "OpenFolders", "DeleteViews", "UnlinkView", "OpenView"
         ]
         for name in names:
@@ -1797,16 +2046,26 @@ class TableImporterWindow(object):
             pass
 
         for prefix in ("Batch", "Row"):
-            self.window.FindName(prefix + "UpdateViewsMenuItem").Click += self.on_update_views
-            self.window.FindName(prefix + "DuplicateViewsMenuItem").Click += self.on_duplicate_views
-            self.window.FindName(prefix + "ReloadFromMenuItem").Click += self.on_reload_from
-            self.window.FindName(prefix + "AbsolutePathMenuItem").Click += self.on_absolute_path
-            self.window.FindName(prefix + "RelativePathMenuItem").Click += self.on_relative_path
-            self.window.FindName(prefix + "OpenFilesMenuItem").Click += self.on_open_files
-            self.window.FindName(prefix + "OpenFoldersMenuItem").Click += self.on_open_folders
-            self.window.FindName(prefix + "DeleteViewsMenuItem").Click += self.on_delete_views
-            self.window.FindName(prefix + "UnlinkViewMenuItem").Click += self.on_unlink_view
-            self.window.FindName(prefix + "OpenViewMenuItem").Click += self.on_open_view
+            menu_map = [
+                ("UpdateViewsMenuItem", self.on_update_views),
+                ("DuplicateViewsMenuItem", self.on_duplicate_views),
+                ("ReloadFromMenuItem", self.on_reload_from),
+                ("ResetLegacyContentMenuItem", self.on_reset_legacy_content),
+                ("AbsolutePathMenuItem", self.on_absolute_path),
+                ("RelativePathMenuItem", self.on_relative_path),
+                ("OpenFilesMenuItem", self.on_open_files),
+                ("OpenFoldersMenuItem", self.on_open_folders),
+                ("DeleteViewsMenuItem", self.on_delete_views),
+                ("UnlinkViewMenuItem", self.on_unlink_view),
+                ("OpenViewMenuItem", self.on_open_view),
+            ]
+            for suffix, handler in menu_map:
+                try:
+                    item = self.window.FindName(prefix + suffix)
+                    if item is not None:
+                        item.Click += handler
+                except Exception:
+                    pass
 
     def on_datagrid_single_click(self, sender, args):
         try:
@@ -1900,7 +2159,8 @@ class TableImporterWindow(object):
         pct = 0
         if total:
             pct = int((float(linked) / float(total)) * 100.0)
-        self.CompletedTextBlock.Text = "Completed %s%%" % pct
+        if self.CompletedTextBlock:
+            self.CompletedTextBlock.Text = "Completed %s%%" % pct
         self.update_empty_state()
 
     def update_empty_state(self):
@@ -2077,6 +2337,91 @@ class TableImporterWindow(object):
     def on_update_views(self, sender, args):
         self.update_selected_views()
 
+    def on_reset_legacy_content(self, sender, args):
+        targets = self.require_targets()
+        if not targets:
+            return
+
+        doc = get_revit_document()
+        if doc is None:
+            self.FooterStatusTextBlock.Text = "No active Revit document."
+            return
+
+        reset_candidates = []
+        text_total = 0
+        curve_total = 0
+        for entry in targets:
+            try:
+                if safe_unicode(entry.ViewType) != "Drafting View":
+                    continue
+                if not entry.RevitViewId:
+                    continue
+                element_id = make_element_id(entry.RevitViewId)
+                if element_id is None:
+                    continue
+                view = doc.GetElement(element_id)
+                if view is None or not is_drafting_view(view):
+                    continue
+                has_legacy, text_count, curve_count = detect_legacy_untagged_table_content(view)
+                if has_legacy:
+                    reset_candidates.append((entry, view, text_count, curve_count))
+                    text_total += text_count
+                    curve_total += curve_count
+            except Exception:
+                pass
+
+        if not reset_candidates:
+            self.FooterStatusTextBlock.Text = "No legacy untagged table content found in selected views."
+            self.set_progress_detail("No legacy content found.")
+            return
+
+        result = MessageBox.Show(
+            "Reset legacy untagged table content in %s selected view(s)?\n\n"
+            "This removes only untagged TextNotes and Detail Lines owned by those Drafting Views.\n"
+            "Symbol families, detail items, annotations, dimensions, tags, images and filled regions are preserved.\n\n"
+            "Use this once for views created before the Table Importer tagging system." % len(reset_candidates),
+            "Reset Legacy Content",
+            MessageBoxButton.YesNo,
+            MessageBoxImage.Warning,
+        )
+        if result != MessageBoxResult.Yes:
+            self.FooterStatusTextBlock.Text = "Legacy reset cancelled."
+            self.set_progress_detail("Legacy reset cancelled.")
+            return
+
+        deleted_views = 0
+        deleted_elements = 0
+        transaction = None
+        try:
+            transaction = Transaction(doc, "Table Importer | Reset Legacy Content")
+            transaction.Start()
+            for entry, view, text_count, curve_count in reset_candidates:
+                deleted, deleted_text, deleted_curve = clear_legacy_untagged_table_content(view)
+                if deleted:
+                    deleted_views += 1
+                    deleted_elements += deleted_text + deleted_curve
+                    try:
+                        entry.Status = "Legacy Reset"
+                    except Exception:
+                        pass
+            transaction.Commit()
+            transaction = None
+        except Exception as ex:
+            try:
+                if transaction is not None:
+                    transaction.RollBack()
+            except Exception:
+                pass
+            self.FooterStatusTextBlock.Text = "Legacy reset failed: %s" % safe_unicode(ex)
+            self.set_progress_detail("Legacy reset failed.")
+            return
+
+        self.save_current_entries()
+        self.TablesDataGrid.Items.Refresh()
+        self.apply_filter()
+        self.FooterStatusTextBlock.Text = "Legacy reset complete. %s view(s), %s element(s) removed. Apply again to regenerate clean tables." % (deleted_views, deleted_elements)
+        self.set_progress_detail("Legacy reset complete. Apply again to regenerate clean tables.")
+
     def update_selected_views(self):
         targets = self.require_targets()
         if not targets:
@@ -2168,20 +2513,11 @@ class TableImporterWindow(object):
                 debug_message("Legacy scan skipped one row: %s" % safe_unicode(scan_ex))
 
         if legacy_view_count:
-            warning_text = "Warning: legacy untagged table content detected in %s view(s)." % legacy_view_count
+            warning_text = "Warning: legacy untagged table content detected in %s view(s). Untagged manual content was preserved." % legacy_view_count
             self.set_progress_detail(warning_text)
-            self.FooterStatusTextBlock.Text = "%s Use Reset Legacy Content if needed." % warning_text
-            result = MessageBox.Show(
-                "Legacy untagged table content was detected in selected Table Importer views.\n\nThis usually comes from older MVP versions. Do you want to remove old untagged TextNotes and Detail Lines in these views one time before regenerating?\n\nManually placed symbols/families/detail items will be preserved.",
-                "Reset Legacy Table Content",
-                MessageBoxButton.YesNo,
-                MessageBoxImage.Warning,
-            )
-            cleanup_legacy = result == MessageBoxResult.Yes
-            if cleanup_legacy:
-                self.set_progress_detail("Legacy cleanup enabled for %s view(s)." % legacy_view_count)
-            else:
-                self.set_progress_detail("%s Manual cleanup may be required." % warning_text)
+            self.FooterStatusTextBlock.Text = warning_text
+            cleanup_legacy = False
+
 
         for entry in targets:
             transaction = None
@@ -2305,14 +2641,12 @@ class TableImporterWindow(object):
         self.TablesDataGrid.Items.Refresh()
         self.apply_filter()
         summary_text = "Created %s view(s). Updated %s view(s). Skipped %s row(s). Failed %s row(s)." % (created, updated, skipped, failed)
-        if legacy_view_count and not cleanup_legacy:
-            summary_text = "%s Warning: legacy untagged content remains in %s view(s)." % (summary_text, legacy_view_count)
-        elif legacy_view_count and cleanup_legacy:
-            summary_text = "%s Legacy cleanup applied to %s view(s)." % (summary_text, legacy_view_count)
+        if legacy_view_count:
+            summary_text = "%s Legacy untagged content preserved in %s view(s)." % (summary_text, legacy_view_count)
         self.FooterStatusTextBlock.Text = summary_text
         self.set_apply_progress("Status: Ready", "Ready", 100)
-        if legacy_view_count and not cleanup_legacy:
-            self.set_progress_detail("Warning: legacy untagged table content remains in %s view(s)." % legacy_view_count)
+        if legacy_view_count:
+            self.set_progress_detail("Completed: %s created, %s updated, %s skipped, %s failed. Legacy untagged content preserved in %s view(s)." % (created, updated, skipped, failed, legacy_view_count))
         else:
             self.set_progress_detail("Completed: %s created, %s updated, %s skipped, %s failed" % (created, updated, skipped, failed))
         if skip_reasons:
