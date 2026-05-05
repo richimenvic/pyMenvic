@@ -8,6 +8,45 @@ from System.Runtime.InteropServices import Marshal
 
 USED_RANGE_KEY = u"Used Range"
 USED_RANGE_DISPLAY = u"Full Worksheet Used Range"
+HIDDEN_UNICODE_CHARS = [
+    u"\ufeff", u"\u200b", u"\u200c", u"\u200d", u"\u200e", u"\u200f",
+    u"\u202a", u"\u202b", u"\u202c", u"\u202d", u"\u202e",
+    u"\u2060", u"\u2066", u"\u2067", u"\u2068", u"\u2069",
+]
+
+
+class ExcelTableData(list):
+    def __init__(self, rows=None, borders=None, border_available=False, border_method=u"", merged_ranges=None, merges_available=False, column_widths=None, row_heights=None, dimensions_available=False, dimensions_method=u"", dominant_region_font=None):
+        list.__init__(self, rows or [])
+        self.borders = borders
+        self.border_available = border_available
+        self.border_method = border_method
+        self.merged_ranges = merged_ranges or []
+        self.merges_available = merges_available
+        self.column_widths = column_widths
+        self.row_heights = row_heights
+        self.dimensions_available = dimensions_available
+        self.dimensions_method = dimensions_method
+        self.dominant_region_font = dominant_region_font
+
+
+def clean_hidden_unicode(value):
+    try:
+        text = value
+        for ch in HIDDEN_UNICODE_CHARS:
+            text = text.replace(ch, u"")
+        cleaned = []
+        for ch in text:
+            try:
+                code = ord(ch)
+                if code < 32 and ch not in (u"\t", u"\n", u"\r"):
+                    continue
+            except Exception:
+                pass
+            cleaned.append(ch)
+        return u"".join(cleaned)
+    except Exception:
+        return value
 
 
 def safe_unicode(value):
@@ -121,6 +160,17 @@ def _release_com_object(obj):
         pass
 
 
+def _set_excel_quiet(excel):
+    try:
+        excel.Visible = False
+    except Exception:
+        pass
+    try:
+        excel.DisplayAlerts = False
+    except Exception:
+        pass
+
+
 def _get_worksheets_via_com(file_path):
     """Read worksheet names using Excel COM (requires Excel installed)."""
     excel = None
@@ -131,8 +181,7 @@ def _get_worksheets_via_com(file_path):
             return None
 
         excel = System.Activator.CreateInstance(excel_type)
-        excel.Visible = False
-        excel.DisplayAlerts = False
+        _set_excel_quiet(excel)
 
         workbook = excel.Workbooks.Open(
             file_path,
@@ -272,8 +321,7 @@ def _get_used_range_via_com(file_path, worksheet_name):
             return None
 
         excel = System.Activator.CreateInstance(excel_type)
-        excel.Visible = False
-        excel.DisplayAlerts = False
+        _set_excel_quiet(excel)
 
         workbook = excel.Workbooks.Open(file_path, False, True)
         sheet = _find_worksheet_by_name(workbook, worksheet_name)
@@ -548,8 +596,7 @@ def _get_regions_via_com(file_path, worksheet_name):
             return None
 
         excel = System.Activator.CreateInstance(excel_type)
-        excel.Visible = False
-        excel.DisplayAlerts = False
+        _set_excel_quiet(excel)
 
         workbook = excel.Workbooks.Open(file_path, False, True)
         sheet = _find_worksheet_by_name(workbook, worksheet_name)
@@ -866,5 +913,1023 @@ def get_excel_regions(file_path, worksheet_name):
     if used and used != USED_RANGE_KEY:
         return [USED_RANGE_DISPLAY]
     return [USED_RANGE_DISPLAY]
+
+
+def _clean_cell_value(value):
+    if value is None:
+        return u""
+    try:
+        return safe_unicode(value).strip()
+    except Exception:
+        return u""
+
+
+def _normalize_region_key(label):
+    return _region_unique_key(_clean_region_label(clean_hidden_unicode(safe_unicode(label))))
+
+
+def _looks_like_excel_address(text):
+    try:
+        value = safe_unicode(text).replace("$", "").strip()
+        if "!" in value:
+            value = value.split("!")[-1]
+        value = value.strip("'").strip('"')
+        return re.match(r'^[A-Z]{1,3}[0-9]+(:[A-Z]{1,3}[0-9]+)?$', value.upper()) is not None
+    except Exception:
+        return False
+
+
+def _extract_legacy_region_address(region_display):
+    try:
+        text = safe_unicode(region_display).replace("$", "")
+        if ":" not in text:
+            return None
+        match = re.search(r'([A-Z]{1,3}[0-9]+:[A-Z]{1,3}[0-9]+)', text.upper())
+        if match:
+            return _normalize_excel_address(match.group(1))
+        match = re.search(r'([A-Z]{1,3}[0-9]+)', text.upper())
+        if match and _looks_like_excel_address(match.group(1)):
+            return _normalize_excel_address(match.group(1))
+    except Exception:
+        pass
+    return None
+
+
+def _find_address_by_clean_key(addresses, region_display):
+    try:
+        if not addresses:
+            return None
+        target_key = _normalize_region_key(region_display)
+        if target_key in addresses:
+            return addresses[target_key]
+
+        # Be lenient with stored/display strings from older versions.
+        target_raw = _region_unique_key(region_display)
+        for key, address in addresses.items():
+            if key == target_raw:
+                return address
+            if _normalize_region_key(key) == target_key:
+                return address
+    except Exception:
+        pass
+    return None
+
+
+def _add_region_address(addresses, label, address):
+    try:
+        clean_label = _clean_region_label(label)
+        key = _normalize_region_key(clean_label)
+        address = _normalize_excel_address(address)
+        if key and address:
+            addresses[key] = address
+    except Exception:
+        pass
+
+
+def _get_region_addresses_via_openpyxl(file_path, worksheet_name):
+    try:
+        import openpyxl
+        wb = openpyxl.load_workbook(file_path, read_only=False, data_only=True)
+        if worksheet_name not in wb.sheetnames:
+            wb.close()
+            return None
+
+        ws = wb[worksheet_name]
+        addresses = {}
+        _add_region_address(addresses, USED_RANGE_DISPLAY, ws.calculate_dimension())
+
+        try:
+            table_items = []
+            try:
+                table_items = ws.tables.items()
+            except Exception:
+                try:
+                    table_items = [(k, ws.tables[k]) for k in ws.tables]
+                except Exception:
+                    table_items = []
+            for name, table in table_items:
+                try:
+                    ref = table.ref
+                except Exception:
+                    ref = safe_unicode(table)
+                _add_region_address(addresses, u"Table %s" % safe_unicode(name), ref)
+        except Exception:
+            pass
+
+        try:
+            defined_names = wb.defined_names
+            try:
+                iterable = defined_names.definedName
+            except Exception:
+                try:
+                    iterable = defined_names.values()
+                except Exception:
+                    iterable = []
+            for dn in iterable:
+                try:
+                    name_text = safe_unicode(dn.name)
+                    destinations = list(dn.destinations)
+                    for title, coord in destinations:
+                        if safe_unicode(title) == safe_unicode(worksheet_name):
+                            if name_text.lower() == u"_xlnm.print_area":
+                                _add_region_address(addresses, u"Print Area", coord)
+                            else:
+                                _add_region_address(addresses, u"Name %s" % name_text, coord)
+                except Exception:
+                    pass
+        except Exception:
+            pass
+
+        wb.close()
+        return addresses
+    except Exception:
+        return None
+
+
+def _get_region_addresses_via_zipfile(file_path, worksheet_name):
+    try:
+        import zipfile
+        import xml.etree.ElementTree as ET
+
+        if not zipfile.is_zipfile(file_path):
+            return None
+
+        addresses = {}
+        with zipfile.ZipFile(file_path, 'r') as z:
+            sheet_path = _get_sheet_path_from_workbook_relationships(z, worksheet_name)
+            if sheet_path and sheet_path in z.namelist():
+                with z.open(sheet_path) as f:
+                    sheet_root = ET.parse(f).getroot()
+                ns = {'ns': 'http://schemas.openxmlformats.org/spreadsheetml/2006/main'}
+                dim = sheet_root.find('.//ns:dimension', ns)
+                if dim is not None and dim.get('ref'):
+                    _add_region_address(addresses, USED_RANGE_DISPLAY, dim.get('ref'))
+                else:
+                    _add_region_address(addresses, USED_RANGE_DISPLAY, _range_from_cells(sheet_root))
+
+                for table_path in _get_table_paths_for_sheet(z, sheet_path):
+                    if table_path not in z.namelist():
+                        continue
+                    try:
+                        with z.open(table_path) as f:
+                            table_root = ET.parse(f).getroot()
+                        table_name = table_root.get('displayName') or table_root.get('name') or os.path.basename(table_path)
+                        _add_region_address(addresses, u"Table %s" % safe_unicode(table_name), table_root.get('ref'))
+                    except Exception:
+                        pass
+
+            if 'xl/workbook.xml' in z.namelist():
+                with z.open('xl/workbook.xml') as f:
+                    workbook_root = ET.parse(f).getroot()
+                ns = {'ns': 'http://schemas.openxmlformats.org/spreadsheetml/2006/main'}
+                for dn in workbook_root.findall('.//ns:definedName', ns):
+                    try:
+                        name_text = dn.get('name') or 'Unnamed'
+                        sheet_name, addr = _parse_defined_name_text(dn.text)
+                        if safe_unicode(sheet_name) == safe_unicode(worksheet_name):
+                            if safe_unicode(name_text).lower() == u"_xlnm.print_area":
+                                _add_region_address(addresses, u"Print Area", addr)
+                            else:
+                                _add_region_address(addresses, u"Name %s" % safe_unicode(name_text), addr)
+                    except Exception:
+                        pass
+        return addresses
+    except Exception:
+        return None
+
+
+def _get_region_address_via_com(file_path, worksheet_name, region):
+    excel = None
+    workbook = None
+    sheet = None
+    try:
+        excel_type = System.Type.GetTypeFromProgID("Excel.Application")
+        if excel_type is None:
+            return None
+        excel = System.Activator.CreateInstance(excel_type)
+        _set_excel_quiet(excel)
+        workbook = excel.Workbooks.Open(file_path, False, True)
+        sheet = _find_worksheet_by_name(workbook, worksheet_name)
+        if sheet is None:
+            return None
+
+        target_key = _normalize_region_key(region)
+        if not target_key or target_key == _normalize_region_key(USED_RANGE_DISPLAY):
+            try:
+                return _normalize_excel_address(sheet.UsedRange.Address(False, False))
+            except Exception:
+                return None
+
+        try:
+            list_objects = sheet.ListObjects
+            for i in range(1, list_objects.Count + 1):
+                lo = list_objects.Item(i)
+                lo_range = None
+                try:
+                    if _normalize_region_key(lo.Name) == target_key:
+                        lo_range = lo.Range
+                        return _normalize_excel_address(lo_range.Address(False, False))
+                except Exception:
+                    pass
+                finally:
+                    _release_com_object(lo_range)
+                    _release_com_object(lo)
+            _release_com_object(list_objects)
+        except Exception:
+            pass
+
+        try:
+            names = workbook.Names
+            for i in range(1, names.Count + 1):
+                name_obj = names.Item(i)
+                ref_range = None
+                try:
+                    ref_range = name_obj.RefersToRange
+                    if safe_unicode(ref_range.Worksheet.Name) == safe_unicode(worksheet_name):
+                        name_text = safe_unicode(name_obj.Name)
+                        if "!" in name_text:
+                            name_text = name_text.split("!")[-1]
+                        label = u"Print Area" if name_text.lower() == u"_xlnm.print_area" else name_text
+                        if _normalize_region_key(label) == target_key:
+                            return _normalize_excel_address(ref_range.Address(False, False))
+                except Exception:
+                    pass
+                finally:
+                    _release_com_object(ref_range)
+                    _release_com_object(name_obj)
+            _release_com_object(names)
+        except Exception:
+            pass
+    except Exception:
+        return None
+    finally:
+        _release_com_object(sheet)
+        try:
+            if workbook:
+                workbook.Close(False)
+        except Exception:
+            pass
+        _release_com_object(workbook)
+        try:
+            if excel:
+                excel.Quit()
+        except Exception:
+            pass
+        _release_com_object(excel)
+    return None
+
+
+def _resolve_region_address_with_method(file_path, worksheet_name, region_display):
+    file_path = safe_unicode(file_path)
+    worksheet_name = safe_unicode(worksheet_name)
+    region_display = safe_unicode(region_display) or USED_RANGE_DISPLAY
+
+    legacy_address = _extract_legacy_region_address(region_display)
+    if legacy_address:
+        return legacy_address, "legacy display string", ""
+
+    if _looks_like_excel_address(region_display):
+        return _normalize_excel_address(region_display), "direct address", ""
+
+    key = _normalize_region_key(region_display)
+    used_key = _normalize_region_key(USED_RANGE_DISPLAY)
+    if not key or key == used_key or safe_unicode(region_display) == USED_RANGE_KEY:
+        address = get_used_range_address(file_path, worksheet_name)
+        if address and address != USED_RANGE_KEY:
+            return address, "used range", ""
+        return None, "used range", "Could not resolve worksheet used range."
+
+    ext = os.path.splitext(file_path)[1].lower()
+    if ext in ('.xlsx', '.xlsm'):
+        addresses = _get_region_addresses_via_zipfile(file_path, worksheet_name)
+        result = _find_address_by_clean_key(addresses, region_display)
+        if result:
+            return result, "xlsx xml", ""
+
+    addresses = _get_region_addresses_via_openpyxl(file_path, worksheet_name)
+    result = _find_address_by_clean_key(addresses, region_display)
+    if result:
+        return result, "openpyxl", ""
+
+    result = _get_region_address_via_com(file_path, worksheet_name, region_display)
+    if result:
+        return result, "Excel COM", ""
+
+    return None, "not resolved", "No matching named range, Excel table, or print area was found."
+
+
+def resolve_region_to_address(file_path, worksheet_name, region_display):
+    address, method, reason = _resolve_region_address_with_method(file_path, worksheet_name, region_display)
+    return address
+
+
+def _address_to_bounds(address):
+    try:
+        text = _normalize_excel_address(address)
+        if not text:
+            return None
+        parts = text.split(":")
+        if len(parts) == 1:
+            parts.append(parts[0])
+        match1 = re.match(r'^([A-Z]+)([0-9]+)$', parts[0].upper())
+        match2 = re.match(r'^([A-Z]+)([0-9]+)$', parts[1].upper())
+        if not match1 or not match2:
+            return None
+        min_col = _column_letter_to_number(match1.group(1))
+        min_row = int(match1.group(2))
+        max_col = _column_letter_to_number(match2.group(1))
+        max_row = int(match2.group(2))
+        if max_col < min_col:
+            min_col, max_col = max_col, min_col
+        if max_row < min_row:
+            min_row, max_row = max_row, min_row
+        return min_col, min_row, max_col, max_row
+    except Exception:
+        return None
+
+
+def _read_cell_values_via_openpyxl(file_path, worksheet_name, address):
+    wb = None
+    try:
+        import openpyxl
+        try:
+            from openpyxl.utils.cell import range_boundaries
+        except Exception:
+            range_boundaries = None
+
+        wb = openpyxl.load_workbook(file_path, read_only=True, data_only=True)
+        if worksheet_name not in wb.sheetnames:
+            wb.close()
+            return None, "Worksheet was not found by openpyxl."
+        ws = wb[worksheet_name]
+
+        if range_boundaries:
+            min_col, min_row, max_col, max_row = range_boundaries(address)
+        else:
+            bounds = _address_to_bounds(address)
+            if not bounds:
+                wb.close()
+                return None, "Openpyxl could not parse address '%s'." % safe_unicode(address)
+            min_col, min_row, max_col, max_row = bounds
+
+        data = []
+        for row in ws.iter_rows(
+            min_row=min_row,
+            max_row=max_row,
+            min_col=min_col,
+            max_col=max_col,
+            values_only=True,
+        ):
+            data.append([_clean_cell_value(value) for value in row])
+        column_widths, row_heights = _read_openpyxl_dimensions(ws, min_col, min_row, max_col, max_row)
+        wb.close()
+        return ExcelTableData(data, None, False, u"openpyxl values", None, False, column_widths, row_heights, column_widths is not None or row_heights is not None, u"openpyxl"), ""
+    except Exception as ex:
+        try:
+            if wb:
+                wb.close()
+        except Exception:
+            pass
+        return None, safe_unicode(ex)
+
+
+def _cell_side_has_border(side):
+    try:
+        if side is None:
+            return False
+        style = getattr(side, "style", None)
+        if style:
+            return True
+    except Exception:
+        pass
+    return False
+
+
+def _cell_border_dict(cell):
+    result = {"top": False, "right": False, "bottom": False, "left": False}
+    try:
+        border = cell.border
+        result["top"] = _cell_side_has_border(border.top)
+        result["right"] = _cell_side_has_border(border.right)
+        result["bottom"] = _cell_side_has_border(border.bottom)
+        result["left"] = _cell_side_has_border(border.left)
+    except Exception:
+        pass
+    return result
+
+
+def _add_font_count(font_counts, font_name):
+    try:
+        name = clean_hidden_unicode(safe_unicode(font_name)).strip()
+    except Exception:
+        name = u""
+    if not name:
+        return
+    try:
+        font_counts[name] = font_counts.get(name, 0) + 1
+    except Exception:
+        pass
+
+
+def _dominant_font_from_counts(font_counts):
+    dominant_name = None
+    dominant_count = 0
+    try:
+        for name, count in font_counts.items():
+            if count > dominant_count:
+                dominant_name = name
+                dominant_count = count
+    except Exception:
+        pass
+    return dominant_name
+
+
+def _read_openpyxl_dimensions(ws, min_col, min_row, max_col, max_row):
+    column_widths = []
+    row_heights = []
+    try:
+        default_col_width = None
+        try:
+            default_col_width = ws.sheet_format.defaultColWidth
+        except Exception:
+            default_col_width = None
+        for col_index in range(min_col, max_col + 1):
+            width = None
+            try:
+                col_letter = _number_to_column_letter(col_index)
+                width = ws.column_dimensions[col_letter].width
+            except Exception:
+                width = None
+            if width is None:
+                width = default_col_width
+            try:
+                column_widths.append(float(width) if width is not None else None)
+            except Exception:
+                column_widths.append(None)
+
+        default_row_height = None
+        try:
+            default_row_height = ws.sheet_format.defaultRowHeight
+        except Exception:
+            default_row_height = None
+        for row_index in range(min_row, max_row + 1):
+            height = None
+            try:
+                height = ws.row_dimensions[row_index].height
+            except Exception:
+                height = None
+            if height is None:
+                height = default_row_height
+            try:
+                row_heights.append(float(height) if height is not None else None)
+            except Exception:
+                row_heights.append(None)
+    except Exception:
+        return None, None
+    return column_widths, row_heights
+
+
+def _has_any_border(borders):
+    try:
+        for row in borders or []:
+            for cell in row or []:
+                if cell.get("top") or cell.get("right") or cell.get("bottom") or cell.get("left"):
+                    return True
+    except Exception:
+        pass
+    return False
+
+
+def _add_merged_range(merged_ranges, min_col, min_row, max_col, max_row, selected_min_col, selected_min_row, selected_max_col, selected_max_row):
+    try:
+        if max_col < selected_min_col or min_col > selected_max_col:
+            return
+        if max_row < selected_min_row or min_row > selected_max_row:
+            return
+
+        clipped_min_col = max(min_col, selected_min_col)
+        clipped_max_col = min(max_col, selected_max_col)
+        clipped_min_row = max(min_row, selected_min_row)
+        clipped_max_row = min(max_row, selected_max_row)
+        if clipped_max_col <= clipped_min_col and clipped_max_row <= clipped_min_row:
+            return
+
+        merged_ranges.append({
+            "min_col": int(clipped_min_col - selected_min_col),
+            "min_row": int(clipped_min_row - selected_min_row),
+            "max_col": int(clipped_max_col - selected_min_col),
+            "max_row": int(clipped_max_row - selected_min_row),
+        })
+    except Exception:
+        pass
+
+
+def _read_cell_values_and_borders_via_openpyxl(file_path, worksheet_name, address):
+    wb = None
+    try:
+        import openpyxl
+        try:
+            from openpyxl.utils.cell import range_boundaries
+        except Exception:
+            range_boundaries = None
+
+        wb = openpyxl.load_workbook(file_path, read_only=False, data_only=True)
+        if worksheet_name not in wb.sheetnames:
+            wb.close()
+            return None, "Worksheet was not found by openpyxl."
+        ws = wb[worksheet_name]
+
+        if range_boundaries:
+            min_col, min_row, max_col, max_row = range_boundaries(address)
+        else:
+            bounds = _address_to_bounds(address)
+            if not bounds:
+                wb.close()
+                return None, "Openpyxl could not parse address '%s'." % safe_unicode(address)
+            min_col, min_row, max_col, max_row = bounds
+
+        data = []
+        borders = []
+        font_counts = {}
+        for row_index in range(min_row, max_row + 1):
+            row_values = []
+            row_borders = []
+            for col_index in range(min_col, max_col + 1):
+                cell = ws.cell(row=row_index, column=col_index)
+                row_values.append(_clean_cell_value(cell.value))
+                row_borders.append(_cell_border_dict(cell))
+                try:
+                    _add_font_count(font_counts, cell.font.name)
+                except Exception:
+                    pass
+            data.append(row_values)
+            borders.append(row_borders)
+        merged_ranges = []
+        try:
+            for merged_range in ws.merged_cells.ranges:
+                try:
+                    try:
+                        merged_min_col = int(merged_range.min_col)
+                        merged_min_row = int(merged_range.min_row)
+                        merged_max_col = int(merged_range.max_col)
+                        merged_max_row = int(merged_range.max_row)
+                    except Exception:
+                        bounds = _address_to_bounds(safe_unicode(merged_range))
+                        if not bounds:
+                            continue
+                        merged_min_col, merged_min_row, merged_max_col, merged_max_row = bounds
+                    _add_merged_range(
+                        merged_ranges,
+                        merged_min_col,
+                        merged_min_row,
+                        merged_max_col,
+                        merged_max_row,
+                        min_col,
+                        min_row,
+                        max_col,
+                        max_row,
+                    )
+                except Exception:
+                    pass
+        except Exception:
+            pass
+        column_widths, row_heights = _read_openpyxl_dimensions(ws, min_col, min_row, max_col, max_row)
+        dominant_region_font = _dominant_font_from_counts(font_counts)
+        wb.close()
+        return ExcelTableData(data, borders, True, u"openpyxl", merged_ranges, True, column_widths, row_heights, column_widths is not None or row_heights is not None, u"openpyxl", dominant_region_font), ""
+    except Exception as ex:
+        try:
+            if wb:
+                wb.close()
+        except Exception:
+            pass
+        return None, safe_unicode(ex)
+
+
+def _read_shared_strings(zip_file):
+    try:
+        import xml.etree.ElementTree as ET
+        if 'xl/sharedStrings.xml' not in zip_file.namelist():
+            return []
+        with zip_file.open('xl/sharedStrings.xml') as f:
+            root = ET.parse(f).getroot()
+        strings = []
+        for si in root:
+            parts = []
+            for elem in si.iter():
+                if elem.tag.endswith('t') and elem.text is not None:
+                    parts.append(safe_unicode(elem.text))
+            strings.append(u"".join(parts))
+        return strings
+    except Exception:
+        return []
+
+
+def _get_cell_text_from_xml(cell, shared_strings):
+    try:
+        cell_type = cell.get('t')
+        if cell_type == 'inlineStr':
+            parts = []
+            for elem in cell.iter():
+                if elem.tag.endswith('t') and elem.text is not None:
+                    parts.append(safe_unicode(elem.text))
+            return _clean_cell_value(u"".join(parts))
+
+        value_elem = None
+        for child in cell:
+            if child.tag.endswith('v'):
+                value_elem = child
+                break
+        if value_elem is None or value_elem.text is None:
+            return u""
+
+        raw = safe_unicode(value_elem.text)
+        if cell_type == 's':
+            try:
+                index = int(raw)
+                if 0 <= index < len(shared_strings):
+                    return _clean_cell_value(shared_strings[index])
+            except Exception:
+                return u""
+        return _clean_cell_value(raw)
+    except Exception:
+        return u""
+
+
+def _read_border_styles_from_zip(zip_file):
+    try:
+        import xml.etree.ElementTree as ET
+        if 'xl/styles.xml' not in zip_file.namelist():
+            return None
+        with zip_file.open('xl/styles.xml') as f:
+            root = ET.parse(f).getroot()
+
+        borders = []
+        border_parent = None
+        cell_xfs = []
+        for elem in root:
+            if elem.tag.endswith('borders'):
+                border_parent = elem
+            elif elem.tag.endswith('cellXfs'):
+                cell_xfs = list(elem)
+
+        if border_parent is None:
+            return None
+
+        for border in list(border_parent):
+            item = {"top": False, "right": False, "bottom": False, "left": False}
+            for side in list(border):
+                name = side.tag.split('}')[-1]
+                if name in item and side.get('style'):
+                    item[name] = True
+            borders.append(item)
+
+        style_borders = {}
+        for index, xf in enumerate(cell_xfs):
+            try:
+                border_id = int(xf.get('borderId') or 0)
+                if 0 <= border_id < len(borders):
+                    style_borders[index] = borders[border_id]
+            except Exception:
+                pass
+        return style_borders
+    except Exception:
+        return None
+
+
+def _get_cell_border_from_xml(cell, style_borders):
+    try:
+        if not style_borders:
+            return {"top": False, "right": False, "bottom": False, "left": False}
+        style_index = int(cell.get('s') or 0)
+        if style_index in style_borders:
+            item = style_borders[style_index]
+            return {
+                "top": bool(item.get("top")),
+                "right": bool(item.get("right")),
+                "bottom": bool(item.get("bottom")),
+                "left": bool(item.get("left")),
+            }
+    except Exception:
+        pass
+    return {"top": False, "right": False, "bottom": False, "left": False}
+
+
+def _read_merged_ranges_from_sheet_xml(root, selected_min_col, selected_min_row, selected_max_col, selected_max_row):
+    merged_ranges = []
+    try:
+        for elem in root.iter():
+            if not elem.tag.endswith('mergeCell'):
+                continue
+            ref = elem.get('ref')
+            if not ref:
+                continue
+            bounds = _address_to_bounds(ref)
+            if not bounds:
+                continue
+            min_col, min_row, max_col, max_row = bounds
+            _add_merged_range(
+                merged_ranges,
+                min_col,
+                min_row,
+                max_col,
+                max_row,
+                selected_min_col,
+                selected_min_row,
+                selected_max_col,
+                selected_max_row,
+            )
+    except Exception:
+        pass
+    return merged_ranges
+
+
+def _read_dimensions_from_sheet_xml(root, min_col, min_row, max_col, max_row):
+    column_widths = []
+    row_heights = []
+    default_col_width = None
+    default_row_height = None
+    try:
+        for elem in root.iter():
+            if elem.tag.endswith('sheetFormatPr'):
+                try:
+                    if elem.get('defaultColWidth') is not None:
+                        default_col_width = float(elem.get('defaultColWidth'))
+                except Exception:
+                    default_col_width = None
+                try:
+                    if elem.get('defaultRowHeight') is not None:
+                        default_row_height = float(elem.get('defaultRowHeight'))
+                except Exception:
+                    default_row_height = None
+                break
+
+        widths_by_col = {}
+        for elem in root.iter():
+            if not elem.tag.endswith('col'):
+                continue
+            try:
+                col_min = int(elem.get('min'))
+                col_max = int(elem.get('max'))
+                width = elem.get('width')
+                width = float(width) if width is not None else default_col_width
+                for col_index in range(col_min, col_max + 1):
+                    widths_by_col[col_index] = width
+            except Exception:
+                pass
+
+        heights_by_row = {}
+        for elem in root.iter():
+            if not elem.tag.endswith('row'):
+                continue
+            try:
+                row_index = int(elem.get('r'))
+                height = elem.get('ht')
+                if height is not None:
+                    heights_by_row[row_index] = float(height)
+            except Exception:
+                pass
+
+        for col_index in range(min_col, max_col + 1):
+            column_widths.append(widths_by_col.get(col_index, default_col_width))
+        for row_index in range(min_row, max_row + 1):
+            row_heights.append(heights_by_row.get(row_index, default_row_height))
+    except Exception:
+        return None, None
+    return column_widths, row_heights
+
+
+def _read_cell_values_via_zipfile(file_path, worksheet_name, address):
+    try:
+        import zipfile
+        import xml.etree.ElementTree as ET
+
+        bounds = _address_to_bounds(address)
+        if not bounds:
+            return None, "ZIP reader could not parse address '%s'." % safe_unicode(address)
+        min_col, min_row, max_col, max_row = bounds
+
+        if not zipfile.is_zipfile(file_path):
+            return None, "File is not an XLSX/XLSM ZIP package."
+
+        with zipfile.ZipFile(file_path, 'r') as z:
+            sheet_path = _get_sheet_path_from_workbook_relationships(z, worksheet_name)
+            if not sheet_path or sheet_path not in z.namelist():
+                return None, "Worksheet XML was not found in the workbook."
+            shared_strings = _read_shared_strings(z)
+            with z.open(sheet_path) as f:
+                root = ET.parse(f).getroot()
+
+        values = {}
+        for cell in root.iter():
+            ref = cell.get('r')
+            if not ref:
+                continue
+            match = re.match(r'^([A-Z]+)([0-9]+)$', ref.upper())
+            if not match:
+                continue
+            col = _column_letter_to_number(match.group(1))
+            row = int(match.group(2))
+            if min_col <= col <= max_col and min_row <= row <= max_row:
+                values[(row, col)] = _get_cell_text_from_xml(cell, shared_strings)
+
+        data = []
+        for row_index in range(min_row, max_row + 1):
+            row_values = []
+            for col_index in range(min_col, max_col + 1):
+                row_values.append(values.get((row_index, col_index), u""))
+            data.append(row_values)
+        column_widths, row_heights = _read_dimensions_from_sheet_xml(root, min_col, min_row, max_col, max_row)
+        return ExcelTableData(data, None, False, u"zip values", None, False, column_widths, row_heights, column_widths is not None or row_heights is not None, u"zip"), ""
+    except Exception as ex:
+        return None, safe_unicode(ex)
+
+
+def _read_cell_values_and_borders_via_zipfile(file_path, worksheet_name, address):
+    try:
+        import zipfile
+        import xml.etree.ElementTree as ET
+
+        bounds = _address_to_bounds(address)
+        if not bounds:
+            return None, "ZIP reader could not parse address '%s'." % safe_unicode(address)
+        min_col, min_row, max_col, max_row = bounds
+
+        if not zipfile.is_zipfile(file_path):
+            return None, "File is not an XLSX/XLSM ZIP package."
+
+        with zipfile.ZipFile(file_path, 'r') as z:
+            sheet_path = _get_sheet_path_from_workbook_relationships(z, worksheet_name)
+            if not sheet_path or sheet_path not in z.namelist():
+                return None, "Worksheet XML was not found in the workbook."
+            shared_strings = _read_shared_strings(z)
+            style_borders = _read_border_styles_from_zip(z)
+            with z.open(sheet_path) as f:
+                root = ET.parse(f).getroot()
+
+        values = {}
+        borders = {}
+        for cell in root.iter():
+            ref = cell.get('r')
+            if not ref:
+                continue
+            match = re.match(r'^([A-Z]+)([0-9]+)$', ref.upper())
+            if not match:
+                continue
+            col = _column_letter_to_number(match.group(1))
+            row = int(match.group(2))
+            if min_col <= col <= max_col and min_row <= row <= max_row:
+                values[(row, col)] = _get_cell_text_from_xml(cell, shared_strings)
+                borders[(row, col)] = _get_cell_border_from_xml(cell, style_borders)
+
+        data = []
+        border_rows = []
+        empty_border = {"top": False, "right": False, "bottom": False, "left": False}
+        for row_index in range(min_row, max_row + 1):
+            row_values = []
+            row_borders = []
+            for col_index in range(min_col, max_col + 1):
+                row_values.append(values.get((row_index, col_index), u""))
+                row_borders.append(borders.get((row_index, col_index), empty_border))
+            data.append(row_values)
+            border_rows.append(row_borders)
+        merged_ranges = _read_merged_ranges_from_sheet_xml(root, min_col, min_row, max_col, max_row)
+        column_widths, row_heights = _read_dimensions_from_sheet_xml(root, min_col, min_row, max_col, max_row)
+        return ExcelTableData(data, border_rows, style_borders is not None, u"zip", merged_ranges, True, column_widths, row_heights, column_widths is not None or row_heights is not None, u"zip"), ""
+    except Exception as ex:
+        return None, safe_unicode(ex)
+
+
+def _read_cell_values_via_com(file_path, worksheet_name, address):
+    excel = None
+    workbook = None
+    sheet = None
+    cell_range = None
+    try:
+        excel_type = System.Type.GetTypeFromProgID("Excel.Application")
+        if excel_type is None:
+            return None, "Excel COM is not available."
+        excel = System.Activator.CreateInstance(excel_type)
+        _set_excel_quiet(excel)
+        workbook = excel.Workbooks.Open(file_path, False, True)
+        sheet = _find_worksheet_by_name(workbook, worksheet_name)
+        if sheet is None:
+            return None, "Worksheet was not found by Excel COM."
+        if safe_unicode(address) == USED_RANGE_KEY:
+            cell_range = sheet.UsedRange
+        else:
+            cell_range = sheet.Range(address)
+        values = cell_range.Value2
+        rows = int(cell_range.Rows.Count)
+        cols = int(cell_range.Columns.Count)
+        data = []
+        for r in range(1, rows + 1):
+            row_values = []
+            for c in range(1, cols + 1):
+                try:
+                    if rows == 1 and cols == 1:
+                        value = values
+                    else:
+                        value = values[r, c]
+                except Exception:
+                    try:
+                        value = cell_range.Cells(r, c).Value2
+                    except Exception:
+                        value = None
+                row_values.append(_clean_cell_value(value))
+            data.append(row_values)
+        return data, ""
+    except Exception as ex:
+        return None, safe_unicode(ex)
+    finally:
+        _release_com_object(cell_range)
+        _release_com_object(sheet)
+        try:
+            if workbook:
+                workbook.Close(False)
+        except Exception:
+            pass
+        _release_com_object(workbook)
+        try:
+            if excel:
+                excel.Quit()
+        except Exception:
+            pass
+        _release_com_object(excel)
+
+
+def read_excel_table_values(file_path, worksheet_name, region):
+    """
+    Return (data, row_count, column_count) for the requested worksheet region.
+    Data is a 2D list of Unicode strings.
+    """
+    original_file_path = file_path
+    if not original_file_path or not os.path.exists(original_file_path):
+        return [], 0, 0
+
+    worksheet_name = clean_hidden_unicode(safe_unicode(worksheet_name))
+    region = clean_hidden_unicode(safe_unicode(region))
+    address, resolve_method, resolve_reason = _resolve_region_address_with_method(original_file_path, worksheet_name, region)
+
+    data = None
+    attempted = []
+    if address:
+        data, reason = _read_cell_values_and_borders_via_openpyxl(original_file_path, worksheet_name, address)
+        attempted.append(("openpyxl borders", reason))
+        if data is None:
+            ext = os.path.splitext(safe_unicode(original_file_path))[1].lower()
+            if ext in ('.xlsx', '.xlsm'):
+                data, reason = _read_cell_values_and_borders_via_zipfile(original_file_path, worksheet_name, address)
+                attempted.append(("zip borders", reason))
+        if data is None:
+            data, reason = _read_cell_values_via_openpyxl(original_file_path, worksheet_name, address)
+            attempted.append(("openpyxl values", reason))
+            if data is not None and not isinstance(data, ExcelTableData):
+                data = ExcelTableData(data, None, False, u"openpyxl values")
+        if data is None:
+            ext = os.path.splitext(safe_unicode(original_file_path))[1].lower()
+            if ext in ('.xlsx', '.xlsm'):
+                data, reason = _read_cell_values_via_zipfile(original_file_path, worksheet_name, address)
+                attempted.append(("zip values", reason))
+                if data is not None and not isinstance(data, ExcelTableData):
+                    data = ExcelTableData(data, None, False, u"zip values")
+        if data is None:
+            data, reason = _read_cell_values_via_com(original_file_path, worksheet_name, address)
+            attempted.append(("COM", reason))
+            if data is not None:
+                data = ExcelTableData(data, None, False, u"COM")
+    if data is None:
+        data = ExcelTableData([], None, False, u"")
+
+    row_count = len(data)
+    column_count = 0
+    for row in data:
+        try:
+            column_count = max(column_count, len(row))
+        except Exception:
+            pass
+    for row in data:
+        while len(row) < column_count:
+            row.append(u"")
+    if row_count <= 0 or column_count <= 0:
+        print("Table Importer Excel read debug:")
+        print("  file path: %s" % safe_unicode(original_file_path))
+        print("  worksheet: %s" % safe_unicode(worksheet_name))
+        print("  region display: %s" % safe_unicode(region))
+        print("  resolved address: %s" % safe_unicode(address))
+        print("  method used: resolve=%s" % safe_unicode(resolve_method))
+        if attempted:
+            for method, reason in attempted:
+                print("  reader attempted: %s | reason: %s" % (safe_unicode(method), safe_unicode(reason)))
+        else:
+            print("  reader attempted: none")
+        reason = resolve_reason or "No cells returned."
+        print("  reason: %s" % safe_unicode(reason))
+    return data, row_count, column_count
+
+
+def read_excel_region_data(file_path, worksheet_name, region_display):
+    data, row_count, column_count = read_excel_table_values(file_path, worksheet_name, region_display)
+    return data
 
 
