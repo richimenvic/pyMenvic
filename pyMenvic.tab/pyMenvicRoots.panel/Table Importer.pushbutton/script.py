@@ -46,7 +46,7 @@ script_dir = os.path.dirname(__file__)
 if script_dir not in sys.path:
     sys.path.append(script_dir)
 
-TOOL_VERSION = "MVP 0.3.37_status_alignment_cleanup"
+TOOL_VERSION = "MVP 0.3.40_merged_grid_suppression"
 TOOL_VERSION_LABEL = "MVP 0.3.37"
 DEBUG_OUTPUT = False
 USE_WRAPPED_TEXT_NOTES = False
@@ -91,8 +91,10 @@ ADAPTIVE_CONTENT_WEIGHT = 0.58
 ADAPTIVE_EXCEL_WEIGHT = 0.42
 MIN_ROW_HEIGHT_FT = 0.16
 MAX_ROW_HEIGHT_FT = 0.48
-TEXT_PADDING_X = 0.022
-TEXT_PADDING_Y = 0.020
+MIN_BODY_ROW_HEIGHT_FT = 0.18
+BODY_ROW_HEIGHT_SCALE = 1.12
+TEXT_PADDING_X = 0.028
+TEXT_PADDING_Y = 0.024
 APPROX_CHARS_PER_FOOT = 18
 ROW_HEIGHT_SCALE = EXCEL_ROW_HEIGHT_SCALE
 TABLE_TEXT_OFFSET_X = TEXT_PADDING_X
@@ -1845,6 +1847,43 @@ def _calculate_row_heights(table_data, rows, cols, column_widths, top_left_map, 
     return heights
 
 
+def _is_body_row_for_readability(table_data, row_index, top_left_map):
+    if _row_header_like(table_data, row_index):
+        return False
+    try:
+        row = table_data[row_index]
+    except Exception:
+        return True
+    for col_index in range(0, len(row)):
+        try:
+            value = clean_display_text(row[col_index]).strip()
+            if not value:
+                continue
+            if _cell_header_or_title_like(table_data, row_index, col_index, value, top_left_map):
+                return False
+        except Exception:
+            pass
+    return True
+
+
+def _apply_readability_row_heights(table_data, row_heights, top_left_map):
+    adjusted = []
+    for index in range(0, len(row_heights)):
+        try:
+            height = float(row_heights[index])
+        except Exception:
+            height = TABLE_ROW_HEIGHT
+        if _is_body_row_for_readability(table_data, index, top_left_map):
+            try:
+                height = max(height * BODY_ROW_HEIGHT_SCALE, MIN_BODY_ROW_HEIGHT_FT)
+            except Exception:
+                height = max(height, MIN_BODY_ROW_HEIGHT_FT)
+        if height > MAX_ROW_HEIGHT_FT:
+            height = MAX_ROW_HEIGHT_FT
+        adjusted.append(height)
+    return adjusted
+
+
 def excel_column_width_to_feet(width):
     try:
         if width is None:
@@ -1971,34 +2010,153 @@ def _get_table_borders(table_data, rows, cols):
         return None, False
 
 
-def _draw_full_grid(doc, view, x_positions, y_positions, entry=None):
+def _draw_full_grid(doc, view, x_positions, y_positions, top_left_map=None, entry=None):
     drawn_lines = set()
-    for x in x_positions:
-        _make_line_once(doc, view, drawn_lines, x, y_positions[0], x, y_positions[-1], entry)
-    for y in y_positions:
-        _make_line_once(doc, view, drawn_lines, x_positions[0], y, x_positions[-1], y, entry)
+    rows = max(0, len(y_positions) - 1)
+    cols = max(0, len(x_positions) - 1)
+    for boundary_index in range(0, cols + 1):
+        blocked_segments = _get_internal_merged_vertical_blocks(top_left_map, boundary_index, y_positions)
+        _draw_vertical_segment_with_blocks(doc, view, drawn_lines, x_positions[boundary_index], y_positions[0], y_positions[rows], blocked_segments, entry)
+    for boundary_index in range(0, rows + 1):
+        blocked_segments = _get_internal_merged_horizontal_blocks(top_left_map, boundary_index, x_positions)
+        _draw_horizontal_segment_with_blocks(doc, view, drawn_lines, x_positions[0], x_positions[cols], y_positions[boundary_index], blocked_segments, entry)
 
 
-def _draw_excel_borders(doc, view, borders, rows, cols, x_positions, y_positions, entry=None):
+def _cell_border_value(borders, row_index, col_index, side):
+    try:
+        return bool(borders[row_index][col_index].get(side))
+    except Exception:
+        return False
+
+
+def _horizontal_border_exists(borders, rows, cols, boundary_index, col_index):
+    if col_index < 0 or col_index >= cols:
+        return False
+    if boundary_index <= 0:
+        return _cell_border_value(borders, 0, col_index, "top")
+    if boundary_index >= rows:
+        return _cell_border_value(borders, rows - 1, col_index, "bottom")
+    return (
+        _cell_border_value(borders, boundary_index - 1, col_index, "bottom")
+        or _cell_border_value(borders, boundary_index, col_index, "top")
+    )
+
+
+def _vertical_border_exists(borders, rows, cols, boundary_index, row_index):
+    if row_index < 0 or row_index >= rows:
+        return False
+    if boundary_index <= 0:
+        return _cell_border_value(borders, row_index, 0, "left")
+    if boundary_index >= cols:
+        return _cell_border_value(borders, row_index, cols - 1, "right")
+    return (
+        _cell_border_value(borders, row_index, boundary_index - 1, "right")
+        or _cell_border_value(borders, row_index, boundary_index, "left")
+    )
+
+
+def _subtract_blocked_segments(start_value, end_value, blocked_segments):
+    start_value = float(start_value)
+    end_value = float(end_value)
+    low_value = min(start_value, end_value)
+    high_value = max(start_value, end_value)
+    segments = [(low_value, high_value)]
+    cleaned_blocks = []
+    for block_start, block_end in blocked_segments or []:
+        try:
+            block_low = max(low_value, min(float(block_start), float(block_end)))
+            block_high = min(high_value, max(float(block_start), float(block_end)))
+            if block_high > block_low:
+                cleaned_blocks.append((block_low, block_high))
+        except Exception:
+            pass
+    cleaned_blocks.sort()
+    for block_low, block_high in cleaned_blocks:
+        next_segments = []
+        for seg_low, seg_high in segments:
+            if block_high <= seg_low or block_low >= seg_high:
+                next_segments.append((seg_low, seg_high))
+                continue
+            if block_low > seg_low:
+                next_segments.append((seg_low, block_low))
+            if block_high < seg_high:
+                next_segments.append((block_high, seg_high))
+        segments = next_segments
+    return segments
+
+
+def _get_internal_merged_horizontal_blocks(top_left_map, boundary_index, x_positions):
+    blocks = []
+    try:
+        for span in (top_left_map or {}).values():
+            min_row, min_col, max_row, max_col = span
+            if int(min_row) < int(boundary_index) and int(boundary_index) <= int(max_row):
+                blocks.append((x_positions[int(min_col)], x_positions[int(max_col) + 1]))
+    except Exception:
+        pass
+    return blocks
+
+
+def _get_internal_merged_vertical_blocks(top_left_map, boundary_index, y_positions):
+    blocks = []
+    try:
+        for span in (top_left_map or {}).values():
+            min_row, min_col, max_row, max_col = span
+            if int(min_col) < int(boundary_index) and int(boundary_index) <= int(max_col):
+                blocks.append((y_positions[int(min_row)], y_positions[int(max_row) + 1]))
+    except Exception:
+        pass
+    return blocks
+
+
+def _draw_horizontal_segment_with_blocks(doc, view, drawn_lines, x1, x2, y, blocked_segments, entry=None):
+    remaining_segments = _subtract_blocked_segments(x1, x2, blocked_segments)
+    for seg_start, seg_end in remaining_segments:
+        _make_line_once(doc, view, drawn_lines, seg_start, y, seg_end, y, entry)
+
+
+def _draw_vertical_segment_with_blocks(doc, view, drawn_lines, x, y1, y2, blocked_segments, entry=None):
+    remaining_segments = _subtract_blocked_segments(y1, y2, blocked_segments)
+    for seg_start, seg_end in remaining_segments:
+        _make_line_once(doc, view, drawn_lines, x, seg_end, x, seg_start, entry)
+
+
+def _draw_horizontal_border_runs(doc, view, drawn_lines, borders, rows, cols, x_positions, y_positions, top_left_map=None, entry=None):
+    for boundary_index in range(0, rows + 1):
+        blocked_segments = _get_internal_merged_horizontal_blocks(top_left_map, boundary_index, x_positions)
+        run_start = None
+        for col_index in range(0, cols):
+            if _horizontal_border_exists(borders, rows, cols, boundary_index, col_index):
+                if run_start is None:
+                    run_start = col_index
+            else:
+                if run_start is not None:
+                    _draw_horizontal_segment_with_blocks(doc, view, drawn_lines, x_positions[run_start], x_positions[col_index], y_positions[boundary_index], blocked_segments, entry)
+                    run_start = None
+        if run_start is not None:
+            _draw_horizontal_segment_with_blocks(doc, view, drawn_lines, x_positions[run_start], x_positions[cols], y_positions[boundary_index], blocked_segments, entry)
+
+
+def _draw_vertical_border_runs(doc, view, drawn_lines, borders, rows, cols, x_positions, y_positions, top_left_map=None, entry=None):
+    for boundary_index in range(0, cols + 1):
+        blocked_segments = _get_internal_merged_vertical_blocks(top_left_map, boundary_index, y_positions)
+        run_start = None
+        for row_index in range(0, rows):
+            if _vertical_border_exists(borders, rows, cols, boundary_index, row_index):
+                if run_start is None:
+                    run_start = row_index
+            else:
+                if run_start is not None:
+                    _draw_vertical_segment_with_blocks(doc, view, drawn_lines, x_positions[boundary_index], y_positions[run_start], y_positions[row_index], blocked_segments, entry)
+                    run_start = None
+        if run_start is not None:
+            _draw_vertical_segment_with_blocks(doc, view, drawn_lines, x_positions[boundary_index], y_positions[run_start], y_positions[rows], blocked_segments, entry)
+
+
+def _draw_excel_borders(doc, view, borders, rows, cols, x_positions, y_positions, top_left_map=None, entry=None):
     drawn_lines = set()
-    for r in range(0, rows):
-        for c in range(0, cols):
-            try:
-                cell_border = borders[r][c]
-            except Exception:
-                cell_border = {}
-            x1 = x_positions[c]
-            x2 = x_positions[c + 1]
-            y1 = y_positions[r]
-            y2 = y_positions[r + 1]
-            if cell_border.get("top"):
-                _make_line_once(doc, view, drawn_lines, x1, y1, x2, y1, entry)
-            if cell_border.get("right"):
-                _make_line_once(doc, view, drawn_lines, x2, y1, x2, y2, entry)
-            if cell_border.get("bottom"):
-                _make_line_once(doc, view, drawn_lines, x1, y2, x2, y2, entry)
-            if cell_border.get("left"):
-                _make_line_once(doc, view, drawn_lines, x1, y1, x1, y2, entry)
+    _draw_horizontal_border_runs(doc, view, drawn_lines, borders, rows, cols, x_positions, y_positions, top_left_map, entry)
+    _draw_vertical_border_runs(doc, view, drawn_lines, borders, rows, cols, x_positions, y_positions, top_left_map, entry)
 
 
 def _get_cell_rect(row_index, col_index, top_left_map, x_positions, y_positions):
@@ -2165,6 +2323,7 @@ def draw_table_in_view(view, table_data, entry=None):
                 adjusted_heights.append(row_heights[index])
         row_heights = adjusted_heights
         height_source = "Excel+fit"
+    row_heights = _apply_readability_row_heights(table_data, row_heights, top_left_map)
     column_widths = _scale_dimension_values(column_widths, TABLE_COLUMN_WIDTH)
     row_heights = _scale_dimension_values(row_heights, TABLE_ROW_HEIGHT)
     x_positions, y_positions = _build_table_positions(origin_x, origin_y, column_widths, row_heights)
@@ -2172,9 +2331,9 @@ def draw_table_in_view(view, table_data, entry=None):
 
     borders, border_available = _get_table_borders(table_data, rows, cols)
     if border_available:
-        _draw_excel_borders(doc, view, borders, rows, cols, x_positions, y_positions, entry)
+        _draw_excel_borders(doc, view, borders, rows, cols, x_positions, y_positions, top_left_map, entry)
     else:
-        _draw_full_grid(doc, view, x_positions, y_positions, entry)
+        _draw_full_grid(doc, view, x_positions, y_positions, top_left_map, entry)
 
     default_note_type = get_table_text_note_type(doc, get_table_text_font(table_data))
     debug_text_fit_count = [0]
