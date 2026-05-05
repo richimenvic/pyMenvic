@@ -19,7 +19,7 @@ class TableEntry(INotifyPropertyChanged):
     def __init__(
         self,
         selected=False,
-        status="Not Created",
+        status="Ready to Update",
         source="",
         import_type="Excel Link",
         view_name="",
@@ -272,7 +272,7 @@ class TableEntry(INotifyPropertyChanged):
                 source = ""
         return TableEntry(
             selected=_get(data, "selected", False),
-            status=_get(data, "status", "Not Created"),
+            status=_get(data, "status", "Ready to Update"),
             source=source,
             import_type=_get(data, "import_type", _get(data, "type", "Excel Link")),
             view_name=_get(data, "view_name", ""),

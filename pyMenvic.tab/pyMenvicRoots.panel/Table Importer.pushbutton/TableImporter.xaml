@@ -5,7 +5,7 @@
     xmlns:System="clr-namespace:System;assembly=mscorlib"
     Title="Table Importer"
     Width="1380"
-    Height="760"
+    Height="720"
     MinWidth="1120"
     MinHeight="620"
     WindowStartupLocation="CenterScreen"
@@ -188,63 +188,38 @@
         </Style>
     </Window.Resources>
 
-    <Grid Margin="8">
+    <Grid Margin="10,8,10,8">
         <Grid.RowDefinitions>
-            <RowDefinition Height="52"/>
-            <RowDefinition Height="48"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="4"/>
+            <RowDefinition Height="36"/>
             <RowDefinition Height="*"/>
-            <RowDefinition Height="46"/>
+            <RowDefinition Height="38"/>
         </Grid.RowDefinitions>
 
-        <Grid Grid.Row="0">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="380"/>
-            </Grid.ColumnDefinitions>
-            <StackPanel Orientation="Vertical" VerticalAlignment="Center">
-                <TextBlock Text="TABLE IMPORTER" FontSize="22" FontWeight="SemiBold" Foreground="{StaticResource TextBrush}"/>
-                <TextBlock Text="Linked Excel table staging. View creation will be added in the next phase." Foreground="{StaticResource SecondaryTextBrush}" Margin="1,3,0,0"/>
-            </StackPanel>
-            <Border Grid.Column="1" Background="{StaticResource PanelBrush}" BorderBrush="{StaticResource LineBrush}" BorderThickness="1" CornerRadius="3" Padding="8,4" Height="50" VerticalAlignment="Center">
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="38"/>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="Auto"/>
-                    </Grid.ColumnDefinitions>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="14"/>
-                        <RowDefinition Height="12"/>
-                        <RowDefinition Height="4"/>
-                        <RowDefinition Height="0"/>
-                    </Grid.RowDefinitions>
-                    <Image x:Name="LogoImage" Grid.RowSpan="3" Width="30" Height="30" Stretch="Uniform" HorizontalAlignment="Left" VerticalAlignment="Center"/>
-                    <TextBlock x:Name="StatusTextBlock" Grid.Column="1" Text="Status: Ready" VerticalAlignment="Center" FontWeight="SemiBold" Foreground="{StaticResource TextBrush}" FontSize="12" TextTrimming="CharacterEllipsis"/>
-                    <TextBlock x:Name="VersionTextBlock" Grid.Column="2" VerticalAlignment="Center" Margin="8,0,0,0" Foreground="{StaticResource MutedTextBrush}" FontSize="11"/>
-                    <TextBlock x:Name="ProgressTextBlock" Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" Text="Ready   100%" VerticalAlignment="Center" Foreground="{StaticResource SecondaryTextBrush}" FontSize="11"/>
-                    <ProgressBar x:Name="ApplyProgressBar" Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="2" Height="4" Minimum="0" Maximum="100" Value="100" Foreground="#8BC34A" Background="#E9E9E9" BorderBrush="{StaticResource LineBrush}" BorderThickness="0"/>
-                    <TextBlock x:Name="ProgressDetailTextBlock" Grid.Row="3" Grid.Column="1" Grid.ColumnSpan="2" Text="Ready." Visibility="Collapsed"/>
-                </Grid>
-            </Border>
-        </Grid>
+        <!-- Header: description only -->
+        <TextBlock Grid.Row="0" Text="Importador de tablas Excel a vistas de Revit." Foreground="{StaticResource SecondaryTextBrush}" Margin="2,0,0,0" VerticalAlignment="Center" FontSize="12"/>
 
-        <Grid Grid.Row="1" Margin="0,5,0,7">
+        <!-- Spacer row -->
+
+        <!-- Toolbar row -->
+        <Grid Grid.Row="2">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto"/>
                 <ColumnDefinition Width="Auto"/>
                 <ColumnDefinition Width="Auto"/>
-                <ColumnDefinition Width="18"/>
-                <ColumnDefinition Width="520"/>
+                <ColumnDefinition Width="16"/>
+                <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="10"/>
-                <ColumnDefinition Width="0"/>
+                <ColumnDefinition Width="320"/>
             </Grid.ColumnDefinitions>
             <Button x:Name="AddTablesButton" Grid.Column="0" Width="132" Style="{StaticResource GoldButton}" Content="Add Tables"/>
-            <Button x:Name="BatchActionsButton" Grid.Column="1" Width="152" Content="Batch Actions">
+            <Button x:Name="BatchActionsButton" Grid.Column="1" Width="148" Content="Batch Actions">
                 <Button.ContextMenu>
                     <ContextMenu x:Name="BatchActionsContextMenu" Width="220">
                         <MenuItem x:Name="BatchUpdateViewsMenuItem" Header="Update Views"/>
                         <MenuItem x:Name="BatchDuplicateViewsMenuItem" Header="Duplicate Views"/>
-                        <MenuItem x:Name="BatchReloadFromMenuItem" Header="Reload From"/>
+                        <MenuItem x:Name="BatchReloadFromMenuItem" Visibility="Collapsed" Header="Reload From"/>
                         <MenuItem x:Name="BatchResetLegacyContentMenuItem" Header="Reset Legacy Content"/>
                         <Separator/>
                         <MenuItem x:Name="BatchAbsolutePathMenuItem" Header="Absolute Path"/>
@@ -253,22 +228,40 @@
                         <MenuItem x:Name="BatchOpenFilesMenuItem" Header="Open Files"/>
                         <MenuItem x:Name="BatchOpenFoldersMenuItem" Header="Open Folders"/>
                         <Separator/>
-                        <MenuItem x:Name="BatchDeleteViewsMenuItem" Header="Delete Views"/>
-                        <MenuItem x:Name="BatchUnlinkViewMenuItem" Header="Unlink View"/>
-                        <MenuItem x:Name="BatchOpenViewMenuItem" Header="Open View"/>
+                        <MenuItem x:Name="BatchDeleteViewsMenuItem" Header="Remove Rows"/>
+                        <MenuItem x:Name="BatchUnlinkViewMenuItem" Visibility="Collapsed" Header="Unlink View"/>
+                        <MenuItem x:Name="BatchOpenViewMenuItem" Visibility="Collapsed" Header="Open View"/>
                     </ContextMenu>
                 </Button.ContextMenu>
             </Button>
-            <Button x:Name="RefreshButton" Grid.Column="2" Width="92" Content="Refresh"/>
+            <Button x:Name="RefreshButton" Grid.Column="2" Width="90" Content="Refresh"/>
             <Grid Grid.Column="4" VerticalAlignment="Center">
                 <TextBox x:Name="SearchTextBox" Padding="10,4,34,4"/>
-                <TextBlock Text="Search" IsHitTestVisible="False" Foreground="{StaticResource SecondaryTextBrush}" Margin="12,0,0,0" VerticalAlignment="Center" HorizontalAlignment="Left"/>
-                <TextBlock Text="..." IsHitTestVisible="False" Foreground="{StaticResource SecondaryTextBrush}" Margin="0,0,10,2" VerticalAlignment="Center" HorizontalAlignment="Right"/>
+                <TextBlock Text="Search…" IsHitTestVisible="False" Foreground="{StaticResource MutedTextBrush}" Margin="12,0,0,0" VerticalAlignment="Center" HorizontalAlignment="Left" FontSize="12"/>
             </Grid>
+            <Border Grid.Column="6" Height="30" Background="{StaticResource PanelBrush}" BorderBrush="{StaticResource LineBrush}" BorderThickness="1" CornerRadius="3" Padding="7,3" VerticalAlignment="Center">
+                <Grid VerticalAlignment="Center">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="22"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <Image x:Name="LogoImage" Grid.Column="0" Width="18" Height="18" Stretch="Uniform" VerticalAlignment="Center" HorizontalAlignment="Left"/>
+                    <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="4,0,0,0">
+                        <DockPanel LastChildFill="True" Height="16">
+                            <TextBlock Text="Status:" VerticalAlignment="Center" FontWeight="SemiBold" Foreground="{StaticResource TextBrush}" FontSize="10" Margin="0,0,4,0"/>
+                            <TextBlock x:Name="ProgressTextBlock" DockPanel.Dock="Right" Text="100%" VerticalAlignment="Center" Foreground="{StaticResource SecondaryTextBrush}" FontSize="10" Margin="8,0,0,0"/>
+                            <TextBlock x:Name="StatusTextBlock" Text="Ready" VerticalAlignment="Center" FontWeight="SemiBold" Foreground="{StaticResource TextBrush}" FontSize="10" TextTrimming="CharacterEllipsis"/>
+                        </DockPanel>
+                        <ProgressBar x:Name="ApplyProgressBar" Height="2" Minimum="0" Maximum="100" Value="100" Foreground="#8BC34A" Background="#E9E9E9" BorderBrush="{StaticResource LineBrush}" BorderThickness="0" Margin="0,1,0,0"/>
+                        <TextBlock x:Name="ProgressDetailTextBlock" Text="Ready." Visibility="Collapsed" FontSize="10" Foreground="{StaticResource MutedTextBrush}" TextTrimming="CharacterEllipsis"/>
+                    </StackPanel>
+                </Grid>
+            </Border>
             <TextBlock x:Name="CompletedTextBlock" Grid.Column="6" Visibility="Collapsed" Text=""/>
         </Grid>
 
-        <Border Grid.Row="2" Background="{StaticResource PanelBrush}" BorderBrush="{StaticResource LineBrush}" BorderThickness="1">
+        <!-- Data grid -->
+        <Border Grid.Row="3" Background="{StaticResource PanelBrush}" BorderBrush="{StaticResource LineBrush}" BorderThickness="1" Margin="0,4,0,0">
             <Grid>
                 <DataGrid x:Name="TablesDataGrid"
                           AutoGenerateColumns="False"
@@ -290,7 +283,7 @@
                         <ContextMenu x:Name="RowActionsContextMenu" Width="220">
                             <MenuItem x:Name="RowUpdateViewsMenuItem" Header="Update Views"/>
                             <MenuItem x:Name="RowDuplicateViewsMenuItem" Header="Duplicate Views"/>
-                            <MenuItem x:Name="RowReloadFromMenuItem" Header="Reload From"/>
+                            <MenuItem x:Name="RowReloadFromMenuItem" Visibility="Collapsed" Header="Reload From"/>
                             <MenuItem x:Name="RowResetLegacyContentMenuItem" Header="Reset Legacy Content"/>
                             <Separator/>
                             <MenuItem x:Name="RowAbsolutePathMenuItem" Header="Absolute Path"/>
@@ -298,10 +291,10 @@
                             <Separator/>
                             <MenuItem x:Name="RowOpenFilesMenuItem" Header="Open Files"/>
                             <MenuItem x:Name="RowOpenFoldersMenuItem" Header="Open Folders"/>
-                            <MenuItem x:Name="RowOpenViewMenuItem" Header="Open View"/>
+                            <MenuItem x:Name="RowOpenViewMenuItem" Visibility="Collapsed" Header="Open View"/>
                             <Separator/>
-                            <MenuItem x:Name="RowDeleteViewsMenuItem" Header="Delete Views"/>
-                            <MenuItem x:Name="RowUnlinkViewMenuItem" Header="Unlink View"/>
+                            <MenuItem x:Name="RowDeleteViewsMenuItem" Header="Remove Rows"/>
+                            <MenuItem x:Name="RowUnlinkViewMenuItem" Visibility="Collapsed" Header="Unlink View"/>
                         </ContextMenu>
                     </DataGrid.ContextMenu>
                     <DataGrid.Columns>
@@ -314,8 +307,8 @@
 
                         <DataGridTextColumn Header="Status"
                                             Binding="{Binding Status}"
-                                            Width="105"
-                                            MinWidth="105"
+                                            Width="120"
+                                            MinWidth="120"
                                             IsReadOnly="True">
                             <DataGridTextColumn.ElementStyle>
                                 <Style TargetType="TextBlock" BasedOn="{StaticResource GridTextBlock}">
@@ -346,8 +339,6 @@
                                 <DataTemplate>
                                     <ComboBox SelectedItem="{Binding ImportType, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}">
                                         <System:String>Excel Link</System:String>
-                                        <System:String>Excel Import</System:String>
-                                        <System:String>Image</System:String>
                                     </ComboBox>
                                 </DataTemplate>
                             </DataGridTemplateColumn.CellEditingTemplate>
@@ -387,6 +378,7 @@
                         </DataGridTemplateColumn>
 
                         <DataGridCheckBoxColumn Header="Auto Sync"
+                                                Visibility="Collapsed"
                                                 Binding="{Binding AutoSync, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                                                 ElementStyle="{StaticResource CenteredCheckBoxElementStyle}"
                                                 EditingElementStyle="{StaticResource CenteredCheckBoxEditingElementStyle}"
@@ -446,7 +438,6 @@
                                 <DataTemplate>
                                     <ComboBox SelectedItem="{Binding ViewType, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}">
                                         <System:String>Drafting View</System:String>
-                                        <System:String>Legend View</System:String>
                                     </ComboBox>
                                 </DataTemplate>
                             </DataGridTemplateColumn.CellEditingTemplate>
@@ -495,22 +486,19 @@
             </Grid>
         </Border>
 
-        <Grid Grid.Row="3" Margin="0,6,0,0">
+        <Grid Grid.Row="4" Margin="0,4,0,0">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="Auto"/>
             </Grid.ColumnDefinitions>
-            <TextBlock x:Name="FooterStatusTextBlock" Text="Total 0 | Visible 0 | Selected 0 | Linked 0 | Drafting 0 | Legends 0" VerticalAlignment="Center" Foreground="{StaticResource SecondaryTextBrush}"/>
+            <TextBlock x:Name="FooterStatusTextBlock" Text="Total 0 | Visible 0 | Selected 0 | Linked 0 | Drafting 0" VerticalAlignment="Center" Foreground="{StaticResource SecondaryTextBrush}"/>
             <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                <TextBlock x:Name="VersionTextBlock" Text="MVP 0.3.37" VerticalAlignment="Center" Foreground="{StaticResource MutedTextBrush}" FontSize="11" Margin="0,0,8,0"/>
                 <Button x:Name="CloseButton" Content="Close" Width="108"/>
                 <Button x:Name="ApplyButton" Content="Apply" Width="118" Margin="4,0,0,0" Style="{StaticResource GreenButton}"/>
             </StackPanel>
         </Grid>
     </Grid>
 </Window>
-
-
-
-
 
 

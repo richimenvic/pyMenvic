@@ -23,7 +23,7 @@ from System.IO import FileStream, FileMode, FileAccess
 from System.Windows.Forms import OpenFileDialog, DialogResult
 import System
 from System import Uri, Int64, Int32, Convert
-from System.Windows.Controls import DataGridRow, ListBoxItem, StackPanel, TextBlock
+from System.Windows.Controls import DataGridRow, ListBoxItem, StackPanel, TextBlock, DataGridEditingUnit
 from System.Windows.Input import MouseButtonEventHandler
 from System.Windows.Media import VisualTreeHelper
 from System.Windows.Media.Imaging import BitmapImage, BitmapCacheOption
@@ -46,7 +46,8 @@ script_dir = os.path.dirname(__file__)
 if script_dir not in sys.path:
     sys.path.append(script_dir)
 
-TOOL_VERSION = "MVP 0.3.20"
+TOOL_VERSION = "MVP 0.3.37_status_alignment_cleanup"
+TOOL_VERSION_LABEL = "MVP 0.3.37"
 DEBUG_OUTPUT = False
 USE_WRAPPED_TEXT_NOTES = False
 
@@ -62,51 +63,61 @@ from excel_reader import (
 )
 
 USED_RANGE_DISPLAY = u"Full Worksheet Used Range"
-DEFAULT_IMPORT_TYPES = ["Excel Link", "Excel Import", "Image"]
-DEFAULT_VIEW_TYPES = ["Drafting View", "Legend View"]
+DEFAULT_IMPORT_TYPES = ["Excel Link"]
+DEFAULT_VIEW_TYPES = ["Drafting View"]
 DEFAULT_SCALES = ["1", "2", "5", "10", "20", "25", "50", "75", "100"]
 DEFAULT_DPI = ["72", "96", "150", "200", "300", "600"]
+ROW_READY_STATUS = "Ready to Update"
 EXCEL_FILTER = "Excel files (*.xlsx;*.xlsm;*.xls)|*.xlsx;*.xlsm;*.xls"
-MAX_TABLE_ROWS = 200
-MAX_TABLE_COLUMNS = 30
+MAX_TABLE_ROWS = 400
+MAX_TABLE_COLUMNS = 60
 TABLE_COLUMN_WIDTH = 0.8
 TABLE_ROW_HEIGHT = 0.25
 TABLE_SCALE = 1.0
-EXCEL_WIDTH_SCALE = 0.055
+EXCEL_WIDTH_SCALE = 0.064
 EXCEL_ROW_HEIGHT_SCALE = 1.0
-TABLE_TEXT_SIZE_MM = 1.8
+TABLE_TEXT_SIZE_MM = 1.6
 TEXT_SIZE_SCALE = 1.0
 MIN_TEXT_SIZE_FT = TABLE_TEXT_SIZE_MM / 304.8
 MAX_TEXT_SIZE_FT = 0.012
-APPROX_TEXT_CHAR_WIDTH_FACTOR = 1.80
-MAX_CELL_TEXT_CHARS = 120
+APPROX_TEXT_CHAR_WIDTH_FACTOR = 1.60
+MAX_CELL_TEXT_CHARS = 200
 MIN_COL_WIDTH_FT = 0.25
-MAX_COL_WIDTH_FT = 3.00
-MIN_ROW_HEIGHT_FT = 0.18
-MAX_ROW_HEIGHT_FT = 0.60
-TEXT_PADDING_X = 0.030
-TEXT_PADDING_Y = 0.025
-APPROX_CHARS_PER_FOOT = 8
+MAX_COL_WIDTH_FT = 6.80
+ADAPTIVE_MIN_TABLE_WIDTH_FT = 8.0
+ADAPTIVE_MAX_TABLE_WIDTH_FT = 30.0
+ADAPTIVE_TARGET_WIDTH_PER_COLUMN_FT = 1.05
+ADAPTIVE_CONTENT_WEIGHT = 0.58
+ADAPTIVE_EXCEL_WEIGHT = 0.42
+MIN_ROW_HEIGHT_FT = 0.16
+MAX_ROW_HEIGHT_FT = 0.48
+TEXT_PADDING_X = 0.022
+TEXT_PADDING_Y = 0.020
+APPROX_CHARS_PER_FOOT = 18
 ROW_HEIGHT_SCALE = EXCEL_ROW_HEIGHT_SCALE
 TABLE_TEXT_OFFSET_X = TEXT_PADDING_X
 TABLE_TEXT_OFFSET_Y = TEXT_PADDING_Y
 TABLE_MIN_COLUMN_WIDTH = MIN_COL_WIDTH_FT
 TABLE_MAX_COLUMN_WIDTH = MAX_COL_WIDTH_FT
-TABLE_CHAR_WIDTH = 0.045
+TABLE_CHAR_WIDTH = 0.043
 TABLE_MIN_ROW_HEIGHT = MIN_ROW_HEIGHT_FT
 TABLE_MAX_ROW_HEIGHT = MAX_ROW_HEIGHT_FT
-TABLE_LINE_HEIGHT = 0.15
-TABLE_TEXT_TYPE_NAME = "Arial 1.80mm"
+TABLE_LINE_HEIGHT = 0.145
+TABLE_TEXT_TYPE_NAME = "Arial 1.60mm"
 TABLE_TEXT_SIZE = TABLE_TEXT_SIZE_MM / 304.8
 FALLBACK_TABLE_FONT = "Arial"
 TEXT_NOTE_WIDTH_WARNING_PRINTED = False
 TABLE_IMPORTER_TOOL_NAME = "pyMENVIC_TABLE_IMPORTER"
 TABLE_IMPORTER_CREATED_BY = "Table Importer"
 TABLE_IMPORTER_TAG_PREFIX = "pyMENVIC_TABLE_IMPORTER|"
-STANDARD_TABLE_TEXT_TYPE_NAME = "Arial 1.80mm"
-STANDARD_TABLE_TEXT_SIZE_MM = 1.80
+STANDARD_TABLE_TEXT_TYPE_NAME = "Arial 1.60mm"
+STANDARD_TABLE_TEXT_SIZE_MM = 1.60
 STANDARD_TEXT_SIZE_TOL_MM = 0.06
 TABLE_TEXT_STYLE_WARNING = False
+TEXT_TYPE_CACHE = {}
+EXCEL_POINT_TO_MM = 0.3527777778
+MIN_EXCEL_TEXT_SIZE_MM = 1.20
+MAX_EXCEL_TEXT_SIZE_MM = 3.20
 
 
 def safe_unicode(value):
@@ -138,6 +149,32 @@ def safe_unicode(value):
 
 def clean_display_text(value):
     return clean_hidden_unicode(safe_unicode(value))
+
+
+def normalize_row_status(value):
+    status = clean_display_text(value).strip()
+    if status in ("To Update", "Ready", "Not Created", "OK", "Created", "Legacy Reset"):
+        return ROW_READY_STATUS
+    if status in ("Error",):
+        return "Failed"
+    if status in (ROW_READY_STATUS, "Updating...", "Updated", "Skipped", "Failed", "Missing File", "Invalid Region"):
+        return status
+    if not status:
+        return ROW_READY_STATUS
+    return status
+
+
+def is_ready_status(value):
+    return normalize_row_status(value) == ROW_READY_STATUS
+
+
+def normalize_status_label(text):
+    label = clean_display_text(text).strip()
+    while label.lower().startswith("status:"):
+        label = label[7:].strip()
+    if not label:
+        label = "Ready"
+    return label
 
 
 def normalize_region_name_for_view(region_display, worksheet_name):
@@ -629,6 +666,402 @@ def get_text_type_size_mm(note_type):
     except Exception:
         pass
     return None
+
+
+def _get_yes_no_type_param(note_type, builtin_name, lookup_names):
+    if note_type is None:
+        return None
+    try:
+        builtin = getattr(DB.BuiltInParameter, builtin_name)
+        p = note_type.get_Parameter(builtin)
+        if p is not None:
+            return p
+    except Exception:
+        pass
+    for name in lookup_names or []:
+        try:
+            p = note_type.LookupParameter(name)
+            if p is not None:
+                return p
+        except Exception:
+            pass
+    return None
+
+
+def get_text_type_bold(note_type):
+    p = _get_yes_no_type_param(note_type, "TEXT_STYLE_BOLD", ["Bold", "Negrita"])
+    try:
+        return bool(p.AsInteger()) if p is not None else False
+    except Exception:
+        return False
+
+
+def get_text_type_italic(note_type):
+    p = _get_yes_no_type_param(note_type, "TEXT_STYLE_ITALIC", ["Italic", "Cursive", "Italics"])
+    try:
+        return bool(p.AsInteger()) if p is not None else False
+    except Exception:
+        return False
+
+
+def set_text_note_type_yes_no(note_type, builtin_name, lookup_names, value):
+    p = _get_yes_no_type_param(note_type, builtin_name, lookup_names)
+    try:
+        if p is not None and not p.IsReadOnly:
+            p.Set(1 if value else 0)
+            return True
+    except Exception:
+        pass
+    return False
+
+
+def set_text_note_type_bold(note_type, value):
+    return set_text_note_type_yes_no(note_type, "TEXT_STYLE_BOLD", ["Bold", "Negrita"], value)
+
+
+def set_text_note_type_italic(note_type, value):
+    return set_text_note_type_yes_no(note_type, "TEXT_STYLE_ITALIC", ["Italic", "Cursive", "Italics"], value)
+
+
+def _normalize_font_name(font_name):
+    text = clean_display_text(font_name).strip()
+    return text if text else FALLBACK_TABLE_FONT
+
+
+def _excel_points_to_text_mm(size_pt):
+    try:
+        value = float(size_pt) * EXCEL_POINT_TO_MM
+    except Exception:
+        value = STANDARD_TABLE_TEXT_SIZE_MM
+    if value < MIN_EXCEL_TEXT_SIZE_MM:
+        value = MIN_EXCEL_TEXT_SIZE_MM
+    if value > MAX_EXCEL_TEXT_SIZE_MM:
+        value = MAX_EXCEL_TEXT_SIZE_MM
+    return value
+
+
+def _make_excel_text_type_name(font_name, size_mm, bold=False, italic=False):
+    parts = [u"Excel", _normalize_font_name(font_name), (u"%.2fmm" % float(size_mm))]
+    if bold:
+        parts.append(u"Bold")
+    if italic:
+        parts.append(u"Italic")
+    return clean_display_text(u" ".join(parts))
+
+
+def _text_type_matches(note_type, font_name, size_mm, bold=False, italic=False):
+    try:
+        if get_text_type_font(note_type).strip().lower() != _normalize_font_name(font_name).lower():
+            return False
+        existing_size = get_text_type_size_mm(note_type)
+        if existing_size is None or abs(float(existing_size) - float(size_mm)) > 0.08:
+            return False
+        if bool(get_text_type_bold(note_type)) != bool(bold):
+            return False
+        if bool(get_text_type_italic(note_type)) != bool(italic):
+            return False
+        return True
+    except Exception:
+        return False
+
+
+def _get_or_create_excel_text_type(doc, font_name, size_mm, bold=False, italic=False):
+    """Find or create a Revit TextNoteType that matches the Excel cell style."""
+    font_name = _normalize_font_name(font_name)
+    try:
+        size_mm = float(size_mm)
+    except Exception:
+        size_mm = STANDARD_TABLE_TEXT_SIZE_MM
+    if size_mm < MIN_EXCEL_TEXT_SIZE_MM:
+        size_mm = MIN_EXCEL_TEXT_SIZE_MM
+    if size_mm > MAX_EXCEL_TEXT_SIZE_MM:
+        size_mm = MAX_EXCEL_TEXT_SIZE_MM
+
+    key = (font_name.lower(), round(size_mm, 2), bool(bold), bool(italic))
+    try:
+        cached_id = TEXT_TYPE_CACHE.get(key)
+        if cached_id is not None:
+            cached = doc.GetElement(cached_id)
+            if cached is not None:
+                return cached
+    except Exception:
+        pass
+
+    all_types = []
+    try:
+        all_types = list(FilteredElementCollector(doc).OfClass(TextNoteType))
+    except Exception:
+        all_types = []
+
+    for note_type in all_types:
+        if _text_type_matches(note_type, font_name, size_mm, bold, italic):
+            try:
+                TEXT_TYPE_CACHE[key] = note_type.Id
+            except Exception:
+                pass
+            return note_type
+
+    base_type = get_table_text_note_type(doc, font_name)
+    if base_type is None:
+        return get_default_text_note_type(doc)
+
+    new_type = None
+    type_name = _make_excel_text_type_name(font_name, size_mm, bold, italic)
+    try:
+        existing_names = set([get_text_type_name(t).strip().lower() for t in all_types])
+        final_name = type_name
+        index = 2
+        while final_name.strip().lower() in existing_names:
+            final_name = u"%s %s" % (type_name, index)
+            index += 1
+        new_id = base_type.Duplicate(final_name)
+        new_type = doc.GetElement(new_id)
+        set_text_note_type_font(new_type, font_name)
+        set_text_note_type_size(new_type, float(size_mm) / 304.8)
+        set_text_note_type_bold(new_type, bold)
+        set_text_note_type_italic(new_type, italic)
+        TEXT_TYPE_CACHE[key] = new_type.Id
+        return new_type
+    except Exception as ex:
+        if DEBUG_OUTPUT:
+            print("Table Importer: could not create Excel text style '%s': %s" % (safe_unicode(type_name), safe_unicode(ex)))
+    return base_type
+
+
+def _get_cell_style(table_data, row_index, col_index):
+    try:
+        styles = getattr(table_data, "cell_styles", None)
+        if not styles:
+            return None
+        return styles[row_index][col_index]
+    except Exception:
+        return None
+
+
+def get_text_note_type_for_cell(doc, table_data, row_index, col_index, default_note_type):
+    style = _get_cell_style(table_data, row_index, col_index)
+    if not style:
+        return default_note_type
+    font_name = _normalize_font_name(style.get("font_name"))
+    size_pt = style.get("size_pt")
+    if not font_name and not size_pt:
+        return default_note_type
+    size_mm = _excel_points_to_text_mm(size_pt) if size_pt else STANDARD_TABLE_TEXT_SIZE_MM
+    return _get_or_create_excel_text_type(doc, font_name, size_mm, bool(style.get("bold")), bool(style.get("italic")))
+
+
+def _normalize_excel_alignment(value, fallback="left"):
+    text = clean_display_text(value).strip().lower()
+    if not text or text == "none":
+        return fallback
+    if text in ("center", "centre", "centercontinuous", "distributed"):
+        return "center"
+    if text in ("right",):
+        return "right"
+    if text in ("top",):
+        return "top"
+    if text in ("middle", "center", "centre"):
+        return "middle"
+    if text in ("bottom",):
+        return "bottom"
+    return fallback
+
+
+def _text_role_stats(value):
+    text = clean_display_text(value).strip()
+    alpha = 0
+    digit = 0
+    lower = 0
+    upper = 0
+    for ch in text:
+        try:
+            if ch.isalpha():
+                alpha += 1
+                if ch.islower():
+                    lower += 1
+                if ch.isupper():
+                    upper += 1
+            elif ch.isdigit():
+                digit += 1
+        except Exception:
+            pass
+    words = [word for word in re.split(r"\s+", text) if word]
+    return text, alpha, digit, lower, upper, words
+
+
+def _is_short_code_like(value):
+    text, alpha, digit, lower, upper, words = _text_role_stats(value)
+    if not text:
+        return False
+    compact = text.replace(u" ", u"")
+    if re.match(r"^[+-]?\d+([\.,/]\d+)?([\"']|mm|cm|m|a|v|w|kw|va|kva|awg)?$", compact.lower()):
+        return True
+    if re.match(r"^[A-Za-z]{1,3}\d{1,3}[A-Za-z]?$", compact):
+        return True
+    if re.match(r"^\d+[A-Za-z]{1,3}$", compact):
+        return True
+    if re.match(r"^AWG\d{1,3}$", compact.upper()):
+        return True
+    if digit > 0 and len(text) <= 14 and len(words) <= 3:
+        return True
+    if lower == 0 and len(compact) <= 10 and re.match(r"^[A-Z0-9\-_/\.\"'=+]+$", compact):
+        return True
+    return False
+
+
+def _is_description_like(value, cell_width):
+    text, alpha, digit, lower, upper, words = _text_role_stats(value)
+    if not text:
+        return False
+    if _is_short_code_like(text):
+        return False
+    alnum = alpha + digit
+    alpha_ratio = 0.0
+    if alnum > 0:
+        alpha_ratio = float(alpha) / float(alnum)
+    multiple_words = len(words) >= 2
+    try:
+        wide_column = float(cell_width) >= 0.70
+    except Exception:
+        wide_column = False
+    if alpha_ratio >= 0.60 and ((len(text) > 18) or (multiple_words and len(text) > 10)):
+        return True
+    if wide_column and multiple_words and alpha_ratio >= 0.50 and lower > 0:
+        return True
+    return False
+
+
+def _cell_span_is_merged(row_index, col_index, top_left_map):
+    try:
+        span = _get_cell_span(row_index, col_index, top_left_map or {})
+        return int(span[2]) > int(span[0]) or int(span[3]) > int(span[1])
+    except Exception:
+        return False
+
+
+def _row_header_like(table_data, row_index):
+    try:
+        row = table_data[row_index]
+    except Exception:
+        return False
+    non_empty = 0
+    shortish = 0
+    styled = 0
+    for col_index in range(0, len(row)):
+        value = clean_display_text(row[col_index]).strip()
+        if not value:
+            continue
+        non_empty += 1
+        if len(value) <= 18:
+            shortish += 1
+        style = _get_cell_style(table_data, row_index, col_index)
+        try:
+            if style and (style.get("bold") or _normalize_excel_alignment(style.get("horizontal"), "") == "center"):
+                styled += 1
+        except Exception:
+            pass
+    if non_empty <= 0:
+        return False
+    if non_empty <= 2 and styled > 0:
+        return True
+    return shortish >= max(1, non_empty - 1) and styled >= max(1, non_empty / 2)
+
+
+def _cell_header_or_title_like(table_data, row_index, col_index, value, top_left_map):
+    if _cell_span_is_merged(row_index, col_index, top_left_map):
+        return True
+    style = _get_cell_style(table_data, row_index, col_index)
+    try:
+        if style and style.get("bold") and _row_header_like(table_data, row_index):
+            return True
+    except Exception:
+        pass
+    text = clean_display_text(value).strip()
+    if text and text.upper() == text and len(text) <= 28 and _row_header_like(table_data, row_index):
+        return True
+    return False
+
+
+def _is_center_candidate(value):
+    text = clean_display_text(value).strip()
+    if not text:
+        return False
+    return _is_short_code_like(text)
+
+
+def get_cell_horizontal_alignment(table_data, row_index, col_index, value, cell_width=None, top_left_map=None):
+    style = _get_cell_style(table_data, row_index, col_index)
+    is_description = _is_description_like(value, cell_width)
+    is_header_or_title = _cell_header_or_title_like(table_data, row_index, col_index, value, top_left_map)
+    try:
+        if style and style.get("horizontal"):
+            excel_alignment = _normalize_excel_alignment(style.get("horizontal"), "left")
+            if is_description and not is_header_or_title:
+                return "left"
+            return excel_alignment
+    except Exception:
+        pass
+    if is_description:
+        return "left"
+    if is_header_or_title:
+        return "center"
+    if _is_center_candidate(value):
+        return "center"
+    return "left"
+
+
+def get_cell_vertical_alignment(table_data, row_index, col_index):
+    style = _get_cell_style(table_data, row_index, col_index)
+    try:
+        if style and style.get("vertical"):
+            return _normalize_excel_alignment(style.get("vertical"), "middle")
+    except Exception:
+        pass
+    return "middle"
+
+
+def _set_text_note_alignment_options(options, horizontal, vertical):
+    try:
+        if horizontal == "center":
+            options.HorizontalAlignment = DB.HorizontalTextAlignment.Center
+        elif horizontal == "right":
+            options.HorizontalAlignment = DB.HorizontalTextAlignment.Right
+        else:
+            options.HorizontalAlignment = DB.HorizontalTextAlignment.Left
+    except Exception:
+        pass
+    try:
+        if vertical == "middle":
+            options.VerticalAlignment = DB.VerticalTextAlignment.Middle
+        elif vertical == "bottom":
+            options.VerticalAlignment = DB.VerticalTextAlignment.Bottom
+        else:
+            options.VerticalAlignment = DB.VerticalTextAlignment.Top
+    except Exception:
+        pass
+    return options
+
+
+def get_text_point_for_alignment(x1, y1, x2, y2, horizontal, vertical, text_size):
+    try:
+        if horizontal == "center":
+            x = (float(x1) + float(x2)) / 2.0
+        elif horizontal == "right":
+            x = float(x2) - TEXT_PADDING_X
+        else:
+            x = float(x1) + TEXT_PADDING_X
+    except Exception:
+        x = float(x1) + TEXT_PADDING_X
+    try:
+        if vertical == "middle":
+            y = ((float(y1) + float(y2)) / 2.0) + (float(text_size) * 0.35)
+        elif vertical == "bottom":
+            y = float(y2) + TEXT_PADDING_Y + (float(text_size) * 0.35)
+        else:
+            y = float(y1) - TEXT_PADDING_Y
+    except Exception:
+        y = float(y1) - TEXT_PADDING_Y
+    return XYZ(x, y, 0.0)
 
 
 def is_bad_table_importer_text_type_name(type_name):
@@ -1138,59 +1571,56 @@ def trim_text_to_cell_width(text, cell_width):
     return value
 
 
+MIN_VISIBLE_CHARS = 4
+# Physical character width in feet for Arial 1.6mm at model scale 1:1.
+# Arial 1.6mm height = 1.6/304.8 ft.
+# Average char width ≈ 55% of height.
+# This is the PHYSICAL size independent of view scale.
+_ARIAL_18MM_CHAR_WIDTH_FT = (1.6 / 304.8) * 0.55
+
+
 def fit_text_to_cell(text, cell_width, text_size):
+    # text_size is intentionally ignored here: the Revit TEXT_SIZE parameter
+    # returns a value already multiplied by the view scale, which makes it
+    # useless for estimating how many characters fit in a cell whose width is
+    # expressed in model-space feet.  We use the known physical size of the
+    # office standard text (Arial 1.8mm) directly.
     value = clean_display_text(text)
     value = u" ".join(value.replace(u"\r", u" ").replace(u"\n", u" ").split())
     if not value:
         return u""
 
+    # Hard cap to avoid absurdly long strings.
     if len(value) > MAX_CELL_TEXT_CHARS:
-        value = value[:MAX_CELL_TEXT_CHARS - 3] + u"..."
+        value = value[:MAX_CELL_TEXT_CHARS]
 
     try:
-        available_width = float(cell_width) - (2.0 * float(TEXT_PADDING_X))
+        available_width = max(float(cell_width) - 2.0 * float(TEXT_PADDING_X), 0.0)
     except Exception:
         available_width = 0.0
     if available_width <= 0:
-        return u"..."
+        return u""
 
     try:
-        char_width = float(text_size) * float(APPROX_TEXT_CHAR_WIDTH_FACTOR)
+        char_w = _ARIAL_18MM_CHAR_WIDTH_FT
+        max_chars = int(available_width / char_w)
     except Exception:
-        char_width = 0.0
-    if char_width <= 0:
-        char_width = float(MIN_TEXT_SIZE_FT) * float(APPROX_TEXT_CHAR_WIDTH_FACTOR)
+        max_chars = MAX_CELL_TEXT_CHARS
 
-    estimated_width = float(len(value)) * char_width
-
-    try:
-        max_chars = int(available_width / char_width)
-    except Exception:
-        max_chars = 3
-
-    # Extra safety: Revit TextNotes often display wider than the basic estimate.
-    # Keep the text conservative and single-line; do not let it visually spill into
-    # the next cell.
-    try:
-        conservative_cap = int(float(available_width) / (float(text_size) * 2.20))
-        if conservative_cap > 0 and conservative_cap < max_chars:
-            max_chars = conservative_cap
-    except Exception:
-        pass
-
+    # Clamp between MIN_VISIBLE_CHARS and MAX_CELL_TEXT_CHARS.
+    if max_chars < MIN_VISIBLE_CHARS:
+        max_chars = MIN_VISIBLE_CHARS
     if max_chars > MAX_CELL_TEXT_CHARS:
         max_chars = MAX_CELL_TEXT_CHARS
+
+    # Text fits: keep as-is.
+    if len(value) <= max_chars:
+        return value
+
+    # Cell too narrow for a meaningful stub.
     if max_chars <= 3:
-        if len(value) > 3 or estimated_width > available_width:
-            return u"..."
-        return value
+        return u"..."
 
-    if len(value) <= max_chars and estimated_width <= available_width:
-        return value
-
-    if max_chars < 6:
-        keep = max(1, max_chars - 3)
-        return value[:keep] + u"..."
     return value[:max_chars - 3] + u"..."
 
 
@@ -1289,6 +1719,81 @@ def _sum_range(values, start_index, end_index):
     except Exception:
         pass
     return total
+
+def _safe_float(value, fallback):
+    try:
+        return float(value)
+    except Exception:
+        return float(fallback)
+
+
+def _clamp(value, min_value, max_value):
+    value = _safe_float(value, min_value)
+    if value < min_value:
+        return min_value
+    if value > max_value:
+        return max_value
+    return value
+
+
+def _table_total_width(widths):
+    total = 0.0
+    try:
+        for width in widths:
+            total += float(width)
+    except Exception:
+        pass
+    return total
+
+
+def _merge_excel_and_content_column_widths(excel_widths, content_widths):
+    # Generic strategy: Excel widths define proportions, content widths protect
+    # readability. This avoids tuning the importer to one specific workbook.
+    if not excel_widths:
+        return list(content_widths or [])
+    if not content_widths:
+        return list(excel_widths or [])
+    merged = []
+    count = max(len(excel_widths), len(content_widths))
+    for index in range(0, count):
+        excel_w = excel_widths[index] if index < len(excel_widths) else TABLE_COLUMN_WIDTH
+        content_w = content_widths[index] if index < len(content_widths) else TABLE_COLUMN_WIDTH
+        excel_w = _clamp(excel_w, MIN_COL_WIDTH_FT, MAX_COL_WIDTH_FT)
+        content_w = _clamp(content_w, MIN_COL_WIDTH_FT, MAX_COL_WIDTH_FT)
+        # Weighted max: don't let Excel narrow columns crush long text, but
+        # don't let a single long value explode the whole table either.
+        weighted = (excel_w * ADAPTIVE_EXCEL_WEIGHT) + (content_w * ADAPTIVE_CONTENT_WEIGHT)
+        merged.append(max(excel_w * 0.82, weighted))
+    return merged
+
+
+def _adaptive_column_widths(widths, cols):
+    if not widths:
+        return widths
+    cleaned = []
+    for width in widths:
+        cleaned.append(_clamp(width, MIN_COL_WIDTH_FT, MAX_COL_WIDTH_FT))
+
+    total = _table_total_width(cleaned)
+    if total <= 0.0:
+        return cleaned
+
+    # Dynamic table target: wider tables are allowed to grow, but every import
+    # remains inside a practical drafting-view width. This is generic and file-
+    # independent: it only depends on number of columns and measured content.
+    try:
+        target = float(cols) * float(ADAPTIVE_TARGET_WIDTH_PER_COLUMN_FT)
+    except Exception:
+        target = ADAPTIVE_MIN_TABLE_WIDTH_FT
+    target = _clamp(target, ADAPTIVE_MIN_TABLE_WIDTH_FT, ADAPTIVE_MAX_TABLE_WIDTH_FT)
+
+    if total > target:
+        scale = target / total
+        scaled = []
+        for width in cleaned:
+            scaled.append(_clamp(float(width) * scale, MIN_COL_WIDTH_FT, MAX_COL_WIDTH_FT))
+        cleaned = scaled
+    return cleaned
 
 
 def _calculate_column_widths(table_data, rows, cols, top_left_map, covered_map):
@@ -1532,10 +2037,24 @@ def _set_text_note_width(text_note, width):
     return False
 
 
-def create_text_note_in_cell(doc, view, point, width, text, text_note_type_id):
+def create_text_note_in_cell(doc, view, point, width, text, text_note_type_id, horizontal="left", vertical="middle"):
     if not USE_WRAPPED_TEXT_NOTES:
         try:
-            return TextNote.Create(doc, view.Id, point, text, text_note_type_id)
+            options = DB.TextNoteOptions(text_note_type_id)
+            options = _set_text_note_alignment_options(options, horizontal, vertical)
+            return TextNote.Create(doc, view.Id, point, text, options)
+        except Exception:
+            pass
+        try:
+            note = TextNote.Create(doc, view.Id, point, text, text_note_type_id)
+            try:
+                if horizontal == "center":
+                    note.HorizontalAlignment = DB.HorizontalTextAlignment.Center
+                elif horizontal == "right":
+                    note.HorizontalAlignment = DB.HorizontalTextAlignment.Right
+            except Exception:
+                pass
+            return note
         except Exception as ex:
             _print_text_width_warning_once("could not create point-based TextNote: %s" % safe_unicode(ex))
             raise
@@ -1548,13 +2067,14 @@ def create_text_note_in_cell(doc, view, point, width, text, text_note_type_id):
         constrained_width = 0.10
 
     try:
-        return TextNote.Create(doc, view.Id, point, constrained_width, text, text_note_type_id)
+        options = DB.TextNoteOptions(text_note_type_id)
+        options = _set_text_note_alignment_options(options, horizontal, vertical)
+        return TextNote.Create(doc, view.Id, point, constrained_width, text, options)
     except Exception:
         pass
 
     try:
-        options = DB.TextNoteOptions(text_note_type_id)
-        return TextNote.Create(doc, view.Id, point, constrained_width, text, options)
+        return TextNote.Create(doc, view.Id, point, constrained_width, text, text_note_type_id)
     except Exception:
         pass
 
@@ -1568,7 +2088,6 @@ def create_text_note_in_cell(doc, view, point, width, text, text_note_type_id):
     if not _set_text_note_width(text_note, constrained_width):
         _print_text_width_warning_once("Revit TextNote width could not be constrained in this API version.")
     return text_note
-
 
 def _format_first_values(values, count):
     result = []
@@ -1620,16 +2139,32 @@ def draw_table_in_view(view, table_data, entry=None):
         ensure_table_entry_uid(entry)
 
     top_left_map, covered_map = _build_merged_cell_maps(table_data)
-    column_widths = _get_excel_column_widths(table_data, cols)
-    width_source = "Excel"
-    if column_widths is None:
-        width_source = "fallback"
-        column_widths = _calculate_column_widths(table_data, rows, cols, top_left_map, covered_map)
+    excel_column_widths = _get_excel_column_widths(table_data, cols)
+    content_column_widths = _calculate_column_widths(table_data, rows, cols, top_left_map, covered_map)
+    width_source = "Excel+content+adaptive"
+    if excel_column_widths is None:
+        width_source = "content+adaptive"
+        column_widths = content_column_widths
+    else:
+        column_widths = _merge_excel_and_content_column_widths(excel_column_widths, content_column_widths)
+    column_widths = _adaptive_column_widths(column_widths, cols)
     row_heights = _get_excel_row_heights(table_data, rows)
     height_source = "Excel"
+    content_row_heights = _calculate_row_heights(table_data, rows, cols, column_widths, top_left_map, covered_map)
     if row_heights is None:
         height_source = "fallback"
-        row_heights = _calculate_row_heights(table_data, rows, cols, column_widths, top_left_map, covered_map)
+        row_heights = content_row_heights
+    else:
+        # Excel row heights are often too small for Revit TextNotes. Keep the
+        # Excel proportions, but never allow text to spill into adjacent rows.
+        adjusted_heights = []
+        for index in range(0, rows):
+            try:
+                adjusted_heights.append(max(float(row_heights[index]), float(content_row_heights[index]) * 0.90))
+            except Exception:
+                adjusted_heights.append(row_heights[index])
+        row_heights = adjusted_heights
+        height_source = "Excel+fit"
     column_widths = _scale_dimension_values(column_widths, TABLE_COLUMN_WIDTH)
     row_heights = _scale_dimension_values(row_heights, TABLE_ROW_HEIGHT)
     x_positions, y_positions = _build_table_positions(origin_x, origin_y, column_widths, row_heights)
@@ -1641,9 +2176,7 @@ def draw_table_in_view(view, table_data, entry=None):
     else:
         _draw_full_grid(doc, view, x_positions, y_positions, entry)
 
-    note_type = get_table_text_note_type(doc, get_table_text_font(table_data))
-    note_type_id = note_type.Id if note_type is not None else DB.ElementId.InvalidElementId
-    text_size = get_text_note_type_size(note_type)
+    default_note_type = get_table_text_note_type(doc, get_table_text_font(table_data))
     debug_text_fit_count = [0]
     for r in range(0, rows):
         for c in range(0, cols):
@@ -1653,15 +2186,19 @@ def draw_table_in_view(view, table_data, entry=None):
             if not value:
                 continue
             x1, y1, x2, y2 = _get_cell_rect(r, c, top_left_map, x_positions, y_positions)
-            point = XYZ(
-                x1 + TEXT_PADDING_X,
-                y1 - TEXT_PADDING_Y,
-                0.0,
-            )
             cell_width = x2 - x1
-            display_value = fit_text_to_cell(value, cell_width, text_size)
+            note_type = get_text_note_type_for_cell(doc, table_data, r, c, default_note_type)
+            note_type_id = note_type.Id if note_type is not None else DB.ElementId.InvalidElementId
+            text_size = get_text_note_type_size(note_type)
+            if USE_WRAPPED_TEXT_NOTES:
+                display_value = clean_display_text(value)
+            else:
+                display_value = fit_text_to_cell(value, cell_width, text_size)
+            horizontal = get_cell_horizontal_alignment(table_data, r, c, value, cell_width, top_left_map)
+            vertical = get_cell_vertical_alignment(table_data, r, c)
+            point = get_text_point_for_alignment(x1, y1, x2, y2, horizontal, vertical, text_size)
             _debug_fit_text(value, display_value, cell_width, text_size, debug_text_fit_count)
-            text_note = create_text_note_in_cell(doc, view, point, cell_width, display_value, note_type_id)
+            text_note = create_text_note_in_cell(doc, view, point, max(cell_width - (2.0 * TEXT_PADDING_X), 0.10), display_value, note_type_id, horizontal, vertical)
             if entry is not None:
                 apply_table_importer_tag(text_note, entry)
                 remember_created_element(entry, text_note)
@@ -1698,7 +2235,7 @@ class AddTableDialog(object):
         self.LogoImage = self.window.FindName("LogoImage")
         self.VersionTextBlock = self.window.FindName("VersionTextBlock")
         if self.VersionTextBlock:
-            self.VersionTextBlock.Text = TOOL_VERSION
+            self.VersionTextBlock.Text = TOOL_VERSION_LABEL
 
         self.setup_defaults()
         self.bind_events()
@@ -1885,7 +2422,7 @@ class AddTableDialog(object):
                 self.existing_names.append(view_name)
                 entries.append(TableEntry(
                     selected=True,
-                    status="Not Created",
+                    status=ROW_READY_STATUS,
                     source=clean_display_text(os.path.basename(file_path)),
                     import_type=import_type,
                     view_name=view_name,
@@ -1947,16 +2484,23 @@ class TableImporterWindow(object):
         self.ProgressDetailTextBlock = self.window.FindName("ProgressDetailTextBlock")
         self.VersionTextBlock = self.window.FindName("VersionTextBlock")
         if self.VersionTextBlock:
-            self.VersionTextBlock.Text = TOOL_VERSION
+            self.VersionTextBlock.Text = TOOL_VERSION_LABEL
 
         self.BatchActionsContextMenu = self.BatchActionsButton.ContextMenu
         self.RowActionsContextMenu = self.TablesDataGrid.ContextMenu
         self.bind_menu_items()
         self.load_logo_image()
         self.load_saved_entries()
-        self.set_apply_progress("Status: Ready", "Ready", 100)
+        self.set_apply_progress("Ready", "", 100)
         self.set_progress_detail("Ready.")
         self.bind_events()
+        # Auto-refresh file status on open so LastModified is current.
+        try:
+            self.on_refresh(None, None)
+            self.FooterStatusTextBlock.Text = ""
+            self.update_footer()
+        except Exception:
+            pass
 
     def bind_menu_items(self):
         names = [
@@ -1971,6 +2515,12 @@ class TableImporterWindow(object):
         load_logo_into_image(self.LogoImage)
 
     def refresh_dispatcher(self):
+        try:
+            priority = System.Windows.Threading.DispatcherPriority.Background
+            self.window.Dispatcher.Invoke(priority, System.Action(lambda: None))
+            return
+        except Exception:
+            pass
         try:
             self.window.Dispatcher.Invoke(System.Action(lambda: None))
         except Exception:
@@ -1987,12 +2537,12 @@ class TableImporterWindow(object):
             percent_value = 100
         try:
             if self.StatusTextBlock:
-                self.StatusTextBlock.Text = safe_unicode(status_text)
+                self.StatusTextBlock.Text = normalize_status_label(status_text)
         except Exception:
             pass
         try:
             if self.ProgressTextBlock:
-                self.ProgressTextBlock.Text = "%s   %s%%" % (safe_unicode(progress_label), percent_value)
+                self.ProgressTextBlock.Text = "%s%%" % percent_value
         except Exception:
             pass
         try:
@@ -2026,7 +2576,7 @@ class TableImporterWindow(object):
                 percent = int((float(processed) / float(total)) * 100.0)
         except Exception:
             percent = 0
-        self.set_apply_progress("Status: Processing...", "Processing", percent)
+        self.set_apply_progress("Updating... %s/%s" % (processed, total), "Updating", percent)
 
     def bind_events(self):
         self.AddTablesButton.Click += self.on_add_tables
@@ -2105,6 +2655,7 @@ class TableImporterWindow(object):
             else:
                 entry.Source = clean_display_text(entry.Source)
             entry.ViewName = clean_display_text(entry.ViewName)
+            entry.Status = normalize_row_status(entry.Status)
         except Exception:
             pass
         self.populate_region_options(entry)
@@ -2130,7 +2681,16 @@ class TableImporterWindow(object):
             except Exception:
                 pass
 
+    def commit_pending_grid_edits(self):
+        try:
+            if self.TablesDataGrid:
+                self.TablesDataGrid.CommitEdit(DataGridEditingUnit.Cell, True)
+                self.TablesDataGrid.CommitEdit(DataGridEditingUnit.Row, True)
+        except Exception:
+            pass
+
     def save_current_entries(self):
+        self.commit_pending_grid_edits()
         for entry in self.all_entries:
             try:
                 ensure_table_entry_uid(entry)
@@ -2155,7 +2715,7 @@ class TableImporterWindow(object):
                     drafting += 1
             except Exception:
                 pass
-        self.FooterStatusTextBlock.Text = "Total %s | Visible %s | Selected %s | Linked %s | Drafting %s | Legends %s" % (total, visible, selected, linked, drafting, legend)
+        self.FooterStatusTextBlock.Text = "Total %s | Visible %s | Selected %s | Linked %s | Drafting %s" % (total, visible, selected, linked, drafting)
         pct = 0
         if total:
             pct = int((float(linked) / float(total)) * 100.0)
@@ -2218,7 +2778,7 @@ class TableImporterWindow(object):
             self.all_entries.append(entry)
         self.save_current_entries()
         self.apply_filter()
-        self.FooterStatusTextBlock.Text = "%s table row(s) added." % len(new_entries)
+        self.FooterStatusTextBlock.Text = "%s row(s) ready to update. Press Apply to update views." % len(new_entries)
 
     def on_add_tables(self, sender, args):
         dialog = AddTableDialog(owner=self.window, existing_names=self.get_known_view_names())
@@ -2252,7 +2812,7 @@ class TableImporterWindow(object):
                 known_names.append(view_name)
                 entries.append(TableEntry(
                     selected=True,
-                    status="Not Created",
+                    status=ROW_READY_STATUS,
                     source=clean_display_text(os.path.basename(path)),
                     import_type="Excel Link",
                     view_name=view_name,
@@ -2290,12 +2850,12 @@ class TableImporterWindow(object):
             entry.LastModified = new_date
             entry.Source = clean_display_text(os.path.basename(path))
             if old_date and new_date and old_date != new_date:
-                entry.Status = "Modified"
+                entry.Status = ROW_READY_STATUS
                 updated += 1
             elif entry.RevitViewId:
-                entry.Status = "OK"
+                entry.Status = "Updated"
             else:
-                entry.Status = "Not Created"
+                entry.Status = ROW_READY_STATUS
         self.save_current_entries()
         self.apply_filter()
         self.FooterStatusTextBlock.Text = "Refresh complete. %s modified, %s missing." % (updated, missing)
@@ -2335,7 +2895,22 @@ class TableImporterWindow(object):
         return targets
 
     def on_update_views(self, sender, args):
-        self.update_selected_views()
+        targets = self.require_targets()
+        if not targets:
+            return
+        marked = 0
+        for entry in targets:
+            try:
+                entry.Status = ROW_READY_STATUS
+                marked += 1
+            except Exception:
+                pass
+        self.save_current_entries()
+        self.TablesDataGrid.Items.Refresh()
+        if marked:
+            self.FooterStatusTextBlock.Text = "%s row(s) ready to update. Press Apply to update views." % marked
+        else:
+            self.FooterStatusTextBlock.Text = "No rows ready to update."
 
     def on_reset_legacy_content(self, sender, args):
         targets = self.require_targets()
@@ -2401,7 +2976,7 @@ class TableImporterWindow(object):
                     deleted_views += 1
                     deleted_elements += deleted_text + deleted_curve
                     try:
-                        entry.Status = "Legacy Reset"
+                        entry.Status = ROW_READY_STATUS
                     except Exception:
                         pass
             transaction.Commit()
@@ -2425,7 +3000,7 @@ class TableImporterWindow(object):
     def update_selected_views(self):
         targets = self.require_targets()
         if not targets:
-            self.set_apply_progress("Status: Ready", "Ready", 0)
+            self.set_apply_progress("Ready", "Ready", 0)
             self.set_progress_detail("No rows selected.")
             self.FooterStatusTextBlock.Text = "No rows selected."
             if DEBUG_OUTPUT:
@@ -2435,9 +3010,23 @@ class TableImporterWindow(object):
                     print("Table Importer: skipped update because no rows were selected.")
             return
 
+        ready_targets = []
+        for entry in targets:
+            try:
+                if is_ready_status(entry.Status):
+                    ready_targets.append(entry)
+            except Exception:
+                pass
+        if not ready_targets:
+            self.set_apply_progress("Ready", "Ready", 0)
+            self.set_progress_detail("No rows ready to update.")
+            self.FooterStatusTextBlock.Text = "No rows ready to update."
+            return
+        targets = ready_targets
+
         doc = get_revit_document()
         if doc is None:
-            self.set_apply_progress("Status: Ready", "Ready", 0)
+            self.set_apply_progress("Failed", "Failed", 0)
             self.set_progress_detail("No active Revit document.")
             self.FooterStatusTextBlock.Text = "No active Revit document."
             return
@@ -2450,7 +3039,7 @@ class TableImporterWindow(object):
         total = len(targets)
         output_holder = [None]
         skip_reasons = []
-        self.set_apply_progress("Status: Processing...", "Processing", 0)
+        self.set_apply_progress("Updating...", "Updating", 0)
         self.set_progress_detail("Preparing selected rows...")
 
         def debug_message(message):
@@ -2488,6 +3077,14 @@ class TableImporterWindow(object):
                 return True
             return False
 
+        def status_from_read_error(message):
+            clean_message = safe_unicode(message).lower()
+            if "excel file not found" in clean_message:
+                return "Missing File"
+            if "no readable excel data" in clean_message:
+                return "Invalid Region"
+            return "Skipped"
+
         legacy_view_count = 0
         legacy_text_count = 0
         legacy_curve_count = 0
@@ -2513,7 +3110,7 @@ class TableImporterWindow(object):
                 debug_message("Legacy scan skipped one row: %s" % safe_unicode(scan_ex))
 
         if legacy_view_count:
-            warning_text = "Warning: legacy untagged table content detected in %s view(s). Untagged manual content was preserved." % legacy_view_count
+            warning_text = "Legacy untagged content was preserved in %s view(s). Use Reset Legacy Content only if this view was created with an older version." % legacy_view_count
             self.set_progress_detail(warning_text)
             self.FooterStatusTextBlock.Text = warning_text
             cleanup_legacy = False
@@ -2523,6 +3120,9 @@ class TableImporterWindow(object):
             transaction = None
             try:
                 ensure_table_entry_uid(entry)
+                entry.Status = "Updating..."
+                self.TablesDataGrid.Items.Refresh()
+                self.refresh_dispatcher()
                 entry_view_type = safe_unicode(entry.ViewType)
                 if entry_view_type != "Drafting View":
                     entry.Status = "Skipped"
@@ -2550,7 +3150,7 @@ class TableImporterWindow(object):
 
                     view = doc.GetElement(element_id)
                     if view is None:
-                        entry.Status = "Missing View"
+                        entry.Status = "Skipped"
                         skipped += 1
                         debug_skip(entry, "missing Revit view for RevitViewId '%s'" % safe_unicode(entry.RevitViewId))
                         continue
@@ -2582,7 +3182,7 @@ class TableImporterWindow(object):
                             pass
                         message = safe_unicode(update_ex)
                         if is_read_skip_reason(message):
-                            entry.Status = "Skipped"
+                            entry.Status = status_from_read_error(message)
                             skipped += 1
                             debug_skip(entry, "no readable Excel data or file issue during update: %s" % message)
                             continue
@@ -2595,11 +3195,11 @@ class TableImporterWindow(object):
                 except Exception as ex:
                     message = safe_unicode(ex)
                     if is_read_skip_reason(message):
-                        entry.Status = "Skipped"
+                        entry.Status = status_from_read_error(message)
                         skipped += 1
                         debug_skip(entry, "no readable Excel data or file issue during create: %s" % message)
                     else:
-                        entry.Status = "Error"
+                        entry.Status = "Failed"
                         failed += 1
                         self.set_progress_detail("Error %s/%s: %s" % (processed + 1, total, self.format_progress_name(entry)))
                         print("Table Importer: %s for '%s'." % (message, safe_unicode(entry.ViewName)))
@@ -2613,17 +3213,17 @@ class TableImporterWindow(object):
                 transaction = None
 
                 if was_created:
-                    entry.Status = "Created"
+                    entry.Status = "Updated"
                     created += 1
                     row_detail("Created", entry)
                 else:
-                    entry.Status = "OK"
+                    entry.Status = "Updated"
                     row_detail("Processed", entry)
 
             except Exception as ex:
                 failed += 1
                 try:
-                    entry.Status = "Error"
+                    entry.Status = "Failed"
                 except Exception:
                     pass
                 try:
@@ -2641,21 +3241,38 @@ class TableImporterWindow(object):
         self.TablesDataGrid.Items.Refresh()
         self.apply_filter()
         summary_text = "Created %s view(s). Updated %s view(s). Skipped %s row(s). Failed %s row(s)." % (created, updated, skipped, failed)
+        legacy_text = ""
         if legacy_view_count:
-            summary_text = "%s Legacy untagged content preserved in %s view(s)." % (summary_text, legacy_view_count)
+            legacy_text = "Legacy untagged content was preserved in %s view(s). Use Reset Legacy Content only if this view was created with an older version." % legacy_view_count
+            if failed == 0 and skipped == 0:
+                summary_text = "%s %s" % (summary_text, legacy_text)
         self.FooterStatusTextBlock.Text = summary_text
-        self.set_apply_progress("Status: Ready", "Ready", 100)
+        if failed or skipped:
+            self.set_apply_progress("Failed", "", 100)
+        else:
+            self.set_apply_progress("Updated", "", 100)
         if legacy_view_count:
-            self.set_progress_detail("Completed: %s created, %s updated, %s skipped, %s failed. Legacy untagged content preserved in %s view(s)." % (created, updated, skipped, failed, legacy_view_count))
+            if failed or skipped:
+                self.set_progress_detail("Completed: %s created, %s updated, %s skipped, %s failed" % (created, updated, skipped, failed))
+            else:
+                self.set_progress_detail("Completed: %s created, %s updated, %s skipped, %s failed. %s" % (created, updated, skipped, failed, legacy_text))
         else:
             self.set_progress_detail("Completed: %s created, %s updated, %s skipped, %s failed" % (created, updated, skipped, failed))
         if skip_reasons:
             debug_message("Skip summary: %s skipped row(s). See messages above for reasons." % len(skip_reasons))
 
+        # Apply is the final action in the MVP workflow. Close automatically
+        # only when every ready selected row succeeded.
+        if failed == 0 and skipped == 0:
+            try:
+                self.window.Close()
+            except Exception:
+                pass
+
     def duplicate_entry(self, entry):
         copied = TableEntry.from_dict(entry.to_dict())
         copied.Selected = True
-        copied.Status = "Not Created"
+        copied.Status = ROW_READY_STATUS
         copied.ViewName = clean_display_text("%s Copy" % safe_unicode(entry.ViewName))
         copied.RevitViewId = None
         copied.TableEntryUid = None
@@ -2676,7 +3293,7 @@ class TableImporterWindow(object):
             self.all_entries.append(entry)
         self.save_current_entries()
         self.apply_filter()
-        self.FooterStatusTextBlock.Text = "%s duplicate table row(s) added." % len(new_entries)
+        self.FooterStatusTextBlock.Text = "%s row(s) ready to update. Press Apply to update views." % len(new_entries)
 
     def on_reload_from(self, sender, args):
         targets = self.require_targets()
@@ -2762,12 +3379,12 @@ class TableImporterWindow(object):
             return
         result = MessageBox.Show(
             "Remove %s selected table row(s)?\n\nThis does not delete Revit views yet." % len(targets),
-            "Delete Views",
+            "Remove Rows",
             MessageBoxButton.YesNo,
             MessageBoxImage.Warning,
         )
         if result != MessageBoxResult.Yes:
-            self.FooterStatusTextBlock.Text = "Delete cancelled."
+            self.FooterStatusTextBlock.Text = "Remove rows cancelled."
             return
         removed = 0
         for entry in list(targets):
@@ -2815,13 +3432,3 @@ if __name__ == "__main__":
         output.print_md("```")
         output.print_md(safe_unicode(ex))
         output.print_md("```")
-
-
-
-
-
-
-
-
-
-

@@ -155,7 +155,7 @@
 
                 <TextBlock Grid.Row="4" Grid.Column="0" Text="Type" VerticalAlignment="Center" FontWeight="SemiBold"/>
                 <ComboBox x:Name="ImportTypeComboBox" Grid.Row="4" Grid.Column="1"/>
-                <CheckBox x:Name="AutoSyncCheckBox" Grid.Row="4" Grid.Column="2" Content="Auto Sync" VerticalAlignment="Center" Margin="12,0,0,0"/>
+                <CheckBox x:Name="AutoSyncCheckBox" Grid.Row="4" Grid.Column="2" Content="Auto Sync" Visibility="Collapsed" VerticalAlignment="Center" Margin="12,0,0,0"/>
 
                 <TextBlock Grid.Row="5" Grid.Column="0" Text="View Type" VerticalAlignment="Center" FontWeight="SemiBold"/>
                 <ComboBox x:Name="ViewTypeComboBox" Grid.Row="5" Grid.Column="1"/>

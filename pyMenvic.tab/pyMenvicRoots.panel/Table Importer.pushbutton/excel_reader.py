@@ -16,7 +16,7 @@ HIDDEN_UNICODE_CHARS = [
 
 
 class ExcelTableData(list):
-    def __init__(self, rows=None, borders=None, border_available=False, border_method=u"", merged_ranges=None, merges_available=False, column_widths=None, row_heights=None, dimensions_available=False, dimensions_method=u"", dominant_region_font=None):
+    def __init__(self, rows=None, borders=None, border_available=False, border_method=u"", merged_ranges=None, merges_available=False, column_widths=None, row_heights=None, dimensions_available=False, dimensions_method=u"", dominant_region_font=None, cell_styles=None):
         list.__init__(self, rows or [])
         self.borders = borders
         self.border_available = border_available
@@ -28,6 +28,7 @@ class ExcelTableData(list):
         self.dimensions_available = dimensions_available
         self.dimensions_method = dimensions_method
         self.dominant_region_font = dominant_region_font
+        self.cell_styles = cell_styles
 
 
 def clean_hidden_unicode(value):
@@ -1273,17 +1274,19 @@ def _read_cell_values_via_openpyxl(file_path, worksheet_name, address):
             min_col, min_row, max_col, max_row = bounds
 
         data = []
-        for row in ws.iter_rows(
-            min_row=min_row,
-            max_row=max_row,
-            min_col=min_col,
-            max_col=max_col,
-            values_only=True,
-        ):
-            data.append([_clean_cell_value(value) for value in row])
+        cell_styles = []
+        for row_index in range(min_row, max_row + 1):
+            row_values = []
+            row_styles = []
+            for col_index in range(min_col, max_col + 1):
+                cell = ws.cell(row=row_index, column=col_index)
+                row_values.append(_clean_cell_value(cell.value))
+                row_styles.append(_cell_style_dict(cell))
+            data.append(row_values)
+            cell_styles.append(row_styles)
         column_widths, row_heights = _read_openpyxl_dimensions(ws, min_col, min_row, max_col, max_row)
         wb.close()
-        return ExcelTableData(data, None, False, u"openpyxl values", None, False, column_widths, row_heights, column_widths is not None or row_heights is not None, u"openpyxl"), ""
+        return ExcelTableData(data, None, False, u"openpyxl values", None, False, column_widths, row_heights, column_widths is not None or row_heights is not None, u"openpyxl", None, cell_styles if _has_useful_cell_styles(cell_styles) else None), ""
     except Exception as ex:
         try:
             if wb:
@@ -1342,6 +1345,64 @@ def _dominant_font_from_counts(font_counts):
     except Exception:
         pass
     return dominant_name
+
+
+def _cell_style_dict(cell):
+    """Return a small, Revit-friendly style description for one Excel cell."""
+    result = {
+        "font_name": u"",
+        "size_pt": None,
+        "bold": False,
+        "italic": False,
+        "horizontal": u"",
+        "vertical": u"",
+    }
+    try:
+        font = cell.font
+        try:
+            result["font_name"] = clean_hidden_unicode(safe_unicode(font.name)).strip()
+        except Exception:
+            result["font_name"] = u""
+        try:
+            if font.sz is not None:
+                result["size_pt"] = float(font.sz)
+        except Exception:
+            result["size_pt"] = None
+        try:
+            result["bold"] = bool(font.bold)
+        except Exception:
+            result["bold"] = False
+        try:
+            result["italic"] = bool(font.italic)
+        except Exception:
+            result["italic"] = False
+    except Exception:
+        pass
+    try:
+        alignment = cell.alignment
+        try:
+            result["horizontal"] = clean_hidden_unicode(safe_unicode(alignment.horizontal)).strip()
+        except Exception:
+            result["horizontal"] = u""
+        try:
+            result["vertical"] = clean_hidden_unicode(safe_unicode(alignment.vertical)).strip()
+        except Exception:
+            result["vertical"] = u""
+    except Exception:
+        pass
+    return result
+
+def _has_useful_cell_styles(cell_styles):
+    try:
+        for row in cell_styles or []:
+            for style in row or []:
+                if not style:
+                    continue
+                if style.get("font_name") or style.get("size_pt") or style.get("bold") or style.get("italic") or style.get("horizontal") or style.get("vertical"):
+                    return True
+    except Exception:
+        pass
+    return False
 
 
 def _read_openpyxl_dimensions(ws, min_col, min_row, max_col, max_row):
@@ -1450,20 +1511,24 @@ def _read_cell_values_and_borders_via_openpyxl(file_path, worksheet_name, addres
 
         data = []
         borders = []
+        cell_styles = []
         font_counts = {}
         for row_index in range(min_row, max_row + 1):
             row_values = []
             row_borders = []
+            row_styles = []
             for col_index in range(min_col, max_col + 1):
                 cell = ws.cell(row=row_index, column=col_index)
                 row_values.append(_clean_cell_value(cell.value))
                 row_borders.append(_cell_border_dict(cell))
+                row_styles.append(_cell_style_dict(cell))
                 try:
                     _add_font_count(font_counts, cell.font.name)
                 except Exception:
                     pass
             data.append(row_values)
             borders.append(row_borders)
+            cell_styles.append(row_styles)
         merged_ranges = []
         try:
             for merged_range in ws.merged_cells.ranges:
@@ -1496,7 +1561,7 @@ def _read_cell_values_and_borders_via_openpyxl(file_path, worksheet_name, addres
         column_widths, row_heights = _read_openpyxl_dimensions(ws, min_col, min_row, max_col, max_row)
         dominant_region_font = _dominant_font_from_counts(font_counts)
         wb.close()
-        return ExcelTableData(data, borders, True, u"openpyxl", merged_ranges, True, column_widths, row_heights, column_widths is not None or row_heights is not None, u"openpyxl", dominant_region_font), ""
+        return ExcelTableData(data, borders, True, u"openpyxl", merged_ranges, True, column_widths, row_heights, column_widths is not None or row_heights is not None, u"openpyxl", dominant_region_font, cell_styles if _has_useful_cell_styles(cell_styles) else None), ""
     except Exception as ex:
         try:
             if wb:
