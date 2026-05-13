@@ -47,6 +47,13 @@ import os
 
 
 doc = revit.doc
+
+
+def is_workshared_document(current_doc):
+    try:
+        return current_doc is not None and current_doc.IsWorkshared
+    except Exception:
+        return False
 output = script.get_output()
 
 
@@ -507,8 +514,13 @@ class WorksetSeederWindow(forms.WPFWindow):
 # ==================================================
 
 
-if not doc.IsWorkshared:
-    forms.alert("The model is not workshared.", exitscript=True)
+if not is_workshared_document(doc):
+    forms.alert(
+        "This tool requires a workshared model with worksets enabled.\n\nEnable Worksharing first and run the tool again.",
+        title="pyMENVIC | Worksets Required",
+        warn_icon=True
+    )
+    raise SystemExit
 
 
 # ==================================================

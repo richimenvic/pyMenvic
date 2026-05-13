@@ -23,6 +23,8 @@ must all end with the same target workset, otherwise
 the tool will stop and warn about the conflict.
 """
 
+import os
+
 from pyrevit import revit, DB, forms
 from System.Collections.ObjectModel import ObservableCollection
 from System.Windows.Data import CollectionViewSource
@@ -34,7 +36,33 @@ from System.Windows.Media import VisualTreeHelper
 
 
 
+
+
+def get_logo_path():
+    try:
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        while True:
+            if os.path.basename(current_dir).lower() == "pymenvic.extension":
+                logo_path = os.path.join(current_dir, "_resources", "logos", "menvic_logo.png")
+                if os.path.exists(logo_path):
+                    return logo_path
+                return None
+            parent_dir = os.path.dirname(current_dir)
+            if parent_dir == current_dir:
+                break
+            current_dir = parent_dir
+    except Exception:
+        pass
+    return None
+
 doc = revit.doc
+
+
+def is_workshared_document(current_doc):
+    try:
+        return current_doc is not None and current_doc.IsWorkshared
+    except Exception:
+        return False
 
 DEFAULT_LINK_WORKSETS = [
     "LINK_ARC",
@@ -886,5 +914,13 @@ class LinkWorksetManagerWindow(forms.WPFWindow):
 # ==================================================
 # RUN
 # ==================================================
+
+if not is_workshared_document(doc):
+    forms.alert(
+        "This tool requires a workshared model with worksets enabled.\n\nEnable Worksharing first and run the tool again.",
+        title="pyMENVIC | Worksets Required",
+        warn_icon=True
+    )
+    raise SystemExit
 
 LinkWorksetManagerWindow("ui.xaml").ShowDialog()

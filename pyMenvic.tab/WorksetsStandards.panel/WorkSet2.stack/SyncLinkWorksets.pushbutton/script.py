@@ -67,6 +67,13 @@ pyMENVIC – Ayudas para MENVIC ARQ
 # ==================================================
 
 doc = revit.doc
+
+
+def is_workshared_document(current_doc):
+    try:
+        return current_doc is not None and current_doc.IsWorkshared
+    except Exception:
+        return False
 output = script.get_output()
 SCRIPT_DIR = os.path.dirname(__file__)
 XAML_PATH = os.path.join(SCRIPT_DIR, "sync_link_worksets.xaml")
@@ -447,8 +454,13 @@ class SyncLinkWorksetsWindow(forms.WPFWindow):
 
 UI_STRINGS = load_ui_strings()
 
-if not doc.IsWorkshared:
-    forms.alert(tr(UI_STRINGS, "Model is not workshared."), exitscript=True)
+if not is_workshared_document(doc):
+    forms.alert(
+        "This tool requires a workshared model with worksets enabled.\n\nEnable Worksharing first and run the tool again.",
+        title="pyMENVIC | Worksets Required",
+        warn_icon=True
+    )
+    raise SystemExit
 
 host_worksets = get_host_worksets()
 rows, scanned_links, skipped_links, link_names = scan_link_worksets(host_worksets, UI_STRINGS)
