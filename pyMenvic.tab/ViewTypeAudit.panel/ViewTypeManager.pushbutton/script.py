@@ -26,7 +26,7 @@ output = script.get_output()
 
 XAML_FILE = script.get_bundle_file("ui.xaml")
 TXT_FILE = script.get_bundle_file("view_type_standards.txt")
-LOGO_FILE = script.get_bundle_file("logo.png") or script.get_bundle_file("view_type_standardizer_logo.png")
+LOGO_FILE = get_logo_path()
 
 
 # ==================================================

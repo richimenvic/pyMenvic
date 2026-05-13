@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from pyrevit import revit, DB, forms, script
+from lib.core.branding import get_logo_path
 import os
 import clr
 
@@ -315,7 +316,7 @@ class SyncLinkWorksetsWindow(forms.WPFWindow):
         self.close_button.Content = tr(self.ui_strings, "CLOSE")
 
     def _load_logo(self):
-        logo_path = os.path.join(SCRIPT_DIR, "logo.png")
+        logo_path = get_logo_path()
 
         try:
             if os.path.exists(logo_path):

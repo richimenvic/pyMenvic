@@ -44,6 +44,7 @@ from System.Collections.Generic import List
 from System import Uri, UriKind
 from System.Windows.Media.Imaging import BitmapImage, BitmapCacheOption
 from System.Windows.Data import CollectionViewSource
+from lib.core.branding import get_logo_path
 import os
 
 
@@ -512,8 +513,7 @@ def checkout_worksets_if_possible(workset_ids):
 
 def load_logo_if_available(window):
     try:
-        bundle_dir = os.path.dirname(__file__)
-        logo_path = os.path.join(bundle_dir, "logo.png")
+        logo_path = get_logo_path()
 
         if not os.path.exists(logo_path):
             return

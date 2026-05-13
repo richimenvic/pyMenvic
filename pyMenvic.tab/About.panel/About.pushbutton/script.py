@@ -5,6 +5,7 @@ import os
 import webbrowser
 
 from pyrevit import forms, script, versionmgr
+from lib.core.branding import get_logo_path
 from System import Uri
 from System.Windows import Clipboard
 from System.Windows.Media.Imaging import BitmapImage, BitmapCacheOption
@@ -61,7 +62,7 @@ class AboutWindow(forms.WPFWindow):
         self.emailText.Text = CONTACT_EMAIL
 
         # LOGO
-        icon_path = script.get_bundle_file('logo.png')
+        icon_path = get_logo_path()
         if icon_path and os.path.exists(icon_path):
             bmp = load_bitmap(icon_path)
             self.logo.Source = bmp

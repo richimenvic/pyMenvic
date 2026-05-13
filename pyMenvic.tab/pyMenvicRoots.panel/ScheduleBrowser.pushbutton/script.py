@@ -66,6 +66,7 @@ import io
 
 from pyrevit import forms
 from pyrevit import script
+from lib.core.branding import get_logo_path
 from Autodesk.Revit import DB
 from Autodesk.Revit.UI import TaskDialog
 
@@ -4799,7 +4800,7 @@ class ScheduleBrowserWindow(forms.WPFWindow):
         self._refresh_progress_ui()
 
     def _configure_branding(self):
-        logo_path = os.path.join(THIS_DIR, "logo.png")
+        logo_path = get_logo_path()
         if not os.path.exists(logo_path):
             return
 

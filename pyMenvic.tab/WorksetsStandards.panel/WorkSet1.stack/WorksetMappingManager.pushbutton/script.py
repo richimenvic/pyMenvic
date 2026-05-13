@@ -40,6 +40,7 @@ Author: Ricardo J. Mendieta
 """
 
 from pyrevit import revit, DB, forms, script
+from lib.core.branding import get_logo_path
 from System.Collections.ObjectModel import ObservableCollection
 from System.Collections.Generic import List
 from System.Windows import MessageBox
@@ -683,7 +684,7 @@ class WorksetMappingManagerWindow(forms.WPFWindow):
         forms.WPFWindow.__init__(self, xaml_file)
 
         script_dir = os.path.dirname(__file__)
-        logo_path = os.path.join(script_dir, "logo.png")
+        logo_path = get_logo_path()
         try:
             if os.path.exists(logo_path):
                 self.logoImage.Source = BitmapImage(Uri(logo_path, UriKind.Absolute))
