@@ -24,6 +24,26 @@ from System.Windows.Media.Imaging import BitmapImage, BitmapCacheOption
 doc = revit.doc
 output = script.get_output()
 
+
+
+def get_logo_path():
+    try:
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        while True:
+            if os.path.basename(current_dir).lower() == "pymenvic.extension":
+                logo_path = os.path.join(current_dir, "_resources", "logos", "menvic_logo.png")
+                if os.path.exists(logo_path):
+                    return logo_path
+                return None
+
+            parent_dir = os.path.dirname(current_dir)
+            if parent_dir == current_dir:
+                break
+            current_dir = parent_dir
+    except:
+        pass
+    return None
+
 XAML_FILE = script.get_bundle_file("ui.xaml")
 TXT_FILE = script.get_bundle_file("view_type_standards.txt")
 LOGO_FILE = get_logo_path()
