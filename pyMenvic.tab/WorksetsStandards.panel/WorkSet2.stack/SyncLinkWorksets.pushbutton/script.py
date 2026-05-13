@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
 from pyrevit import revit, DB, forms, script
-from lib.core.branding import get_logo_path
 import os
 import clr
 
@@ -67,6 +66,24 @@ pyMENVIC – Ayudas para MENVIC ARQ
 # ==================================================
 
 doc = revit.doc
+
+
+def get_logo_path():
+    try:
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        while True:
+            if os.path.basename(current_dir).lower() == "pymenvic.extension":
+                logo_path = os.path.join(current_dir, "_resources", "logos", "menvic_logo.png")
+                if os.path.exists(logo_path):
+                    return logo_path
+                return None
+            parent_dir = os.path.dirname(current_dir)
+            if parent_dir == current_dir:
+                break
+            current_dir = parent_dir
+    except Exception:
+        pass
+    return None
 
 
 def is_workshared_document(current_doc):
