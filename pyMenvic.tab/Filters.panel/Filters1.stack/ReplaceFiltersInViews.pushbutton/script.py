@@ -25,11 +25,12 @@ from Autodesk.Revit.DB import (
     Viewport,
 )
 from pyrevit import forms, revit, script
+from lib.core.branding import get_logo_path
 
 
 doc = revit.doc
 XAML_FILE = script.get_bundle_file("replace_filters_in_views.xaml")
-LOGO_FILE = script.get_bundle_file("logo.png")
+LOGO_FILE = get_logo_path()
 STRINGS_FILE = script.get_bundle_file("strings.py")
 
 

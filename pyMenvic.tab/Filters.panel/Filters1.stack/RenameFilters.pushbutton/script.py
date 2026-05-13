@@ -18,12 +18,13 @@ from System.Windows.Media.Imaging import BitmapImage, BitmapCacheOption
 
 from Autodesk.Revit.DB import Element, FilteredElementCollector, ParameterFilterElement, ViewFamily, ViewFamilyType
 from pyrevit import forms, revit, script
+from lib.core.branding import get_logo_path
 
 
 doc = revit.doc
 XAML_FILE = script.get_bundle_file("filters_renamer.xaml")
 EDIT_VIEW_TYPES_XAML = script.get_bundle_file("edit_view_types.xaml")
-LOGO_FILE = script.get_bundle_file("logo.png")
+LOGO_FILE = get_logo_path()
 STRINGS_FILE = script.get_bundle_file("strings.py")
 
 

@@ -39,6 +39,7 @@ Author: Ricardo J. Mendieta
 """
 
 from pyrevit import revit, DB, forms, script
+from lib.core.branding import get_logo_path
 from System.Collections.ObjectModel import ObservableCollection
 from System import Uri, UriKind
 from System.Windows.Media.Imaging import BitmapImage, BitmapCacheOption
@@ -259,7 +260,7 @@ def create_workset_if_missing(name):
 def load_logo_if_available(window):
     try:
         bundle_dir = os.path.dirname(__file__)
-        logo_path = os.path.join(bundle_dir, "logo.png")
+        logo_path = get_logo_path()
         if not os.path.exists(logo_path):
             return
 

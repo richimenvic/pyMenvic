@@ -51,6 +51,7 @@ from System.Windows.Media.Imaging import BitmapImage
 from System import Uri, UriKind
 
 from pyrevit import revit, DB, forms, script
+from lib.core.branding import get_logo_path
 
 
 doc = revit.doc
@@ -310,7 +311,7 @@ def load_logo(window, base_dir):
     if image is None:
         return
 
-    preferred_names = ['logo.png', 'logo.jpg', 'logo.jpeg', 'logo.bmp']
+    preferred_names = []
     candidate = None
 
     for name in preferred_names:

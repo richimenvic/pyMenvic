@@ -517,7 +517,7 @@ class LinkWorksetManagerWindow(forms.WPFWindow):
         from System import Uri
 
         script_dir = os.path.dirname(__file__)
-        logo_path = os.path.join(script_dir, "resources", "logo.png")
+        logo_path = get_logo_path()
 
         try:
             if os.path.exists(logo_path):
