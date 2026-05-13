@@ -5,7 +5,6 @@ import os
 import webbrowser
 
 from pyrevit import forms, script, versionmgr
-from lib.core.branding import get_logo_path
 from System import Uri
 from System.Windows import Clipboard
 from System.Windows.Media.Imaging import BitmapImage, BitmapCacheOption
@@ -13,6 +12,24 @@ from System.Windows.Media.Imaging import BitmapImage, BitmapCacheOption
 
 CONTACT_EMAIL = "contact@menvic.com"
 WEBSITE_URL = "https://github.com/richimenvic/pyMenvic"
+
+
+def get_logo_path():
+    try:
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        while True:
+            if os.path.basename(current_dir).lower() == "pymenvic.extension":
+                logo_path = os.path.join(current_dir, "_resources", "logos", "menvic_logo.png")
+                if os.path.exists(logo_path):
+                    return logo_path
+                return None
+            parent_dir = os.path.dirname(current_dir)
+            if parent_dir == current_dir:
+                break
+            current_dir = parent_dir
+    except Exception:
+        pass
+    return None
 
 
 def read_version():
