@@ -73,6 +73,26 @@ def is_workshared_document(current_doc):
         return current_doc is not None and current_doc.IsWorkshared
     except Exception:
         return False
+
+
+def has_custom_user_worksets(current_doc):
+    try:
+        collector = DB.FilteredWorksetCollector(current_doc)
+        worksets = collector.OfKind(DB.WorksetKind.UserWorkset).ToWorksets()
+        custom_count = 0
+
+        for ws in worksets:
+            try:
+                ws_name = ws.Name
+                if ws_name and ws_name.strip().lower() != "workset1":
+                    custom_count += 1
+            except Exception:
+                pass
+
+        return custom_count > 0
+
+    except Exception:
+        return False
 output = script.get_output()
 
 
@@ -1433,6 +1453,15 @@ if not is_workshared_document(doc):
     forms.alert(
         "This tool requires a workshared model with worksets enabled.\n\nEnable Worksharing first and run the tool again.",
         title="pyMENVIC | Worksets Required",
+        warn_icon=True
+    )
+    raise SystemExit
+
+
+if not has_custom_user_worksets(doc):
+    forms.alert(
+        "This model has Worksharing enabled, but no custom worksets were found.\n\nOnly the default 'Workset1' exists.\n\nCreate or seed the required pyMENVIC worksets first, then run this tool again.",
+        title="pyMENVIC | No Custom Worksets Found",
         warn_icon=True
     )
     raise SystemExit
