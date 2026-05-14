@@ -38,531 +38,253 @@ from System.IO import FileStream, FileMode, FileAccess
 from System.Windows.Media.Imaging import BitmapImage, BitmapCacheOption
 from System.Windows import Visibility
 
-from Autodesk.Revit.DB import View, Element, ElementId, Transaction
+from Autodesk.Revit.DB import View, ElementId, Transaction
 from pyrevit import forms, revit, script
-
 
 doc = revit.doc
 XAML_FILE = script.get_bundle_file("filter_manager_pro.xaml")
 LOGO_FILE = get_filters_logo_path()
 
-
 class FilterOption(object):
-    def __init__(self, element_id, name):
-        self.ElementId = element_id
-        self.Name = name
-
-    def __str__(self):
-        return self.Name
-
-
+    def __init__(self, element_id, name): self.ElementId, self.Name = element_id, name
 class AuditRow(object):
-    def __init__(self, filter_name, categories, view_count, template_count):
-        self.FilterName = filter_name
-        self.Categories = categories
-        self.ViewCount = view_count
-        self.TemplateCount = template_count
-        self.TotalCount = view_count + template_count
-        self.Status = "Used" if self.TotalCount > 0 else "Unused"
-
-
-class RenamePreviewRow(object):
-    def __init__(self, current_name, proposed_name):
-        self.CurrentName = current_name
-        self.ProposedName = proposed_name
-
-
-class ReplacePreviewRow(object):
-    def __init__(self, view_name, view_kind, has_source, has_target):
-        self.ViewName = view_name
-        self.ViewKind = view_kind
-        self.HasSource = has_source
-        self.HasTarget = has_target
-
+    def __init__(self, filter_id, name, categories, vc, tc, dup):
+        self.FilterId = filter_id; self.FilterName = name; self.Categories = categories
+        self.ViewCount = vc; self.TemplateCount = tc; self.TotalCount = vc + tc
+        self.Status = "Used" if self.TotalCount > 0 else "Unused"; self.Duplicate = "Possible" if dup else "-"
+class RenameRow(object):
+    def __init__(self, filter_id, current, proposed):
+        self.FilterId = filter_id; self.CurrentName = current; self.ProposedName = proposed; self.Apply = False; self.Status = "No change"
+class ReplaceRow(object):
+    def __init__(self, view_id, view_name, kind, templ, hs, ht, se, sv, te, tv):
+        self.ViewId = view_id; self.ViewName = view_name; self.ViewKind = kind; self.IsTemplate = templ
+        self.HasSource = hs; self.HasTarget = ht; self.SourceEnabled = se; self.SourceVisible = sv; self.TargetEnabled = te; self.TargetVisible = tv
+        self.Apply = hs; self.Status = "Ready" if hs else "No source"
 
 class FilterManagerProWindow(forms.WPFWindow):
     def __init__(self):
         forms.WPFWindow.__init__(self, XAML_FILE)
-        self._load_header_logo()
-        self.filters = self._collect_filters()
-        self.filter_name_to_option = {filt.Name: filt for filt in self.filters}
-        self.filter_names = sorted(self.filter_name_to_option.keys(), key=lambda item: item.lower())
-        self.audit_rows = ObservableCollection[object]()
-        self.rename_rows = ObservableCollection[object]()
-        self.replace_rows = ObservableCollection[object]()
-        self.AuditGrid.ItemsSource = self.audit_rows
-        self.RenameGrid.ItemsSource = self.rename_rows
-        self.ReplaceGrid.ItemsSource = self.replace_rows
-        self.SourceComboBox.ItemsSource = self.filter_names
-        self.TargetComboBox.ItemsSource = self.filter_names
-        if len(self.filter_names) > 0:
-            self.SourceComboBox.SelectedIndex = 0
-            self.TargetComboBox.SelectedIndex = 0
-        self.replace_preview_ready = False
-        self.replace_preview_view_ids = []
-        self._load_audit()
-        self._set_rename_status("Click Preview to load all filters.")
-        self._set_replace_status("Select Source and Target filters, then click Preview Usage.")
+        self._load_header_logo(); self.filters = self._collect_filters(); self._rebuild_maps()
+        self.audit_rows = ObservableCollection[object](); self.rename_rows = ObservableCollection[object](); self.replace_rows = ObservableCollection[object]()
+        self.all_rename_rows = []; self.all_replace_rows = []
+        self.AuditGrid.ItemsSource = self.audit_rows; self.RenameGrid.ItemsSource = self.rename_rows; self.ReplaceGrid.ItemsSource = self.replace_rows
+        self.SourceComboBox.ItemsSource = self.filter_names; self.TargetComboBox.ItemsSource = self.filter_names
+        if self.filter_names: self.SourceComboBox.SelectedIndex = 0; self.TargetComboBox.SelectedIndex = min(1, len(self.filter_names)-1)
+        self.IncludeViewsCheckBox.IsChecked = True; self.IncludeTemplatesCheckBox.IsChecked = True
+        self.MergeExistingCheckBox.IsChecked = True; self.CopyVisibilityCheckBox.IsChecked = True; self.CopyEnabledCheckBox.IsChecked = True
+        self._load_audit(); self._load_rename_rows(); self._set_reports_status("Ready to export from current tab data.")
+        self._set_rename_status("Configure rename options and click Preview."); self._set_replace_status("Select Source and Target, then Preview Usage.")
         self._refresh_active_tab_summary()
 
+    def _rebuild_maps(self):
+        self.filter_name_to_option = {f.Name: f for f in self.filters}
+        self.filter_id_to_option = {element_id_value(f.ElementId): f for f in self.filters}
+        self.filter_names = sorted(self.filter_name_to_option.keys(), key=lambda x: x.lower())
 
-    def _set_text(self, control_name, value):
-        try:
-            getattr(self, control_name).Text = str(value)
-        except Exception:
-            pass
-
+    def _collect_filters(self): return [FilterOption(f.Id, element_name(f)) for f in collect_parameter_filters(doc, key_selector=lambda i: element_name(i).lower())]
+    def _views(self):
+        from Autodesk.Revit.DB import FilteredElementCollector
+        out = []
+        for v in FilteredElementCollector(doc).OfClass(View):
+            try: v.GetFilters(); out.append(v)
+            except Exception: pass
+        return out
+    def _set_text(self, name, v):
+        try: getattr(self, name).Text = str(v)
+        except Exception: pass
     def _set_header_cards(self, cards):
-        card_slots = 6
-        for i in range(card_slots):
-            data = cards[i] if i < len(cards) else None
-            label = data[0] if data is not None else ""
-            value = data[1] if data is not None else ""
-            self._set_text("HeaderCardLabel{}".format(i + 1), label)
-            self._set_text("HeaderCardValue{}".format(i + 1), value)
-            try:
-                border = getattr(self, "HeaderCardBorder{}".format(i + 1))
-                border.Visibility = Visibility.Visible if data is not None else Visibility.Collapsed
-            except Exception:
-                pass
-
-    def _card(self, label, value):
-        return (label, str(value))
-
+        for i in range(6):
+            d = cards[i] if i < len(cards) else None
+            self._set_text("HeaderCardLabel{}".format(i+1), d[0] if d else "")
+            self._set_text("HeaderCardValue{}".format(i+1), d[1] if d else "")
+            try: getattr(self, "HeaderCardBorder{}".format(i+1)).Visibility = Visibility.Visible if d else Visibility.Collapsed
+            except Exception: pass
+    def _card(self,l,v): return (l,str(v))
     def _refresh_active_tab_summary(self):
-        selected = self.MainTabControl.SelectedItem
-        header = ""
-        try:
-            header = str(selected.Header)
-        except Exception:
-            pass
-        if "Audit" in header:
-            total = len(self.audit_rows)
-            used = len([x for x in self.audit_rows if x.TotalCount > 0])
-            unused = len([x for x in self.audit_rows if x.TotalCount == 0])
-            views = sum([x.ViewCount for x in self.audit_rows])
-            templates = sum([x.TemplateCount for x in self.audit_rows])
-            cards = [self._card("FILTERS", total), self._card("USED", used)]
-            if unused > 0:
-                cards.append(self._card("UNUSED", unused))
-            if views > 0:
-                cards.append(self._card("VIEWS", views))
-            if templates > 0:
-                cards.append(self._card("TEMPLATES", templates))
-            self._set_header_cards(cards)
-        elif "Rename" in header:
-            total = len(self.rename_rows)
-            no_change = len([x for x in self.rename_rows if x.CurrentName == x.ProposedName])
-            ready = total - no_change
-            issues = 0
-            cards = [self._card("TOTAL", total)]
-            if ready > 0:
-                cards.append(self._card("READY", ready))
-            if no_change > 0:
-                cards.append(self._card("NO CHANGE", no_change))
-            if issues > 0:
-                cards.append(self._card("ISSUES", issues))
-            self._set_header_cards(cards)
-        elif "Replace" in header:
-            source_name = self.SourceComboBox.SelectedItem
-            target_name = self.TargetComboBox.SelectedItem
-            source = self.filter_name_to_option.get(source_name) if source_name else None
-            target = self.filter_name_to_option.get(target_name) if target_name else None
-            ready = 1 if (source is not None and target is not None and element_id_value(source.ElementId) != element_id_value(target.ElementId)) else 0
-            issues = 0 if ready else 1
-            affected = len(self.replace_rows)
-            cards = [self._card("FILTERS", len(self.filters))]
-            if affected > 0:
-                cards.append(self._card("AFFECTED", affected))
-            if ready > 0:
-                cards.append(self._card("READY", ready))
-            if issues > 0:
-                cards.append(self._card("ISSUES", issues))
-            self._set_header_cards(cards)
-        else:
-            cards = [self._card("REPORTS", "Available")]
-            self._set_header_cards(cards)
+        h = str(self.MainTabControl.SelectedItem.Header)
+        if "Audit" in h:
+            used = len([r for r in self.audit_rows if r.TotalCount>0]); self._set_header_cards([self._card("FILTERS",len(self.audit_rows)),self._card("USED",used),self._card("UNUSED",len(self.audit_rows)-used)])
+        elif "Rename" in h:
+            ready = len([r for r in self.rename_rows if r.Apply]); self._set_header_cards([self._card("ROWS",len(self.rename_rows)),self._card("APPLY",ready)])
+        elif "Replace" in h:
+            self._set_header_cards([self._card("PREVIEW",len(self.replace_rows)),self._card("APPLY",len([r for r in self.replace_rows if r.Apply]))])
+        else: self._set_header_cards([self._card("REPORTS","CSV")])
 
     def _load_header_logo(self):
-        stream = None
+        s = None
         try:
-            stream = FileStream(LOGO_FILE, FileMode.Open, FileAccess.Read)
-            image = BitmapImage()
-            image.BeginInit()
-            image.StreamSource = stream
-            image.CacheOption = BitmapCacheOption.OnLoad
-            image.EndInit()
-            image.Freeze()
-            self.HeaderLogoImage.Source = image
-        except Exception:
-            pass
+            s = FileStream(LOGO_FILE, FileMode.Open, FileAccess.Read); i = BitmapImage(); i.BeginInit(); i.StreamSource = s; i.CacheOption = BitmapCacheOption.OnLoad; i.EndInit(); i.Freeze(); self.HeaderLogoImage.Source = i
+        except Exception: pass
         finally:
-            if stream is not None:
-                try:
-                    stream.Close()
-                except Exception:
-                    pass
-
-    def _collect_filters(self):
-        items = []
-        for filt in collect_parameter_filters(doc, key_selector=lambda item: element_name(item).lower()):
-            items.append(FilterOption(filt.Id, element_name(filt)))
-        return items
-
-    def _view_supports_filters(self, view):
-        try:
-            view.GetFilters()
-            return True
-        except Exception:
-            return False
-
+            if s:
+                try: s.Close()
+                except Exception: pass
+    def _get_categories(self, fid):
+        try: ids = list(doc.GetElement(fid).GetCategories())
+        except Exception: ids = []
+        names=[]
+        for cid in ids:
+            try: names.append(doc.Settings.Categories.get_Item(cid).Name)
+            except Exception: pass
+        return ", ".join(sorted(set(names))) if names else "N/A"
     def _load_audit(self):
+        self.audit_rows.Clear(); views = self._views(); sig={}; groups={}
+        for f in self.filters:
+            fid=element_id_value(f.ElementId); cats=self._get_categories(f.ElementId); vc=0; tc=0
+            for v in views:
+                try: ids=[element_id_value(x) for x in v.GetFilters()]
+                except Exception: continue
+                if fid in ids: tc += 1 if v.IsTemplate else 0; vc += 0 if v.IsTemplate else 1
+            k=(cats.lower(),vc,tc); groups.setdefault(k,[]).append(fid)
+            sig[fid]=k
+            
+        for f in self.filters:
+            fid=element_id_value(f.ElementId); dup=len(groups.get(sig[fid],[]))>1
+            self.audit_rows.Add(AuditRow(fid,f.Name,self._get_categories(f.ElementId),vc if False else 0,0,dup))
+        # rebuild counts accurately
         self.audit_rows.Clear()
-        views = collect_views_with_filters(doc)
-        for filt in self.filters:
-            view_count = 0
-            template_count = 0
-            for view in views:
-                try:
-                    ids = list(view.GetFilters())
-                except Exception:
-                    continue
-                values = [element_id_value(x) for x in ids]
-                if element_id_value(filt.ElementId) not in values:
-                    continue
-                if view.IsTemplate:
-                    template_count += 1
-                else:
-                    view_count += 1
-            self.audit_rows.Add(AuditRow(filt.Name, self._get_filter_categories_text(filt.ElementId), view_count, template_count))
+        for f in self.filters:
+            fid=element_id_value(f.ElementId); vc=0; tc=0
+            for v in views:
+                try: ids=[element_id_value(x) for x in v.GetFilters()]
+                except Exception: continue
+                if fid in ids: tc += 1 if v.IsTemplate else 0; vc += 0 if v.IsTemplate else 1
+            dup=len(groups.get((self._get_categories(f.ElementId).lower(),vc,tc),[]))>1
+            self.audit_rows.Add(AuditRow(fid,f.Name,self._get_categories(f.ElementId),vc,tc,dup))
         self._refresh_active_tab_summary()
 
-    def _preview_rename(self):
-        self.rename_rows.Clear()
-        prefix = (self.RenamePrefixTextBox.Text or "").strip()
-        for filt in self.filters:
-            proposed = filt.Name
-            if prefix:
-                proposed = "{}{}".format(prefix, filt.Name)
-            self.rename_rows.Add(RenamePreviewRow(filt.Name, proposed))
-        if prefix:
-            self._set_rename_status("Previewing {} filters with prefix '{}'".format(len(self.filters), prefix))
-        else:
-            self._set_rename_status("Previewing {} filters. Prefix is empty, so proposed names match current names.".format(len(self.filters)))
+    def _load_rename_rows(self):
+        self.all_rename_rows = [RenameRow(element_id_value(f.ElementId), f.Name, f.Name) for f in self.filters]
+        self._filter_rename_rows()
+    def _filter_rename_rows(self):
+        term=(self.RenameSearchTextBox.Text or "").strip().lower(); self.rename_rows.Clear()
+        for r in self.all_rename_rows:
+            if term and term not in r.CurrentName.lower() and term not in r.ProposedName.lower(): continue
+            self.rename_rows.Add(r)
         self._refresh_active_tab_summary()
+    def PreviewRenameButton_Click(self,s,a):
+        f=(self.FindTextBox.Text or ""); rep=(self.ReplaceTextBox.Text or ""); pre=(self.RenamePrefixTextBox.Text or ""); suf=(self.RenameSuffixTextBox.Text or ""); up=self.UppercaseCheckBox.IsChecked
+        for r in self.all_rename_rows:
+            p=r.CurrentName
+            if f: p=p.replace(f,rep)
+            p="{}{}{}".format(pre,p,suf)
+            if up: p=p.upper()
+            r.ProposedName=p
+            r.Apply=(r.CurrentName!=r.ProposedName)
+            r.Status="Ready" if r.Apply else "No change"
+        self._filter_rename_rows(); self._set_rename_status("Preview ready.")
+    def ResetRenameRowButton_Click(self,s,a):
+        r=self.RenameGrid.SelectedItem
+        if r: r.ProposedName=r.CurrentName; r.Apply=False; r.Status="Reset"; self.RenameGrid.Items.Refresh(); self._refresh_active_tab_summary()
+    def RenameSearchTextBox_TextChanged(self,s,a): self._filter_rename_rows()
 
-    def _preview_replace(self):
-        self.replace_rows.Clear()
-        self.replace_preview_ready = False
-        self.replace_preview_view_ids = []
-        source_name = self.SourceComboBox.SelectedItem
-        target_name = self.TargetComboBox.SelectedItem
-        source = self.filter_name_to_option.get(source_name) if source_name else None
-        target = self.filter_name_to_option.get(target_name) if target_name else None
-        if source is None or target is None:
-            self._set_replace_status("Select both Source and Target filters.")
-            self._refresh_active_tab_summary()
-            return
-        if element_id_value(source.ElementId) == element_id_value(target.ElementId):
-            self._set_replace_status("Source and Target are the same filter. Select different filters to compare usage.")
-            self._refresh_active_tab_summary()
-            return
-        source_id = element_id_value(source.ElementId)
-        target_id = element_id_value(target.ElementId)
-        for view in collect_views_with_filters(doc):
-            try:
-                ids = [element_id_value(x) for x in list(view.GetFilters())]
-            except Exception:
-                continue
-            has_source = source_id in ids
-            has_target = target_id in ids
-            if not has_source and not has_target:
-                continue
-            try:
-                view_kind = str(view.ViewType)
-            except Exception:
-                view_kind = "Unknown"
-            self.replace_rows.Add(ReplacePreviewRow(element_name(view), view_kind, has_source, has_target))
-        self.replace_preview_ready = True
-        self.replace_preview_view_ids = [element_id_value(v.Id) for v in collect_views_with_filters(doc) if self._is_view_in_replace_preview(v, source_id, target_id)]
-        self._set_replace_status("Preview shows {} views/templates affected by Source or Target.".format(len(self.replace_rows)))
-        self._refresh_active_tab_summary()
-
-
-    def _is_view_in_replace_preview(self, view, source_id, target_id):
+    def ApplyRenameButton_Click(self,s,a):
+        rows=[r for r in self.all_rename_rows if r.Apply]
+        if not rows: self._set_rename_status("Nothing selected to rename."); return
+        names=[(r.ProposedName or "").strip() for r in rows]
+        if "" in names: self._set_rename_status("Validation failed: empty proposed names."); return
+        if len(set([n.lower() for n in names])) != len(names): self._set_rename_status("Validation failed: duplicate proposed names."); return
+        existing=set([f.Name.lower() for f in self.filters if element_id_value(f.ElementId) not in [r.FilterId for r in rows]])
+        for n in names:
+            if n.lower() in existing: self._set_rename_status("Validation failed: conflicts with existing filters."); return
+        ok=0; fail=0; tx=Transaction(doc,"Filter Manager Pro - Rename"); tx.Start()
         try:
-            ids = [element_id_value(x) for x in list(view.GetFilters())]
-        except Exception:
-            return False
-        return (source_id in ids) or (target_id in ids)
-
-    def _build_rename_plan(self):
-        plan = []
-        touched_ids = set()
-        for row in self.rename_rows:
-            current = (row.CurrentName or "").strip()
-            proposed = (row.ProposedName or "").strip()
-            if current == proposed:
-                continue
-            option = self.filter_name_to_option.get(current)
-            if option is None:
-                continue
-            plan.append((option, current, proposed))
-            touched_ids.add(element_id_value(option.ElementId))
-        return plan, touched_ids
-
-    def ApplyRenameButton_Click(self, sender, args):
-        plan, touched_ids = self._build_rename_plan()
-        if len(plan) == 0:
-            self._set_rename_status("No rename actions to apply.")
-            return
-
-        proposed_names = []
-        for _, _, proposed in plan:
-            if not proposed:
-                self._set_rename_status("Apply failed: Proposed name cannot be empty.")
-                return
-            proposed_names.append(proposed)
-
-        if len(set([x.lower() for x in proposed_names])) != len(proposed_names):
-            self._set_rename_status("Apply failed: Proposed names must be unique.")
-            return
-
-        existing = {}
-        for filt in collect_parameter_filters(doc, key_selector=lambda item: element_name(item).lower()):
-            existing[element_id_value(filt.Id)] = element_name(filt)
-        existing_outside = [name.lower() for fid, name in existing.items() if fid not in touched_ids]
-        for proposed in proposed_names:
-            if proposed.lower() in existing_outside:
-                self._set_rename_status("Apply failed: Proposed names conflict with existing filters outside the rename set.")
-                return
-
-        renamed = 0
-        skipped = 0
-        failed = 0
-        tx = Transaction(doc, "Filter Manager Pro - Apply Rename")
-        tx.Start()
-        try:
-            for option, current, proposed in plan:
-                elem = doc.GetElement(option.ElementId)
-                if elem is None:
-                    skipped += 1
-                    continue
-                try:
-                    elem.Name = proposed
-                    renamed += 1
-                except Exception:
-                    failed += 1
+            for r in rows:
+                try: doc.GetElement(ElementId(r.FilterId)).Name=r.ProposedName; ok+=1
+                except Exception: fail+=1
             tx.Commit()
         except Exception:
-            try:
-                tx.RollBack()
-            except Exception:
-                pass
-            failed = len(plan)
+            try: tx.RollBack()
+            except Exception: pass
+            fail=len(rows)
+        self.filters=self._collect_filters(); self._rebuild_maps(); self.SourceComboBox.ItemsSource=self.filter_names; self.TargetComboBox.ItemsSource=self.filter_names
+        self._load_audit(); self._load_rename_rows(); self._set_rename_status("Apply Rename complete. Renamed: {} | Failed: {}".format(ok,fail))
 
-        self.filters = self._collect_filters()
-        self.filter_name_to_option = {filt.Name: filt for filt in self.filters}
-        self.filter_names = sorted(self.filter_name_to_option.keys(), key=lambda item: item.lower())
-        self.SourceComboBox.ItemsSource = self.filter_names
-        self.TargetComboBox.ItemsSource = self.filter_names
-        self._load_audit()
-        self._preview_rename()
-        self._set_rename_status("Apply Rename complete. Renamed: {} | Skipped: {} | Failed: {}".format(renamed, skipped, failed))
-
-    def ApplyReplaceButton_Click(self, sender, args):
-        if not self.replace_preview_ready or len(self.replace_rows) == 0:
-            self._set_replace_status("Run Preview Usage first before applying replace.")
-            return
-
-        source_name = self.SourceComboBox.SelectedItem
-        target_name = self.TargetComboBox.SelectedItem
-        source = self.filter_name_to_option.get(source_name) if source_name else None
-        target = self.filter_name_to_option.get(target_name) if target_name else None
-        if source is None or target is None:
-            self._set_replace_status("Select both Source and Target filters.")
-            return
-        source_id = source.ElementId
-        target_id = target.ElementId
-        if element_id_value(source_id) == element_id_value(target_id):
-            self._set_replace_status("Source and Target must be different filters.")
-            return
-
-        updated = 0
-        skipped = 0
-        failed = 0
-        tx = Transaction(doc, "Filter Manager Pro - Apply Replace")
-        tx.Start()
+    def PreviewReplaceButton_Click(self,s,a):
+        self.replace_rows.Clear(); self.all_replace_rows=[]
+        src=self.filter_name_to_option.get(self.SourceComboBox.SelectedItem); tgt=self.filter_name_to_option.get(self.TargetComboBox.SelectedItem)
+        if not src or not tgt or element_id_value(src.ElementId)==element_id_value(tgt.ElementId): self._set_replace_status("Select different source and target filters."); return
+        svid=element_id_value(src.ElementId); tvid=element_id_value(tgt.ElementId)
+        inc_views=self.IncludeViewsCheckBox.IsChecked; inc_t=self.IncludeTemplatesCheckBox.IsChecked
+        for v in self._views():
+            if (v.IsTemplate and not inc_t) or ((not v.IsTemplate) and not inc_views): continue
+            try: ids=list(v.GetFilters()); vals=[element_id_value(x) for x in ids]
+            except Exception: continue
+            hs=svid in vals; ht=tvid in vals
+            if not hs and not ht: continue
+            ge=getattr(v,"GetIsFilterEnabled",None); se=te=None
+            if callable(ge):
+                try: se=ge(src.ElementId)
+                except Exception: pass
+                try: te=ge(tgt.ElementId)
+                except Exception: pass
+            sv=tv=None
+            try: sv=v.GetFilterVisibility(src.ElementId)
+            except Exception: pass
+            try: tv=v.GetFilterVisibility(tgt.ElementId)
+            except Exception: pass
+            row=ReplaceRow(element_id_value(v.Id),element_name(v),str(v.ViewType),v.IsTemplate,hs,ht,se,sv,te,tv)
+            self.all_replace_rows.append(row)
+        self._filter_replace_rows(); self._set_replace_status("Preview ready: {} rows.".format(len(self.all_replace_rows)))
+    def _filter_replace_rows(self):
+        term=(self.ReplaceSearchTextBox.Text or "").strip().lower(); self.replace_rows.Clear()
+        for r in self.all_replace_rows:
+            if term and term not in r.ViewName.lower() and term not in r.ViewKind.lower(): continue
+            self.replace_rows.Add(r)
+        self._refresh_active_tab_summary()
+    def ReplaceSearchTextBox_TextChanged(self,s,a): self._filter_replace_rows()
+    def ApplyReplaceButton_Click(self,s,a):
+        src=self.filter_name_to_option.get(self.SourceComboBox.SelectedItem); tgt=self.filter_name_to_option.get(self.TargetComboBox.SelectedItem)
+        if not src or not tgt: self._set_replace_status("Missing source/target."); return
+        rows=[r for r in self.all_replace_rows if r.Apply]
+        if not rows: self._set_replace_status("No rows selected."); return
+        merge=self.MergeExistingCheckBox.IsChecked; copyv=self.CopyVisibilityCheckBox.IsChecked; copye=self.CopyEnabledCheckBox.IsChecked
+        ok=0;sk=0;fl=0; tx=Transaction(doc,"Filter Manager Pro - Replace"); tx.Start()
         try:
-            for vid in self.replace_preview_view_ids:
-                view = doc.GetElement(ElementId(vid))
-                if view is None:
-                    skipped += 1
-                    continue
+            for r in rows:
+                v=doc.GetElement(ElementId(r.ViewId))
+                if not v: sk+=1; continue
+                try: vals=[element_id_value(x) for x in list(v.GetFilters())]
+                except Exception: sk+=1; continue
+                hs=element_id_value(src.ElementId) in vals; ht=element_id_value(tgt.ElementId) in vals
+                if not hs: sk+=1; continue
                 try:
-                    current_ids = list(view.GetFilters())
-                except Exception:
-                    skipped += 1
-                    continue
-                values = [element_id_value(x) for x in current_ids]
-                has_source = element_id_value(source_id) in values
-                has_target = element_id_value(target_id) in values
-                if not has_source:
-                    skipped += 1
-                    continue
-                try:
-                    source_overrides = view.GetFilterOverrides(source_id)
-                except Exception:
-                    source_overrides = None
-                try:
-                    source_visible = view.GetFilterVisibility(source_id)
-                except Exception:
-                    source_visible = None
-                get_enabled = getattr(view, "GetIsFilterEnabled", None)
-                set_enabled = getattr(view, "SetIsFilterEnabled", None)
-                source_enabled = None
-                if callable(get_enabled):
-                    try:
-                        source_enabled = get_enabled(source_id)
-                    except Exception:
-                        source_enabled = None
-                try:
-                    if not has_target:
-                        view.AddFilter(target_id)
-                    if source_overrides is not None:
-                        try:
-                            view.SetFilterOverrides(target_id, source_overrides)
-                        except Exception:
-                            pass
-                    if source_visible is not None:
-                        try:
-                            view.SetFilterVisibility(target_id, source_visible)
-                        except Exception:
-                            pass
-                    if source_enabled is not None and callable(set_enabled):
-                        try:
-                            set_enabled(target_id, source_enabled)
-                        except Exception:
-                            pass
-                    view.RemoveFilter(source_id)
-                    updated += 1
-                except Exception:
-                    failed += 1
+                    o=v.GetFilterOverrides(src.ElementId)
+                    if (not ht): v.AddFilter(tgt.ElementId)
+                    elif not merge: sk+=1; continue
+                    v.SetFilterOverrides(tgt.ElementId,o)
+                    if copyv: v.SetFilterVisibility(tgt.ElementId, v.GetFilterVisibility(src.ElementId))
+                    if copye:
+                        ge=getattr(v,"GetIsFilterEnabled",None); se=getattr(v,"SetIsFilterEnabled",None)
+                        if callable(ge) and callable(se): se(tgt.ElementId, ge(src.ElementId))
+                    v.RemoveFilter(src.ElementId); ok+=1
+                except Exception: fl+=1
             tx.Commit()
         except Exception:
-            try:
-                tx.RollBack()
-            except Exception:
-                pass
-            failed += 1
+            try: tx.RollBack()
+            except Exception: pass
+            fl+=1
+        self._load_audit(); self.PreviewReplaceButton_Click(None,None); self._set_replace_status("Apply Replace complete. Updated: {} | Skipped: {} | Failed: {}".format(ok,sk,fl))
 
-        self.filters = self._collect_filters()
-        self.filter_name_to_option = {filt.Name: filt for filt in self.filters}
-        self.filter_names = sorted(self.filter_name_to_option.keys(), key=lambda item: item.lower())
-        self.SourceComboBox.ItemsSource = self.filter_names
-        self.TargetComboBox.ItemsSource = self.filter_names
-        self._load_audit()
-        self._preview_replace()
-        self._set_replace_status("Apply Replace complete. Updated: {} | Skipped: {} | Failed: {}".format(updated, skipped, failed))
-    def _set_rename_status(self, text):
-        self.RenameStatusTextBlock.Text = text
-
-    def _set_replace_status(self, text):
-        self.ReplaceStatusTextBlock.Text = text
-
-    def _get_filter_categories_text(self, filter_id):
+    def ExportAuditCsvButton_Click(self,s,a): self._export_csv("audit_summary.csv", ["Filter","Categories","Views","Templates","Total","Status","Duplicate"], self.audit_rows, lambda r:[r.FilterName,r.Categories,r.ViewCount,r.TemplateCount,r.TotalCount,r.Status,r.Duplicate])
+    def ExportUnusedCsvButton_Click(self,s,a):
+        rows=[r for r in self.audit_rows if r.TotalCount==0]; self._export_csv("unused_filters.csv", ["Filter","Categories"], rows, lambda r:[r.FilterName,r.Categories])
+    def ExportReplaceCsvButton_Click(self,s,a): self._export_csv("replace_preview.csv", ["View","Type","Template","Source","Target","Apply"], self.all_replace_rows, lambda r:[r.ViewName,r.ViewKind,r.IsTemplate,r.HasSource,r.HasTarget,r.Apply])
+    def _export_csv(self, filename, header, rows, rowf):
+        path=forms.save_file(file_ext='csv', default_name=filename)
+        if not path: return
+        import csv
         try:
-            filt = doc.GetElement(filter_id)
-            category_ids = []
-            get_categories = getattr(filt, "GetCategories", None)
-            if callable(get_categories):
-                try:
-                    category_ids = list(get_categories())
-                except Exception:
-                    category_ids = []
-            if not category_ids:
-                categories_prop = getattr(filt, "Categories", None)
-                if categories_prop is not None:
-                    try:
-                        category_ids = list(categories_prop)
-                    except Exception:
-                        category_ids = []
-            names = []
-            for cat_id in category_ids:
-                cat_name = self._resolve_category_name(cat_id)
-                if cat_name:
-                    names.append(cat_name)
-            if not names:
-                return "N/A"
-            names = sorted(list(set(names)))
-            if len(names) <= 3:
-                return ", ".join(names)
-            return "{} categories".format(len(names))
-        except Exception:
-            return "N/A"
+            with open(path,'wb') as f:
+                w=csv.writer(f); w.writerow(header)
+                for r in rows: w.writerow([str(x) for x in rowf(r)])
+            self._set_reports_status("Exported: {}".format(path))
+        except Exception as ex: self._set_reports_status("Export failed: {}".format(ex))
 
-    def _resolve_category_name(self, category_ref):
-        try:
-            if category_ref is None:
-                return None
-            category_obj = None
-            if hasattr(category_ref, "Name"):
-                category_obj = category_ref
-            else:
-                cat_id = category_ref
-                if hasattr(category_ref, "Id"):
-                    cat_id = category_ref.Id
-                try:
-                    category_obj = doc.Settings.Categories.get_Item(cat_id)
-                except Exception:
-                    category_obj = None
-                if category_obj is None:
-                    try:
-                        cat_elem = doc.GetElement(cat_id)
-                        if cat_elem is not None and hasattr(cat_elem, "Name"):
-                            return cat_elem.Name
-                    except Exception:
-                        pass
-            if category_obj is not None and getattr(category_obj, "Name", None):
-                return category_obj.Name
-            return None
-        except Exception:
-            return None
-
-    def RefreshAuditButton_Click(self, sender, args):
-        self.replace_preview_ready = False
-        self.replace_preview_view_ids = []
-        self._load_audit()
-
-    def PreviewRenameButton_Click(self, sender, args):
-        self._preview_rename()
-
-    def PreviewReplaceButton_Click(self, sender, args):
-        self._preview_replace()
-
-    def MainTabControl_SelectionChanged(self, sender, args):
-        self._refresh_active_tab_summary()
-
-
-def collect_views_with_filters(current_doc):
-    views = []
-    for view in AutodeskViews(current_doc):
-        try:
-            if view.ViewType.ToString() in ("ProjectBrowser", "SystemBrowser", "Undefined", "Internal"):
-                continue
-        except Exception:
-            pass
-        try:
-            view.GetFilters()
-            views.append(view)
-        except Exception:
-            continue
-    return views
-
-
-def AutodeskViews(current_doc):
-    from Autodesk.Revit.DB import FilteredElementCollector
-    return list(FilteredElementCollector(current_doc).OfClass(View))
-
+    def _set_rename_status(self,t): self.RenameStatusTextBlock.Text=t
+    def _set_replace_status(self,t): self.ReplaceStatusTextBlock.Text=t
+    def _set_reports_status(self,t): self.ReportsStatusTextBlock.Text=t
+    def RefreshAuditButton_Click(self,s,a): self._load_audit()
+    def MainTabControl_SelectionChanged(self,s,a): self._refresh_active_tab_summary()
 
 FilterManagerProWindow().ShowDialog()
