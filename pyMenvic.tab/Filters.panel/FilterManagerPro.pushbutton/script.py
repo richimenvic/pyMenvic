@@ -38,7 +38,7 @@ from System.IO import FileStream, FileMode, FileAccess
 from System.Windows.Media.Imaging import BitmapImage, BitmapCacheOption
 from System.Windows import Visibility
 
-from Autodesk.Revit.DB import View, Element
+from Autodesk.Revit.DB import View, Element, ElementId, Transaction
 from pyrevit import forms, revit, script
 
 
@@ -98,6 +98,8 @@ class FilterManagerProWindow(forms.WPFWindow):
         if len(self.filter_names) > 0:
             self.SourceComboBox.SelectedIndex = 0
             self.TargetComboBox.SelectedIndex = 0
+        self.replace_preview_ready = False
+        self.replace_preview_view_ids = []
         self._load_audit()
         self._set_rename_status("Click Preview to load all filters.")
         self._set_replace_status("Select Source and Target filters, then click Preview Usage.")
@@ -251,6 +253,8 @@ class FilterManagerProWindow(forms.WPFWindow):
 
     def _preview_replace(self):
         self.replace_rows.Clear()
+        self.replace_preview_ready = False
+        self.replace_preview_view_ids = []
         source_name = self.SourceComboBox.SelectedItem
         target_name = self.TargetComboBox.SelectedItem
         source = self.filter_name_to_option.get(source_name) if source_name else None
@@ -279,9 +283,187 @@ class FilterManagerProWindow(forms.WPFWindow):
             except Exception:
                 view_kind = "Unknown"
             self.replace_rows.Add(ReplacePreviewRow(element_name(view), view_kind, has_source, has_target))
+        self.replace_preview_ready = True
+        self.replace_preview_view_ids = [element_id_value(v.Id) for v in collect_views_with_filters(doc) if self._is_view_in_replace_preview(v, source_id, target_id)]
         self._set_replace_status("Preview shows {} views/templates affected by Source or Target.".format(len(self.replace_rows)))
         self._refresh_active_tab_summary()
 
+
+    def _is_view_in_replace_preview(self, view, source_id, target_id):
+        try:
+            ids = [element_id_value(x) for x in list(view.GetFilters())]
+        except Exception:
+            return False
+        return (source_id in ids) or (target_id in ids)
+
+    def _build_rename_plan(self):
+        plan = []
+        touched_ids = set()
+        for row in self.rename_rows:
+            current = (row.CurrentName or "").strip()
+            proposed = (row.ProposedName or "").strip()
+            if current == proposed:
+                continue
+            option = self.filter_name_to_option.get(current)
+            if option is None:
+                continue
+            plan.append((option, current, proposed))
+            touched_ids.add(element_id_value(option.ElementId))
+        return plan, touched_ids
+
+    def ApplyRenameButton_Click(self, sender, args):
+        plan, touched_ids = self._build_rename_plan()
+        if len(plan) == 0:
+            self._set_rename_status("No rename actions to apply.")
+            return
+
+        proposed_names = []
+        for _, _, proposed in plan:
+            if not proposed:
+                self._set_rename_status("Apply failed: Proposed name cannot be empty.")
+                return
+            proposed_names.append(proposed)
+
+        if len(set([x.lower() for x in proposed_names])) != len(proposed_names):
+            self._set_rename_status("Apply failed: Proposed names must be unique.")
+            return
+
+        existing = {}
+        for filt in collect_parameter_filters(doc, key_selector=lambda item: element_name(item).lower()):
+            existing[element_id_value(filt.Id)] = element_name(filt)
+        existing_outside = [name.lower() for fid, name in existing.items() if fid not in touched_ids]
+        for proposed in proposed_names:
+            if proposed.lower() in existing_outside:
+                self._set_rename_status("Apply failed: Proposed names conflict with existing filters outside the rename set.")
+                return
+
+        renamed = 0
+        skipped = 0
+        failed = 0
+        tx = Transaction(doc, "Filter Manager Pro - Apply Rename")
+        tx.Start()
+        try:
+            for option, current, proposed in plan:
+                elem = doc.GetElement(option.ElementId)
+                if elem is None:
+                    skipped += 1
+                    continue
+                try:
+                    elem.Name = proposed
+                    renamed += 1
+                except Exception:
+                    failed += 1
+            tx.Commit()
+        except Exception:
+            try:
+                tx.RollBack()
+            except Exception:
+                pass
+            failed = len(plan)
+
+        self.filters = self._collect_filters()
+        self.filter_name_to_option = {filt.Name: filt for filt in self.filters}
+        self.filter_names = sorted(self.filter_name_to_option.keys(), key=lambda item: item.lower())
+        self.SourceComboBox.ItemsSource = self.filter_names
+        self.TargetComboBox.ItemsSource = self.filter_names
+        self._load_audit()
+        self._preview_rename()
+        self._set_rename_status("Apply Rename complete. Renamed: {} | Skipped: {} | Failed: {}".format(renamed, skipped, failed))
+
+    def ApplyReplaceButton_Click(self, sender, args):
+        if not self.replace_preview_ready or len(self.replace_rows) == 0:
+            self._set_replace_status("Run Preview Usage first before applying replace.")
+            return
+
+        source_name = self.SourceComboBox.SelectedItem
+        target_name = self.TargetComboBox.SelectedItem
+        source = self.filter_name_to_option.get(source_name) if source_name else None
+        target = self.filter_name_to_option.get(target_name) if target_name else None
+        if source is None or target is None:
+            self._set_replace_status("Select both Source and Target filters.")
+            return
+        source_id = source.ElementId
+        target_id = target.ElementId
+        if element_id_value(source_id) == element_id_value(target_id):
+            self._set_replace_status("Source and Target must be different filters.")
+            return
+
+        updated = 0
+        skipped = 0
+        failed = 0
+        tx = Transaction(doc, "Filter Manager Pro - Apply Replace")
+        tx.Start()
+        try:
+            for vid in self.replace_preview_view_ids:
+                view = doc.GetElement(ElementId(vid))
+                if view is None:
+                    skipped += 1
+                    continue
+                try:
+                    current_ids = list(view.GetFilters())
+                except Exception:
+                    skipped += 1
+                    continue
+                values = [element_id_value(x) for x in current_ids]
+                has_source = element_id_value(source_id) in values
+                has_target = element_id_value(target_id) in values
+                if not has_source:
+                    skipped += 1
+                    continue
+                try:
+                    source_overrides = view.GetFilterOverrides(source_id)
+                except Exception:
+                    source_overrides = None
+                try:
+                    source_visible = view.GetFilterVisibility(source_id)
+                except Exception:
+                    source_visible = None
+                get_enabled = getattr(view, "GetIsFilterEnabled", None)
+                set_enabled = getattr(view, "SetIsFilterEnabled", None)
+                source_enabled = None
+                if callable(get_enabled):
+                    try:
+                        source_enabled = get_enabled(source_id)
+                    except Exception:
+                        source_enabled = None
+                try:
+                    if not has_target:
+                        view.AddFilter(target_id)
+                    if source_overrides is not None:
+                        try:
+                            view.SetFilterOverrides(target_id, source_overrides)
+                        except Exception:
+                            pass
+                    if source_visible is not None:
+                        try:
+                            view.SetFilterVisibility(target_id, source_visible)
+                        except Exception:
+                            pass
+                    if source_enabled is not None and callable(set_enabled):
+                        try:
+                            set_enabled(target_id, source_enabled)
+                        except Exception:
+                            pass
+                    view.RemoveFilter(source_id)
+                    updated += 1
+                except Exception:
+                    failed += 1
+            tx.Commit()
+        except Exception:
+            try:
+                tx.RollBack()
+            except Exception:
+                pass
+            failed += 1
+
+        self.filters = self._collect_filters()
+        self.filter_name_to_option = {filt.Name: filt for filt in self.filters}
+        self.filter_names = sorted(self.filter_name_to_option.keys(), key=lambda item: item.lower())
+        self.SourceComboBox.ItemsSource = self.filter_names
+        self.TargetComboBox.ItemsSource = self.filter_names
+        self._load_audit()
+        self._preview_replace()
+        self._set_replace_status("Apply Replace complete. Updated: {} | Skipped: {} | Failed: {}".format(updated, skipped, failed))
     def _set_rename_status(self, text):
         self.RenameStatusTextBlock.Text = text
 
@@ -348,6 +530,8 @@ class FilterManagerProWindow(forms.WPFWindow):
             return None
 
     def RefreshAuditButton_Click(self, sender, args):
+        self.replace_preview_ready = False
+        self.replace_preview_view_ids = []
         self._load_audit()
 
     def PreviewRenameButton_Click(self, sender, args):
