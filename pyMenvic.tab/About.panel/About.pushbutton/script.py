@@ -6,7 +6,7 @@ import sys
 import webbrowser
 
 try:
-    from lib.core.branding import get_logo_path
+    from lib.core.branding import get_about_logo_path
 except ImportError:
     current_dir = os.path.dirname(os.path.abspath(__file__))
     while True:
@@ -19,7 +19,7 @@ except ImportError:
         if parent_dir == current_dir:
             break
         current_dir = parent_dir
-    from core.branding import get_logo_path
+    from core.branding import get_about_logo_path
 
 from pyrevit import forms, script, versionmgr
 from System import Uri
@@ -80,7 +80,7 @@ class AboutWindow(forms.WPFWindow):
         self.emailText.Text = CONTACT_EMAIL
 
         # LOGO
-        icon_path = get_logo_path()
+        icon_path = get_about_logo_path()
         if icon_path and os.path.exists(icon_path):
             bmp = load_bitmap(icon_path)
             self.logo.Source = bmp
