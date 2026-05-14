@@ -78,42 +78,49 @@
                        Text="© 2026"/>
 
             <!-- BUTTONS -->
-            <StackPanel Orientation="Horizontal" Margin="0,22,0,0">
+            <StackPanel Orientation="Vertical" Margin="0,22,0,0">
 
-                <Button x:Name="webBtn"
-                        Content="Website"
-                        Width="100"
-                        Height="32"
-                        BorderBrush="#707070"
-                        BorderThickness="1"
-                        Background="#F5F5F5"/>
+                <StackPanel Orientation="Horizontal">
 
-                <Button x:Name="copyEmailBtn"
-                        Content="Copy Email"
-                        Width="120"
-                        Height="32"
-                        Margin="10,0,0,0"
-                        BorderBrush="#707070"
-                        BorderThickness="1"
-                        Background="#F5F5F5"/>
+                    <Button x:Name="webBtn"
+                            Content="Website"
+                            Width="100"
+                            Height="32"
+                            BorderBrush="#707070"
+                            BorderThickness="1"
+                            Background="#F5F5F5"/>
 
-                <Button x:Name="checkUpdatesBtn"
-                        Content="Check for Updates"
-                        Width="150"
-                        Height="32"
-                        Margin="10,0,0,0"
-                        BorderBrush="#707070"
-                        BorderThickness="1"
-                        Background="#F5F5F5"/>
+                    <Button x:Name="copyEmailBtn"
+                            Content="Copy Email"
+                            Width="120"
+                            Height="32"
+                            Margin="10,0,0,0"
+                            BorderBrush="#707070"
+                            BorderThickness="1"
+                            Background="#F5F5F5"/>
 
-                <Button x:Name="closeBtn"
-                        Content="Close"
-                        Width="100"
-                        Height="32"
-                        Margin="10,0,0,0"
-                        BorderBrush="#707070"
-                        BorderThickness="1"
-                        Background="#F5F5F5"/>
+                </StackPanel>
+
+                <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+
+                    <Button x:Name="checkUpdatesBtn"
+                            Content="Check for Updates"
+                            Width="150"
+                            Height="32"
+                            BorderBrush="#707070"
+                            BorderThickness="1"
+                            Background="#F5F5F5"/>
+
+                    <Button x:Name="closeBtn"
+                            Content="Close"
+                            Width="100"
+                            Height="32"
+                            Margin="10,0,0,0"
+                            BorderBrush="#707070"
+                            BorderThickness="1"
+                            Background="#F5F5F5"/>
+
+                </StackPanel>
 
             </StackPanel>
 
