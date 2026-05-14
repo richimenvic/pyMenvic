@@ -100,6 +100,48 @@ class FilterManagerProWindow(forms.WPFWindow):
         self._load_audit()
         self._set_rename_status("Click Preview to load all filters.")
         self._set_replace_status("Select Source and Target filters, then click Preview Usage.")
+        self._update_audit_cards()
+        self._update_rename_cards()
+        self._update_replace_cards()
+
+
+    def _set_text(self, control_name, value):
+        try:
+            getattr(self, control_name).Text = str(value)
+        except Exception:
+            pass
+
+    def _update_audit_cards(self):
+        total = len(self.audit_rows)
+        used = len([x for x in self.audit_rows if x.TotalCount > 0])
+        unused = total - used
+        views = sum([x.ViewCount for x in self.audit_rows])
+        templates = sum([x.TemplateCount for x in self.audit_rows])
+        self._set_text("AuditFiltersCardText", total)
+        self._set_text("AuditUsedCardText", used)
+        self._set_text("AuditUnusedCardText", unused)
+        self._set_text("AuditViewsCardText", views)
+        self._set_text("AuditTemplatesCardText", templates)
+        self._set_text("AuditDuplicatesCardText", 0)
+
+    def _update_rename_cards(self):
+        total = len(self.rename_rows)
+        no_change = len([x for x in self.rename_rows if x.CurrentName == x.ProposedName])
+        ready = total - no_change
+        self._set_text("RenameTotalCardText", total)
+        self._set_text("RenameReadyCardText", ready)
+        self._set_text("RenameNoChangeCardText", no_change)
+        self._set_text("RenameIssuesCardText", 0)
+
+    def _update_replace_cards(self):
+        self._set_text("ReplaceFiltersCardText", len(self.filters))
+        self._set_text("ReplaceAffectedCardText", len(self.replace_rows))
+        source = self.SourceComboBox.SelectedItem
+        target = self.TargetComboBox.SelectedItem
+        ready = 1 if (source is not None and target is not None and element_id_value(source.ElementId) != element_id_value(target.ElementId)) else 0
+        issues = 0 if ready else 1
+        self._set_text("ReplaceReadyCardText", ready)
+        self._set_text("ReplaceIssuesCardText", issues)
 
     def _load_header_logo(self):
         stream = None
@@ -153,6 +195,7 @@ class FilterManagerProWindow(forms.WPFWindow):
                 else:
                     view_count += 1
             self.audit_rows.Add(AuditRow(filt.Name, self._get_filter_categories_text(filt.ElementId), view_count, template_count))
+        self._update_audit_cards()
 
     def _preview_rename(self):
         self.rename_rows.Clear()
@@ -166,6 +209,7 @@ class FilterManagerProWindow(forms.WPFWindow):
             self._set_rename_status("Previewing {} filters with prefix '{}'".format(len(self.filters), prefix))
         else:
             self._set_rename_status("Previewing {} filters. Prefix is empty, so proposed names match current names.".format(len(self.filters)))
+        self._update_rename_cards()
 
     def _preview_replace(self):
         self.replace_rows.Clear()
@@ -173,9 +217,11 @@ class FilterManagerProWindow(forms.WPFWindow):
         target = self.TargetComboBox.SelectedItem
         if source is None or target is None:
             self._set_replace_status("Select both Source and Target filters.")
+            self._update_replace_cards()
             return
         if element_id_value(source.ElementId) == element_id_value(target.ElementId):
             self._set_replace_status("Source and Target are the same filter. Select different filters to compare usage.")
+            self._update_replace_cards()
             return
         source_id = element_id_value(source.ElementId)
         target_id = element_id_value(target.ElementId)
@@ -194,6 +240,7 @@ class FilterManagerProWindow(forms.WPFWindow):
                 view_kind = "Unknown"
             self.replace_rows.Add(ReplacePreviewRow(element_name(view), view_kind, has_source, has_target))
         self._set_replace_status("Preview shows {} views/templates affected by Source or Target.".format(len(self.replace_rows)))
+        self._update_replace_cards()
 
     def _set_rename_status(self, text):
         self.RenameStatusTextBlock.Text = text
@@ -206,18 +253,20 @@ class FilterManagerProWindow(forms.WPFWindow):
             filt = doc.GetElement(filter_id)
             categories = getattr(filt, "Categories", None)
             if categories is None:
-                return "All / N/A"
+                return "N/A"
             names = []
             for cat_id in categories:
                 cat = doc.Settings.Categories.get_Item(cat_id)
                 if cat is not None and cat.Name:
                     names.append(cat.Name)
             if not names:
-                return "All / N/A"
-            names.sort()
-            return ", ".join(names)
+                return "N/A"
+            names = sorted(list(set(names)))
+            if len(names) <= 3:
+                return ", ".join(names)
+            return "{} categories".format(len(names))
         except Exception:
-            return "All / N/A"
+            return "N/A"
 
     def RefreshAuditButton_Click(self, sender, args):
         self._load_audit()

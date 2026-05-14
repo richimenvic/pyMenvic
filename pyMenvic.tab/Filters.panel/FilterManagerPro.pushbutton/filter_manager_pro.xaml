@@ -9,8 +9,8 @@
         <SolidColorBrush x:Key="BorderBrushBase" Color="#384754"/>
         <SolidColorBrush x:Key="TextPrimaryBrush" Color="#EAF1F5"/>
         <SolidColorBrush x:Key="TextMutedBrush" Color="#B8C7D3"/>
-        <SolidColorBrush x:Key="AccentBrush" Color="#A8D3FF"/>
-        <SolidColorBrush x:Key="AccentStrongBrush" Color="#2E7FB8"/>
+        <SolidColorBrush x:Key="AccentBrush" Color="#7EC8FF"/>
+        <SolidColorBrush x:Key="AccentStrongBrush" Color="#0A84D6"/>
         <SolidColorBrush x:Key="InputBgBrush" Color="#1A2229"/>
         <SolidColorBrush x:Key="GridHeaderBrush" Color="#2B3742"/>
         <SolidColorBrush x:Key="GridRowBrush" Color="#1F2A33"/>
@@ -84,18 +84,44 @@
         </Style>
 
         <Style TargetType="TabItem">
-            <Setter Property="Foreground" Value="{StaticResource TextMutedBrush}"/>
+            <Setter Property="Foreground" Value="#C5D2DC"/>
             <Setter Property="Background" Value="#24313B"/>
-            <Setter Property="BorderBrush" Value="{StaticResource BorderBrushBase}"/>
+            <Setter Property="BorderBrush" Value="#415262"/>
+            <Setter Property="BorderThickness" Value="1,1,1,0"/>
+            <Setter Property="Padding" Value="14,7"/>
+            <Setter Property="Margin" Value="0,0,4,0"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TabItem">
+                        <Grid>
+                            <Border x:Name="TabBorder" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="4,4,0,0"/>
+                            <Border x:Name="ActiveLine" Background="Transparent" Height="3" VerticalAlignment="Bottom" Margin="8,0,8,0"/>
+                            <ContentPresenter ContentSource="Header" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="10,4"/>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="TabBorder" Property="Background" Value="#2F3E4A"/>
+                                <Setter Property="Foreground" Value="#E5EEF5"/>
+                            </Trigger>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter Property="Foreground" Value="#FFFFFF"/>
+                                <Setter TargetName="TabBorder" Property="Background" Value="#1B2D3E"/>
+                                <Setter TargetName="TabBorder" Property="BorderBrush" Value="#4FB2FF"/>
+                                <Setter TargetName="ActiveLine" Property="Background" Value="#2FA6FF"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="SummaryCardBorder" TargetType="Border">
+            <Setter Property="Background" Value="#1C2630"/>
+            <Setter Property="BorderBrush" Value="#344656"/>
             <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="Padding" Value="12,6"/>
-            <Style.Triggers>
-                <Trigger Property="IsSelected" Value="True">
-                    <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
-                    <Setter Property="Background" Value="{StaticResource PanelBgBrush}"/>
-                    <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}"/>
-                </Trigger>
-            </Style.Triggers>
+            <Setter Property="CornerRadius" Value="4"/>
+            <Setter Property="Padding" Value="10,8"/>
+            <Setter Property="Margin" Value="0,0,8,0"/>
         </Style>
 
         <Style TargetType="DataGrid">
@@ -167,9 +193,20 @@
         <TabControl Grid.Row="2" Background="{StaticResource CardBgBrush}" BorderBrush="{StaticResource BorderBrushBase}" Foreground="{StaticResource TextPrimaryBrush}">
             <TabItem Header="Audit">
                 <Grid Margin="10">
-                    <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="8"/><RowDefinition Height="*"/></Grid.RowDefinitions>
-                    <Button x:Name="RefreshAuditButton" Style="{StaticResource ToolButtonStyle}" Content="Refresh Audit" Width="140" Click="RefreshAuditButton_Click"/>
-                    <DataGrid x:Name="AuditGrid" Grid.Row="2" AutoGenerateColumns="False">
+                    <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="6"/><RowDefinition Height="Auto"/><RowDefinition Height="8"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                    <WrapPanel Grid.Row="0">
+                        <Border Style="{StaticResource SummaryCardBorder}"><StackPanel><TextBlock Text="FILTERS" Foreground="{StaticResource TextMutedBrush}" FontSize="11"/><TextBlock x:Name="AuditFiltersCardText" Text="0" FontSize="20" FontWeight="Bold"/></StackPanel></Border>
+                        <Border Style="{StaticResource SummaryCardBorder}"><StackPanel><TextBlock Text="USED" Foreground="{StaticResource TextMutedBrush}" FontSize="11"/><TextBlock x:Name="AuditUsedCardText" Text="0" FontSize="20" FontWeight="Bold"/></StackPanel></Border>
+                        <Border Style="{StaticResource SummaryCardBorder}"><StackPanel><TextBlock Text="UNUSED" Foreground="{StaticResource TextMutedBrush}" FontSize="11"/><TextBlock x:Name="AuditUnusedCardText" Text="0" FontSize="20" FontWeight="Bold"/></StackPanel></Border>
+                        <Border Style="{StaticResource SummaryCardBorder}"><StackPanel><TextBlock Text="TEMPLATES" Foreground="{StaticResource TextMutedBrush}" FontSize="11"/><TextBlock x:Name="AuditTemplatesCardText" Text="0" FontSize="20" FontWeight="Bold"/></StackPanel></Border>
+                        <Border Style="{StaticResource SummaryCardBorder}"><StackPanel><TextBlock Text="VIEWS" Foreground="{StaticResource TextMutedBrush}" FontSize="11"/><TextBlock x:Name="AuditViewsCardText" Text="0" FontSize="20" FontWeight="Bold"/></StackPanel></Border>
+                        <Border Style="{StaticResource SummaryCardBorder}"><StackPanel><TextBlock Text="DUPLICATES" Foreground="{StaticResource TextMutedBrush}" FontSize="11"/><TextBlock x:Name="AuditDuplicatesCardText" Text="0" FontSize="20" FontWeight="Bold"/></StackPanel></Border>
+                    </WrapPanel>
+                    <StackPanel Grid.Row="2" Orientation="Horizontal">
+                        <Button x:Name="RefreshAuditButton" Style="{StaticResource ToolButtonStyle}" Content="Refresh Audit" Width="140" Click="RefreshAuditButton_Click"/>
+                        <TextBlock Margin="12,6,0,0" Foreground="{StaticResource TextMutedBrush}" Text="Categories show which Revit categories each filter applies to. They help identify comparable or duplicate filters." TextWrapping="Wrap"/>
+                    </StackPanel>
+                    <DataGrid x:Name="AuditGrid" Grid.Row="4" AutoGenerateColumns="False">
                         <DataGrid.Columns>
                             <DataGridTextColumn Header="Filter" Binding="{Binding FilterName}" Width="*"/>
                             <DataGridTextColumn Header="Categories" Binding="{Binding Categories}" Width="2*"/>
@@ -183,14 +220,20 @@
             </TabItem>
             <TabItem Header="Rename / Standardize">
                 <Grid Margin="10">
-                    <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="6"/><RowDefinition Height="Auto"/><RowDefinition Height="8"/><RowDefinition Height="*"/></Grid.RowDefinitions>
-                    <StackPanel Orientation="Horizontal">
+                    <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="6"/><RowDefinition Height="Auto"/><RowDefinition Height="6"/><RowDefinition Height="Auto"/><RowDefinition Height="8"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                    <WrapPanel Grid.Row="0">
+                        <Border Style="{StaticResource SummaryCardBorder}"><StackPanel><TextBlock Text="TOTAL" Foreground="{StaticResource TextMutedBrush}" FontSize="11"/><TextBlock x:Name="RenameTotalCardText" Text="0" FontSize="20" FontWeight="Bold"/></StackPanel></Border>
+                        <Border Style="{StaticResource SummaryCardBorder}"><StackPanel><TextBlock Text="READY" Foreground="{StaticResource TextMutedBrush}" FontSize="11"/><TextBlock x:Name="RenameReadyCardText" Text="0" FontSize="20" FontWeight="Bold"/></StackPanel></Border>
+                        <Border Style="{StaticResource SummaryCardBorder}"><StackPanel><TextBlock Text="NO CHANGE" Foreground="{StaticResource TextMutedBrush}" FontSize="11"/><TextBlock x:Name="RenameNoChangeCardText" Text="0" FontSize="20" FontWeight="Bold"/></StackPanel></Border>
+                        <Border Style="{StaticResource SummaryCardBorder}"><StackPanel><TextBlock Text="ISSUES" Foreground="{StaticResource TextMutedBrush}" FontSize="11"/><TextBlock x:Name="RenameIssuesCardText" Text="0" FontSize="20" FontWeight="Bold"/></StackPanel></Border>
+                    </WrapPanel>
+                    <StackPanel Grid.Row="2" Orientation="Horizontal">
                         <TextBlock Text="Prefix:" VerticalAlignment="Center" Margin="0,0,8,0" Foreground="{StaticResource TextPrimaryBrush}"/>
                         <TextBox x:Name="RenamePrefixTextBox" Width="220" Height="28" Text=""/>
                         <Button x:Name="PreviewRenameButton" Style="{StaticResource ToolButtonStyle}" Content="Preview" Width="120" Margin="10,0,0,0" Click="PreviewRenameButton_Click"/>
                     </StackPanel>
-                    <TextBlock x:Name="RenameStatusTextBlock" Grid.Row="2" Text="" Foreground="{StaticResource AccentBrush}" TextWrapping="Wrap"/>
-                    <DataGrid x:Name="RenameGrid" Grid.Row="4" AutoGenerateColumns="False">
+                    <TextBlock x:Name="RenameStatusTextBlock" Grid.Row="4" Text="" Foreground="{StaticResource AccentBrush}" TextWrapping="Wrap"/>
+                    <DataGrid x:Name="RenameGrid" Grid.Row="6" AutoGenerateColumns="False">
                         <DataGrid.Columns>
                             <DataGridTextColumn Header="Current Name" Binding="{Binding CurrentName}" Width="*"/>
                             <DataGridTextColumn Header="Proposed Name" Binding="{Binding ProposedName}" Width="*"/>
@@ -200,16 +243,22 @@
             </TabItem>
             <TabItem Header="Replace / Consolidate">
                 <Grid Margin="10">
-                    <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="6"/><RowDefinition Height="Auto"/><RowDefinition Height="8"/><RowDefinition Height="*"/></Grid.RowDefinitions>
-                    <StackPanel Orientation="Horizontal">
+                    <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="6"/><RowDefinition Height="Auto"/><RowDefinition Height="6"/><RowDefinition Height="Auto"/><RowDefinition Height="8"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                    <WrapPanel Grid.Row="0">
+                        <Border Style="{StaticResource SummaryCardBorder}"><StackPanel><TextBlock Text="FILTERS" Foreground="{StaticResource TextMutedBrush}" FontSize="11"/><TextBlock x:Name="ReplaceFiltersCardText" Text="0" FontSize="20" FontWeight="Bold"/></StackPanel></Border>
+                        <Border Style="{StaticResource SummaryCardBorder}"><StackPanel><TextBlock Text="AFFECTED VIEWS/TEMPLATES" Foreground="{StaticResource TextMutedBrush}" FontSize="11"/><TextBlock x:Name="ReplaceAffectedCardText" Text="0" FontSize="20" FontWeight="Bold"/></StackPanel></Border>
+                        <Border Style="{StaticResource SummaryCardBorder}"><StackPanel><TextBlock Text="READY" Foreground="{StaticResource TextMutedBrush}" FontSize="11"/><TextBlock x:Name="ReplaceReadyCardText" Text="0" FontSize="20" FontWeight="Bold"/></StackPanel></Border>
+                        <Border Style="{StaticResource SummaryCardBorder}"><StackPanel><TextBlock Text="ISSUES" Foreground="{StaticResource TextMutedBrush}" FontSize="11"/><TextBlock x:Name="ReplaceIssuesCardText" Text="0" FontSize="20" FontWeight="Bold"/></StackPanel></Border>
+                    </WrapPanel>
+                    <StackPanel Grid.Row="2" Orientation="Horizontal">
                         <TextBlock Text="Source:" VerticalAlignment="Center" Foreground="{StaticResource TextPrimaryBrush}"/>
                         <ComboBox x:Name="SourceComboBox" Width="280" Margin="6,0,12,0" DisplayMemberPath="Name"/>
                         <TextBlock Text="Target:" VerticalAlignment="Center" Foreground="{StaticResource TextPrimaryBrush}"/>
                         <ComboBox x:Name="TargetComboBox" Width="280" Margin="6,0,12,0" DisplayMemberPath="Name"/>
                         <Button x:Name="PreviewReplaceButton" Style="{StaticResource ToolButtonStyle}" Content="Preview Usage" Width="130" Click="PreviewReplaceButton_Click"/>
                     </StackPanel>
-                    <TextBlock x:Name="ReplaceStatusTextBlock" Grid.Row="2" Text="" Foreground="{StaticResource AccentBrush}" TextWrapping="Wrap"/>
-                    <DataGrid x:Name="ReplaceGrid" Grid.Row="4" AutoGenerateColumns="False">
+                    <TextBlock x:Name="ReplaceStatusTextBlock" Grid.Row="4" Text="" Foreground="{StaticResource AccentBrush}" TextWrapping="Wrap"/>
+                    <DataGrid x:Name="ReplaceGrid" Grid.Row="6" AutoGenerateColumns="False">
                         <DataGrid.Columns>
                             <DataGridTextColumn Header="View / Template" Binding="{Binding ViewName}" Width="*"/>
                             <DataGridTextColumn Header="Type" Binding="{Binding ViewKind}" Width="140"/>
@@ -221,7 +270,13 @@
             </TabItem>
             <TabItem Header="Reports">
                 <Grid Margin="10">
-                    <Border Background="{StaticResource PanelBgBrush}" BorderBrush="{StaticResource BorderBrushBase}" BorderThickness="1" CornerRadius="5" Padding="12">
+                    <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="8"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                    <WrapPanel Grid.Row="0">
+                        <Border Style="{StaticResource SummaryCardBorder}"><StackPanel><TextBlock Text="REPORTS" Foreground="{StaticResource TextMutedBrush}" FontSize="11"/><TextBlock Text="3" FontSize="20" FontWeight="Bold"/></StackPanel></Border>
+                        <Border Style="{StaticResource SummaryCardBorder}"><StackPanel><TextBlock Text="AVAILABLE" Foreground="{StaticResource TextMutedBrush}" FontSize="11"/><TextBlock Text="0" FontSize="20" FontWeight="Bold"/></StackPanel></Border>
+                        <Border Style="{StaticResource SummaryCardBorder}"><StackPanel><TextBlock Text="COMING SOON" Foreground="{StaticResource TextMutedBrush}" FontSize="11"/><TextBlock Text="3" FontSize="20" FontWeight="Bold"/></StackPanel></Border>
+                    </WrapPanel>
+                    <Border Grid.Row="2" Background="{StaticResource PanelBgBrush}" BorderBrush="{StaticResource BorderBrushBase}" BorderThickness="1" CornerRadius="5" Padding="12">
                         <StackPanel>
                             <TextBlock Text="Reports are planned for a future release. Upcoming outputs: Audit Summary, Unused Filters, and Replace Impact snapshots."
                                        TextWrapping="Wrap" Margin="0,0,0,10" Foreground="{StaticResource TextMutedBrush}"/>
