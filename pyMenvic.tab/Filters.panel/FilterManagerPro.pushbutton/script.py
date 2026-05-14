@@ -1,5 +1,8 @@
 # -*- coding: utf-8 -*-
 
+__title__ = "Filter Manager Pro"
+__author__ = "Ricardo J. Mendieta | pyMENVIC"
+
 import os
 import sys
 
