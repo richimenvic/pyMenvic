@@ -3,7 +3,9 @@ __title__ = "About pyMenvic"
 
 import os
 import sys
+import time
 import webbrowser
+import subprocess
 
 try:
     import urllib2
@@ -35,6 +37,7 @@ from System.Windows.Media.Imaging import BitmapImage, BitmapCacheOption
 CONTACT_EMAIL = "contact@menvic.com"
 WEBSITE_URL = "https://github.com/richimenvic/pyMenvic"
 REMOTE_VERSION_URL = "https://raw.githubusercontent.com/richimenvic/pyMenvic/main/version.txt"
+GIT_PULL_CMD = ["git", "pull", "--ff-only", "origin", "main"]
 
 
 def _find_extension_root(start_dir):
@@ -135,6 +138,68 @@ def read_remote_version():
         return str(raw_content).strip()
 
 
+def _run_process(command, cwd, timeout_seconds):
+    proc = subprocess.Popen(
+        command,
+        cwd=cwd,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE
+    )
+
+    start_time = time.time()
+    while proc.poll() is None:
+        if timeout_seconds and (time.time() - start_time) > timeout_seconds:
+            try:
+                proc.kill()
+            except:
+                pass
+            return -1, "", "Process timed out."
+        time.sleep(0.1)
+
+    stdout_data, stderr_data = proc.communicate()
+
+    try:
+        stdout_text = stdout_data.decode("utf-8", "ignore")
+    except:
+        stdout_text = str(stdout_data)
+
+    try:
+        stderr_text = stderr_data.decode("utf-8", "ignore")
+    except:
+        stderr_text = str(stderr_data)
+
+    return proc.returncode, stdout_text.strip(), stderr_text.strip()
+
+
+def update_extension_from_git():
+    extension_root = _find_extension_root(os.path.dirname(os.path.abspath(__file__)))
+    if not extension_root:
+        return False, "Could not locate the pyMenvic extension folder."
+
+    git_folder = os.path.join(extension_root, ".git")
+    if not os.path.exists(git_folder):
+        return False, "This pyMenvic installation is not a Git repository."
+
+    try:
+        code, _, err = _run_process(["git", "--version"], extension_root, 8)
+    except OSError:
+        return False, "Git is not installed or not available in PATH."
+
+    if code != 0:
+        return False, err or "Git is not installed or not available in PATH."
+
+    code, _, err = _run_process(["git", "rev-parse", "--is-inside-work-tree"], extension_root, 8)
+    if code != 0:
+        return False, err or "This pyMenvic installation is not a Git repository."
+
+    code, out, err = _run_process(GIT_PULL_CMD, extension_root, 45)
+    if code != 0:
+        reason = err or out or "Unknown error."
+        return False, reason
+
+    return True, ""
+
+
 def load_bitmap(path):
     bmp = BitmapImage()
     bmp.BeginInit()
@@ -200,7 +265,35 @@ class AboutWindow(forms.WPFWindow):
             comparison = compare_versions(local_version, remote_version)
 
             if comparison == 1:
-                forms.alert("New update for pyMenvic available: {}".format(remote_version), title="pyMenvic")
+                update_message = (
+                    "New update for pyMenvic available.\n\n"
+                    "Installed version: {}\n"
+                    "Latest version: {}\n\n"
+                    "Do you want to update now?"
+                ).format(local_version, remote_version)
+                update_now = forms.alert(
+                    update_message,
+                    title="pyMenvic",
+                    yes=True,
+                    no=True,
+                    ok=False
+                )
+                if update_now:
+                    success, reason = update_extension_from_git()
+                    if success:
+                        forms.alert(
+                            "pyMenvic was updated successfully.\n"
+                            "Please reload pyRevit or restart Revit to apply the changes.",
+                            title="pyMenvic"
+                        )
+                    else:
+                        forms.alert(
+                            "Could not update pyMenvic automatically.\n"
+                            "Reason: {}\n\n"
+                            "Please update manually from GitHub or run:\n"
+                            "git pull --ff-only origin main".format(reason),
+                            title="pyMenvic"
+                        )
             else:
                 forms.alert("pyMenvic is up to date.", title="pyMenvic")
         except:
