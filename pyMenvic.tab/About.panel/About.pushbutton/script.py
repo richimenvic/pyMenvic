@@ -1,6 +1,10 @@
 # -*- coding: utf-8 -*-
 __title__ = "About pyMenvic"
 
+import os
+import sys
+import webbrowser
+
 try:
     from lib.core.branding import get_logo_path
 except ImportError:
@@ -16,10 +20,6 @@ except ImportError:
             break
         current_dir = parent_dir
     from core.branding import get_logo_path
-
-import os
-import sys
-import webbrowser
 
 from pyrevit import forms, script, versionmgr
 from System import Uri

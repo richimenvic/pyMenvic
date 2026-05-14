@@ -47,6 +47,9 @@ from Autodesk.Revit.DB import (
 )
 from pyrevit import forms, revit, script
 
+doc = revit.doc
+uidoc = revit.uidoc
+
 
 XAML_FILE = script.get_bundle_file("replace_filters_in_views.xaml")
 LOGO_FILE = get_logo_path()
