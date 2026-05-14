@@ -2,19 +2,173 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Filter Manager Pro"
         Height="900" Width="1600" Background="#1E252B" WindowStartupLocation="CenterScreen">
+    <Window.Resources>
+        <SolidColorBrush x:Key="WindowBgBrush" Color="#1E252B"/>
+        <SolidColorBrush x:Key="PanelBgBrush" Color="#26303A"/>
+        <SolidColorBrush x:Key="CardBgBrush" Color="#202931"/>
+        <SolidColorBrush x:Key="BorderBrushBase" Color="#384754"/>
+        <SolidColorBrush x:Key="TextPrimaryBrush" Color="#EAF1F5"/>
+        <SolidColorBrush x:Key="TextMutedBrush" Color="#B8C7D3"/>
+        <SolidColorBrush x:Key="AccentBrush" Color="#A8D3FF"/>
+        <SolidColorBrush x:Key="AccentStrongBrush" Color="#2E7FB8"/>
+        <SolidColorBrush x:Key="InputBgBrush" Color="#1A2229"/>
+        <SolidColorBrush x:Key="GridHeaderBrush" Color="#2B3742"/>
+        <SolidColorBrush x:Key="GridRowBrush" Color="#1F2A33"/>
+        <SolidColorBrush x:Key="GridAltRowBrush" Color="#22303A"/>
+        <SolidColorBrush x:Key="GridLineBrush" Color="#32414E"/>
+        <SolidColorBrush x:Key="SelectionBrush" Color="#2E7FB8"/>
+
+        <Style TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
+        </Style>
+
+        <Style x:Key="ToolButtonStyle" TargetType="Button">
+            <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
+            <Setter Property="Background" Value="{StaticResource AccentStrongBrush}"/>
+            <Setter Property="BorderBrush" Value="#6FB8ED"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="12,4"/>
+            <Setter Property="Height" Value="30"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="BtnBorder"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="4">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="BtnBorder" Property="Background" Value="#3D95D1"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="BtnBorder" Property="Background" Value="#266A99"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="BtnBorder" Property="Background" Value="#33424F"/>
+                                <Setter Property="Foreground" Value="#95A6B3"/>
+                                <Setter TargetName="BtnBorder" Property="BorderBrush" Value="#4A5C6A"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style TargetType="TextBox">
+            <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
+            <Setter Property="Background" Value="{StaticResource InputBgBrush}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource BorderBrushBase}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="6,2"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+        </Style>
+
+        <Style TargetType="ComboBox">
+            <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
+            <Setter Property="Background" Value="{StaticResource InputBgBrush}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource BorderBrushBase}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="6,1"/>
+            <Setter Property="Height" Value="28"/>
+        </Style>
+
+        <Style TargetType="TabControl">
+            <Setter Property="Background" Value="{StaticResource CardBgBrush}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource BorderBrushBase}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="6"/>
+        </Style>
+
+        <Style TargetType="TabItem">
+            <Setter Property="Foreground" Value="{StaticResource TextMutedBrush}"/>
+            <Setter Property="Background" Value="#24313B"/>
+            <Setter Property="BorderBrush" Value="{StaticResource BorderBrushBase}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="12,6"/>
+            <Style.Triggers>
+                <Trigger Property="IsSelected" Value="True">
+                    <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
+                    <Setter Property="Background" Value="{StaticResource PanelBgBrush}"/>
+                    <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style TargetType="DataGrid">
+            <Setter Property="Background" Value="{StaticResource GridRowBrush}"/>
+            <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource BorderBrushBase}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="GridLinesVisibility" Value="Horizontal"/>
+            <Setter Property="HorizontalGridLinesBrush" Value="{StaticResource GridLineBrush}"/>
+            <Setter Property="VerticalGridLinesBrush" Value="{StaticResource GridLineBrush}"/>
+            <Setter Property="RowBackground" Value="{StaticResource GridRowBrush}"/>
+            <Setter Property="AlternatingRowBackground" Value="{StaticResource GridAltRowBrush}"/>
+            <Setter Property="HeadersVisibility" Value="Column"/>
+            <Setter Property="CanUserAddRows" Value="False"/>
+            <Setter Property="CanUserDeleteRows" Value="False"/>
+            <Setter Property="SelectionUnit" Value="FullRow"/>
+            <Setter Property="RowHeaderWidth" Value="0"/>
+            <Setter Property="AlternationCount" Value="2"/>
+        </Style>
+
+        <Style TargetType="DataGridColumnHeader">
+            <Setter Property="Background" Value="{StaticResource GridHeaderBrush}"/>
+            <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource GridLineBrush}"/>
+            <Setter Property="BorderThickness" Value="0,0,1,1"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Padding" Value="8,6"/>
+        </Style>
+
+        <Style TargetType="DataGridCell">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource GridLineBrush}"/>
+            <Setter Property="BorderThickness" Value="0,0,1,1"/>
+            <Setter Property="Padding" Value="6,4"/>
+            <Style.Triggers>
+                <Trigger Property="IsSelected" Value="True">
+                    <Setter Property="Background" Value="{StaticResource SelectionBrush}"/>
+                    <Setter Property="Foreground" Value="White"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style TargetType="DataGridRow">
+            <Setter Property="Background" Value="{StaticResource GridRowBrush}"/>
+            <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource GridLineBrush}"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#2A3945"/>
+                </Trigger>
+                <Trigger Property="IsSelected" Value="True">
+                    <Setter Property="Background" Value="{StaticResource SelectionBrush}"/>
+                    <Setter Property="Foreground" Value="White"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+    </Window.Resources>
+
     <Grid Margin="12">
         <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="8"/><RowDefinition Height="*"/></Grid.RowDefinitions>
-        <Border Grid.Row="0" Background="#26303A" BorderBrush="#384754" BorderThickness="1" CornerRadius="6" Padding="12,8">
+        <Border Grid.Row="0" Background="{StaticResource PanelBgBrush}" BorderBrush="{StaticResource BorderBrushBase}" BorderThickness="1" CornerRadius="6" Padding="12,8">
             <StackPanel Orientation="Horizontal">
                 <Image x:Name="HeaderLogoImage" Width="24" Height="24" Margin="0,0,8,0"/>
-                <TextBlock Text="FILTER MANAGER PRO - pyMENVIC" FontSize="18" FontWeight="SemiBold" Foreground="#EAF1F5"/>
+                <TextBlock Text="FILTER MANAGER PRO - pyMENVIC" FontSize="18" FontWeight="SemiBold" Foreground="{StaticResource TextPrimaryBrush}"/>
             </StackPanel>
         </Border>
-        <TabControl Grid.Row="2" Background="#202931" BorderBrush="#384754" Foreground="#EAF1F5">
+        <TabControl Grid.Row="2" Background="{StaticResource CardBgBrush}" BorderBrush="{StaticResource BorderBrushBase}" Foreground="{StaticResource TextPrimaryBrush}">
             <TabItem Header="Audit">
                 <Grid Margin="10">
                     <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="8"/><RowDefinition Height="*"/></Grid.RowDefinitions>
-                    <Button x:Name="RefreshAuditButton" Content="Refresh Audit" Height="30" Width="140" Click="RefreshAuditButton_Click"/>
+                    <Button x:Name="RefreshAuditButton" Style="{StaticResource ToolButtonStyle}" Content="Refresh Audit" Width="140" Click="RefreshAuditButton_Click"/>
                     <DataGrid x:Name="AuditGrid" Grid.Row="2" AutoGenerateColumns="False">
                         <DataGrid.Columns>
                             <DataGridTextColumn Header="Filter" Binding="{Binding FilterName}" Width="*"/>
@@ -31,11 +185,11 @@
                 <Grid Margin="10">
                     <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="6"/><RowDefinition Height="Auto"/><RowDefinition Height="8"/><RowDefinition Height="*"/></Grid.RowDefinitions>
                     <StackPanel Orientation="Horizontal">
-                        <TextBlock Text="Prefix:" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                        <TextBlock Text="Prefix:" VerticalAlignment="Center" Margin="0,0,8,0" Foreground="{StaticResource TextPrimaryBrush}"/>
                         <TextBox x:Name="RenamePrefixTextBox" Width="220" Height="28" Text=""/>
-                        <Button x:Name="PreviewRenameButton" Content="Preview" Width="120" Height="30" Margin="10,0,0,0" Click="PreviewRenameButton_Click"/>
+                        <Button x:Name="PreviewRenameButton" Style="{StaticResource ToolButtonStyle}" Content="Preview" Width="120" Margin="10,0,0,0" Click="PreviewRenameButton_Click"/>
                     </StackPanel>
-                    <TextBlock x:Name="RenameStatusTextBlock" Grid.Row="2" Text="" Foreground="#A8D3FF" TextWrapping="Wrap"/>
+                    <TextBlock x:Name="RenameStatusTextBlock" Grid.Row="2" Text="" Foreground="{StaticResource AccentBrush}" TextWrapping="Wrap"/>
                     <DataGrid x:Name="RenameGrid" Grid.Row="4" AutoGenerateColumns="False">
                         <DataGrid.Columns>
                             <DataGridTextColumn Header="Current Name" Binding="{Binding CurrentName}" Width="*"/>
@@ -48,13 +202,13 @@
                 <Grid Margin="10">
                     <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="6"/><RowDefinition Height="Auto"/><RowDefinition Height="8"/><RowDefinition Height="*"/></Grid.RowDefinitions>
                     <StackPanel Orientation="Horizontal">
-                        <TextBlock Text="Source:" VerticalAlignment="Center"/>
+                        <TextBlock Text="Source:" VerticalAlignment="Center" Foreground="{StaticResource TextPrimaryBrush}"/>
                         <ComboBox x:Name="SourceComboBox" Width="280" Margin="6,0,12,0" DisplayMemberPath="Name"/>
-                        <TextBlock Text="Target:" VerticalAlignment="Center"/>
+                        <TextBlock Text="Target:" VerticalAlignment="Center" Foreground="{StaticResource TextPrimaryBrush}"/>
                         <ComboBox x:Name="TargetComboBox" Width="280" Margin="6,0,12,0" DisplayMemberPath="Name"/>
-                        <Button x:Name="PreviewReplaceButton" Content="Preview Usage" Width="130" Height="30" Click="PreviewReplaceButton_Click"/>
+                        <Button x:Name="PreviewReplaceButton" Style="{StaticResource ToolButtonStyle}" Content="Preview Usage" Width="130" Click="PreviewReplaceButton_Click"/>
                     </StackPanel>
-                    <TextBlock x:Name="ReplaceStatusTextBlock" Grid.Row="2" Text="" Foreground="#A8D3FF" TextWrapping="Wrap"/>
+                    <TextBlock x:Name="ReplaceStatusTextBlock" Grid.Row="2" Text="" Foreground="{StaticResource AccentBrush}" TextWrapping="Wrap"/>
                     <DataGrid x:Name="ReplaceGrid" Grid.Row="4" AutoGenerateColumns="False">
                         <DataGrid.Columns>
                             <DataGridTextColumn Header="View / Template" Binding="{Binding ViewName}" Width="*"/>
@@ -67,11 +221,16 @@
             </TabItem>
             <TabItem Header="Reports">
                 <Grid Margin="10">
-                    <StackPanel>
-                        <TextBlock Text="Reports are planned for a future release. Upcoming outputs: Audit Summary, Unused Filters, and Replace Impact snapshots." TextWrapping="Wrap" Margin="0,0,0,10"/>
-                        <Button Content="Copy Audit Summary (Coming Soon)" Width="240" Height="30" HorizontalAlignment="Left" Margin="0,0,0,6" IsEnabled="False"/>
-                        <Button Content="Export CSV (Coming Soon)" Width="240" Height="30" HorizontalAlignment="Left" IsEnabled="False"/>
-                    </StackPanel>
+                    <Border Background="{StaticResource PanelBgBrush}" BorderBrush="{StaticResource BorderBrushBase}" BorderThickness="1" CornerRadius="5" Padding="12">
+                        <StackPanel>
+                            <TextBlock Text="Reports are planned for a future release. Upcoming outputs: Audit Summary, Unused Filters, and Replace Impact snapshots."
+                                       TextWrapping="Wrap" Margin="0,0,0,10" Foreground="{StaticResource TextMutedBrush}"/>
+                            <TextBlock Text="Planned exports will reuse active tab context and preserve current sorting and filters."
+                                       TextWrapping="Wrap" Margin="0,0,0,12" Foreground="{StaticResource TextMutedBrush}"/>
+                            <Button Content="Copy Audit Summary (Coming Soon)" Style="{StaticResource ToolButtonStyle}" Width="240" HorizontalAlignment="Left" Margin="0,0,0,6" IsEnabled="False"/>
+                            <Button Content="Export CSV (Coming Soon)" Style="{StaticResource ToolButtonStyle}" Width="240" HorizontalAlignment="Left" IsEnabled="False"/>
+                        </StackPanel>
+                    </Border>
                 </Grid>
             </TabItem>
         </TabControl>
