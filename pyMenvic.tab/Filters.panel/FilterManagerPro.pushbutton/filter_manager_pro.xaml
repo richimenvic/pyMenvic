@@ -101,16 +101,6 @@
             <Setter Property="Height" Value="28"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
             <Setter Property="ItemContainerStyle" Value="{StaticResource DarkComboBoxItemStyle}"/>
-            <Setter Property="Resources">
-                <Setter.Value>
-                    <ResourceDictionary>
-                        <SolidColorBrush x:Key="{x:Static SystemColors.WindowBrushKey}" Color="#1F2A33"/>
-                        <SolidColorBrush x:Key="{x:Static SystemColors.ControlBrushKey}" Color="#1A2229"/>
-                        <SolidColorBrush x:Key="{x:Static SystemColors.HighlightBrushKey}" Color="#2E7FB8"/>
-                        <SolidColorBrush x:Key="{x:Static SystemColors.HighlightTextBrushKey}" Color="#FFFFFF"/>
-                    </ResourceDictionary>
-                </Setter.Value>
-            </Setter>
         </Style>
 
         <Style TargetType="TabControl">
