@@ -101,6 +101,79 @@
             <Setter Property="Height" Value="28"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
             <Setter Property="ItemContainerStyle" Value="{StaticResource DarkComboBoxItemStyle}"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ComboBox">
+                        <Grid>
+                            <ToggleButton x:Name="ToggleButton"
+                                          Focusable="False"
+                                          IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}"
+                                          ClickMode="Press"
+                                          Background="{TemplateBinding Background}"
+                                          BorderBrush="{TemplateBinding BorderBrush}"
+                                          BorderThickness="{TemplateBinding BorderThickness}">
+                                <Border x:Name="ComboBorder"
+                                        Background="{TemplateBinding Background}"
+                                        BorderBrush="{TemplateBinding BorderBrush}"
+                                        BorderThickness="{TemplateBinding BorderThickness}"
+                                        CornerRadius="3">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="26"/>
+                                        </Grid.ColumnDefinitions>
+                                        <ContentPresenter Margin="8,2,6,2"
+                                                          VerticalAlignment="Center"
+                                                          HorizontalAlignment="Left"
+                                                          Content="{TemplateBinding SelectionBoxItem}"
+                                                          ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"/>
+                                        <Border Grid.Column="1" Background="#22303A" BorderBrush="#3C4D5A" BorderThickness="1,0,0,0">
+                                            <Path HorizontalAlignment="Center"
+                                                  VerticalAlignment="Center"
+                                                  Fill="{StaticResource TextMutedBrush}"
+                                                  Data="M 0 0 L 4 4 L 8 0 Z"/>
+                                        </Border>
+                                    </Grid>
+                                </Border>
+                            </ToggleButton>
+                            <Popup x:Name="Popup"
+                                   Placement="Bottom"
+                                   IsOpen="{TemplateBinding IsDropDownOpen}"
+                                   AllowsTransparency="True"
+                                   Focusable="False"
+                                   PopupAnimation="Slide">
+                                <Border x:Name="DropDownBorder"
+                                        Background="#1A2229"
+                                        BorderBrush="#465A6A"
+                                        BorderThickness="1"
+                                        CornerRadius="3"
+                                        MinWidth="{Binding ActualWidth, RelativeSource={RelativeSource TemplatedParent}}">
+                                    <ScrollViewer Margin="2" SnapsToDevicePixels="True">
+                                        <StackPanel IsItemsHost="True" KeyboardNavigation.DirectionalNavigation="Contained"/>
+                                    </ScrollViewer>
+                                </Border>
+                            </Popup>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="ComboBorder" Property="BorderBrush" Value="#5E7B91"/>
+                            </Trigger>
+                            <Trigger Property="IsKeyboardFocusWithin" Value="True">
+                                <Setter TargetName="ComboBorder" Property="BorderBrush" Value="#4FB2FF"/>
+                            </Trigger>
+                            <Trigger Property="IsDropDownOpen" Value="True">
+                                <Setter TargetName="ComboBorder" Property="Background" Value="#202B35"/>
+                                <Setter TargetName="ComboBorder" Property="BorderBrush" Value="#4FB2FF"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Foreground" Value="#95A6B3"/>
+                                <Setter TargetName="ComboBorder" Property="Background" Value="#26313A"/>
+                                <Setter TargetName="ComboBorder" Property="BorderBrush" Value="#445563"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
         </Style>
 
         <Style TargetType="TabControl">
@@ -219,12 +292,12 @@
                     <TextBlock Text="FILTER MANAGER PRO - pyMENVIC" FontSize="18" FontWeight="SemiBold" Foreground="{StaticResource TextPrimaryBrush}"/>
                 </StackPanel>
                 <WrapPanel Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Center">
-                    <Border Style="{StaticResource SummaryCardBorder}" Padding="8,6"><StackPanel><TextBlock x:Name="HeaderCardLabel1" Text="-" Foreground="{StaticResource TextMutedBrush}" FontSize="10"/><TextBlock x:Name="HeaderCardValue1" Text="0" FontSize="17" FontWeight="Bold"/></StackPanel></Border>
-                    <Border Style="{StaticResource SummaryCardBorder}" Padding="8,6"><StackPanel><TextBlock x:Name="HeaderCardLabel2" Text="-" Foreground="{StaticResource TextMutedBrush}" FontSize="10"/><TextBlock x:Name="HeaderCardValue2" Text="0" FontSize="17" FontWeight="Bold"/></StackPanel></Border>
-                    <Border Style="{StaticResource SummaryCardBorder}" Padding="8,6"><StackPanel><TextBlock x:Name="HeaderCardLabel3" Text="-" Foreground="{StaticResource TextMutedBrush}" FontSize="10"/><TextBlock x:Name="HeaderCardValue3" Text="0" FontSize="17" FontWeight="Bold"/></StackPanel></Border>
-                    <Border Style="{StaticResource SummaryCardBorder}" Padding="8,6"><StackPanel><TextBlock x:Name="HeaderCardLabel4" Text="-" Foreground="{StaticResource TextMutedBrush}" FontSize="10"/><TextBlock x:Name="HeaderCardValue4" Text="0" FontSize="17" FontWeight="Bold"/></StackPanel></Border>
-                    <Border Style="{StaticResource SummaryCardBorder}" Padding="8,6"><StackPanel><TextBlock x:Name="HeaderCardLabel5" Text="-" Foreground="{StaticResource TextMutedBrush}" FontSize="10"/><TextBlock x:Name="HeaderCardValue5" Text="0" FontSize="17" FontWeight="Bold"/></StackPanel></Border>
-                    <Border Style="{StaticResource SummaryCardBorder}" Padding="8,6" Margin="0"><StackPanel><TextBlock x:Name="HeaderCardLabel6" Text="-" Foreground="{StaticResource TextMutedBrush}" FontSize="10"/><TextBlock x:Name="HeaderCardValue6" Text="0" FontSize="17" FontWeight="Bold"/></StackPanel></Border>
+                    <Border x:Name="HeaderCardBorder1" Style="{StaticResource SummaryCardBorder}" Padding="8,6"><StackPanel><TextBlock x:Name="HeaderCardLabel1" Text="-" Foreground="{StaticResource TextMutedBrush}" FontSize="10"/><TextBlock x:Name="HeaderCardValue1" Text="0" FontSize="17" FontWeight="Bold"/></StackPanel></Border>
+                    <Border x:Name="HeaderCardBorder2" Style="{StaticResource SummaryCardBorder}" Padding="8,6"><StackPanel><TextBlock x:Name="HeaderCardLabel2" Text="-" Foreground="{StaticResource TextMutedBrush}" FontSize="10"/><TextBlock x:Name="HeaderCardValue2" Text="0" FontSize="17" FontWeight="Bold"/></StackPanel></Border>
+                    <Border x:Name="HeaderCardBorder3" Style="{StaticResource SummaryCardBorder}" Padding="8,6"><StackPanel><TextBlock x:Name="HeaderCardLabel3" Text="-" Foreground="{StaticResource TextMutedBrush}" FontSize="10"/><TextBlock x:Name="HeaderCardValue3" Text="0" FontSize="17" FontWeight="Bold"/></StackPanel></Border>
+                    <Border x:Name="HeaderCardBorder4" Style="{StaticResource SummaryCardBorder}" Padding="8,6"><StackPanel><TextBlock x:Name="HeaderCardLabel4" Text="-" Foreground="{StaticResource TextMutedBrush}" FontSize="10"/><TextBlock x:Name="HeaderCardValue4" Text="0" FontSize="17" FontWeight="Bold"/></StackPanel></Border>
+                    <Border x:Name="HeaderCardBorder5" Style="{StaticResource SummaryCardBorder}" Padding="8,6"><StackPanel><TextBlock x:Name="HeaderCardLabel5" Text="-" Foreground="{StaticResource TextMutedBrush}" FontSize="10"/><TextBlock x:Name="HeaderCardValue5" Text="0" FontSize="17" FontWeight="Bold"/></StackPanel></Border>
+                    <Border x:Name="HeaderCardBorder6" Style="{StaticResource SummaryCardBorder}" Padding="8,6" Margin="0"><StackPanel><TextBlock x:Name="HeaderCardLabel6" Text="-" Foreground="{StaticResource TextMutedBrush}" FontSize="10"/><TextBlock x:Name="HeaderCardValue6" Text="0" FontSize="17" FontWeight="Bold"/></StackPanel></Border>
                 </WrapPanel>
             </Grid>
         </Border>
