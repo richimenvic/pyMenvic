@@ -56,11 +56,13 @@ class FilterOption(object):
 
 
 class AuditRow(object):
-    def __init__(self, filter_name, view_count, template_count):
+    def __init__(self, filter_name, categories, view_count, template_count):
         self.FilterName = filter_name
+        self.Categories = categories
         self.ViewCount = view_count
         self.TemplateCount = template_count
         self.TotalCount = view_count + template_count
+        self.Status = "Used" if self.TotalCount > 0 else "Unused"
 
 
 class RenamePreviewRow(object):
@@ -90,10 +92,14 @@ class FilterManagerProWindow(forms.WPFWindow):
         self.ReplaceGrid.ItemsSource = self.replace_rows
         self.SourceComboBox.ItemsSource = self.filters
         self.TargetComboBox.ItemsSource = self.filters
+        self.SourceComboBox.DisplayMemberPath = "Name"
+        self.TargetComboBox.DisplayMemberPath = "Name"
         if len(self.filters) > 0:
             self.SourceComboBox.SelectedIndex = 0
             self.TargetComboBox.SelectedIndex = 0
         self._load_audit()
+        self._set_rename_status("Click Preview to load all filters.")
+        self._set_replace_status("Select Source and Target filters, then click Preview Usage.")
 
     def _load_header_logo(self):
         stream = None
@@ -130,10 +136,11 @@ class FilterManagerProWindow(forms.WPFWindow):
 
     def _load_audit(self):
         self.audit_rows.Clear()
+        views = collect_views_with_filters(doc)
         for filt in self.filters:
             view_count = 0
             template_count = 0
-            for view in collect_views_with_filters(doc):
+            for view in views:
                 try:
                     ids = list(view.GetFilters())
                 except Exception:
@@ -145,7 +152,7 @@ class FilterManagerProWindow(forms.WPFWindow):
                     template_count += 1
                 else:
                     view_count += 1
-            self.audit_rows.Add(AuditRow(filt.Name, view_count, template_count))
+            self.audit_rows.Add(AuditRow(filt.Name, self._get_filter_categories_text(filt.ElementId), view_count, template_count))
 
     def _preview_rename(self):
         self.rename_rows.Clear()
@@ -155,12 +162,20 @@ class FilterManagerProWindow(forms.WPFWindow):
             if prefix:
                 proposed = "{}{}".format(prefix, filt.Name)
             self.rename_rows.Add(RenamePreviewRow(filt.Name, proposed))
+        if prefix:
+            self._set_rename_status("Previewing {} filters with prefix '{}'".format(len(self.filters), prefix))
+        else:
+            self._set_rename_status("Previewing {} filters. Prefix is empty, so proposed names match current names.".format(len(self.filters)))
 
     def _preview_replace(self):
         self.replace_rows.Clear()
         source = self.SourceComboBox.SelectedItem
         target = self.TargetComboBox.SelectedItem
         if source is None or target is None:
+            self._set_replace_status("Select both Source and Target filters.")
+            return
+        if element_id_value(source.ElementId) == element_id_value(target.ElementId):
+            self._set_replace_status("Source and Target are the same filter. Select different filters to compare usage.")
             return
         source_id = element_id_value(source.ElementId)
         target_id = element_id_value(target.ElementId)
@@ -178,6 +193,31 @@ class FilterManagerProWindow(forms.WPFWindow):
             except Exception:
                 view_kind = "Unknown"
             self.replace_rows.Add(ReplacePreviewRow(element_name(view), view_kind, has_source, has_target))
+        self._set_replace_status("Preview shows {} views/templates affected by Source or Target.".format(len(self.replace_rows)))
+
+    def _set_rename_status(self, text):
+        self.RenameStatusTextBlock.Text = text
+
+    def _set_replace_status(self, text):
+        self.ReplaceStatusTextBlock.Text = text
+
+    def _get_filter_categories_text(self, filter_id):
+        try:
+            filt = doc.GetElement(filter_id)
+            categories = getattr(filt, "Categories", None)
+            if categories is None:
+                return "All / N/A"
+            names = []
+            for cat_id in categories:
+                cat = doc.Settings.Categories.get_Item(cat_id)
+                if cat is not None and cat.Name:
+                    names.append(cat.Name)
+            if not names:
+                return "All / N/A"
+            names.sort()
+            return ", ".join(names)
+        except Exception:
+            return "All / N/A"
 
     def RefreshAuditButton_Click(self, sender, args):
         self._load_audit()
