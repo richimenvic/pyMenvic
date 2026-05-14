@@ -13,4 +13,4 @@ def get_logo_path(dark=False):
     _ = dark
     core_dir = os.path.dirname(os.path.abspath(__file__))
     repo_root = os.path.dirname(os.path.dirname(core_dir))
-    return os.path.join(repo_root, "resources", "branding", "pyMenvic_logo.png")
+    return os.path.join(repo_root, "_resources", "logos", "menvic_logo.png")
