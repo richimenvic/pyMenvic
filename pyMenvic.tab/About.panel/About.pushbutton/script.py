@@ -6,6 +6,11 @@ import sys
 import webbrowser
 
 try:
+    import urllib2
+except ImportError:
+    import urllib.request as urllib2
+
+try:
     from lib.core.branding import get_about_logo_path
 except ImportError:
     current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -29,19 +34,105 @@ from System.Windows.Media.Imaging import BitmapImage, BitmapCacheOption
 
 CONTACT_EMAIL = "contact@menvic.com"
 WEBSITE_URL = "https://github.com/richimenvic/pyMenvic"
+REMOTE_VERSION_URL = "https://raw.githubusercontent.com/richimenvic/pyMenvic/main/version.txt"
 
 
+def _find_extension_root(start_dir):
+    current_dir = os.path.abspath(start_dir)
+    while True:
+        if os.path.basename(current_dir).lower() == "pymenvic.extension":
+            return current_dir
+        if os.path.exists(os.path.join(current_dir, "pyMenvic.tab")):
+            return current_dir
+        parent_dir = os.path.dirname(current_dir)
+        if parent_dir == current_dir:
+            return None
+        current_dir = parent_dir
 
 
-def read_version():
-    vfile = script.get_bundle_file('version.txt')
-    if vfile and os.path.exists(vfile):
+def read_local_version():
+    bundle_version_file = script.get_bundle_file('version.txt')
+    extension_root = _find_extension_root(os.path.dirname(os.path.abspath(__file__)))
+
+    candidate_files = []
+    if extension_root:
+        candidate_files.append(os.path.join(extension_root, "version.txt"))
+    if bundle_version_file:
+        candidate_files.append(bundle_version_file)
+
+    for vfile in candidate_files:
+        if vfile and os.path.exists(vfile):
+            try:
+                with open(vfile, 'r') as f:
+                    return f.read().strip()
+            except:
+                continue
+
+    return "0.0.0"
+
+
+def parse_version(version_text):
+    cleaned = (version_text or "").strip()
+    if not cleaned:
+        return [0]
+
+    parts = cleaned.split(".")
+    numbers = []
+    for part in parts:
+        token = (part or "").strip()
+        if not token:
+            numbers.append(0)
+            continue
+
+        digits = []
+        for ch in token:
+            if ch.isdigit():
+                digits.append(ch)
+            else:
+                break
+
+        if digits:
+            numbers.append(int("".join(digits)))
+        else:
+            numbers.append(0)
+
+    while len(numbers) > 1 and numbers[-1] == 0:
+        numbers.pop()
+
+    return numbers
+
+
+def compare_versions(local_version, remote_version):
+    local_numbers = parse_version(local_version)
+    remote_numbers = parse_version(remote_version)
+
+    max_len = max(len(local_numbers), len(remote_numbers))
+    for i in range(max_len):
+        local_part = local_numbers[i] if i < len(local_numbers) else 0
+        remote_part = remote_numbers[i] if i < len(remote_numbers) else 0
+        if remote_part > local_part:
+            return 1
+        if remote_part < local_part:
+            return -1
+
+    return 0
+
+
+def read_remote_version():
+    request = urllib2.Request(REMOTE_VERSION_URL)
+    response = urllib2.urlopen(request, timeout=8)
+    try:
+        raw_content = response.read()
+    finally:
         try:
-            with open(vfile, 'r') as f:
-                return f.read().strip()
+            response.close()
         except:
             pass
-    return "1.0"
+
+    try:
+        return raw_content.decode("utf-8").strip()
+    except:
+        return str(raw_content).strip()
 
 
 def load_bitmap(path):
@@ -60,7 +151,7 @@ class AboutWindow(forms.WPFWindow):
         forms.WPFWindow.__init__(self, xamlfile)
 
         # VERSION
-        version = read_version()
+        version = read_local_version()
         self.titleText.Text = "pyMenvic - Version {}".format(version)
 
         # ENVIRONMENT INFO
@@ -90,6 +181,7 @@ class AboutWindow(forms.WPFWindow):
         self.closeBtn.Click += self.close_window
         self.copyEmailBtn.Click += self.copy_email
         self.webBtn.Click += self.open_website
+        self.checkUpdatesBtn.Click += self.check_for_updates
 
     def close_window(self, sender, args):
         self.Close()
@@ -100,6 +192,19 @@ class AboutWindow(forms.WPFWindow):
 
     def open_website(self, sender, args):
         webbrowser.open(WEBSITE_URL)
+
+    def check_for_updates(self, sender, args):
+        try:
+            local_version = read_local_version()
+            remote_version = read_remote_version()
+            comparison = compare_versions(local_version, remote_version)
+
+            if comparison == 1:
+                forms.alert("New update for pyMenvic available: {}".format(remote_version), title="pyMenvic")
+            else:
+                forms.alert("pyMenvic is up to date.", title="pyMenvic")
+        except:
+            forms.alert("Could not check for updates. Please verify your internet connection or GitHub access.", title="pyMenvic")
 
 
 AboutWindow().ShowDialog()
