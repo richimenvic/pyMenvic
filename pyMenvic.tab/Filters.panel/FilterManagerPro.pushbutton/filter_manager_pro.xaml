@@ -304,18 +304,20 @@
             </TabItem>
             <TabItem Header="Rename / Standardize">
                 <Grid Margin="10">
-                    <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="6"/><RowDefinition Height="Auto"/><RowDefinition Height="8"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                    <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="6"/><RowDefinition Height="Auto"/><RowDefinition Height="8"/><RowDefinition Height="*"/><RowDefinition Height="8"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
                     <StackPanel Grid.Row="0" Orientation="Horizontal"><TextBlock Text="Prefix:" VerticalAlignment="Center" Margin="0,0,8,0" Foreground="{StaticResource TextPrimaryBrush}"/><TextBox x:Name="RenamePrefixTextBox" Width="220" Height="28" Text=""/><Button x:Name="PreviewRenameButton" Style="{StaticResource ToolButtonStyle}" Content="Preview" Width="120" Margin="10,0,0,0" Click="PreviewRenameButton_Click"/></StackPanel>
                     <TextBlock x:Name="RenameStatusTextBlock" Grid.Row="2" Text="" Foreground="{StaticResource AccentBrush}" TextWrapping="Wrap"/>
                     <DataGrid x:Name="RenameGrid" Grid.Row="4" AutoGenerateColumns="False"><DataGrid.Columns><DataGridTextColumn Header="Current Name" Binding="{Binding CurrentName}" Width="*"/><DataGridTextColumn Header="Proposed Name" Binding="{Binding ProposedName}" Width="*"/></DataGrid.Columns></DataGrid>
+                    <Button x:Name="ApplyRenameButton" Grid.Row="6" HorizontalAlignment="Right" Style="{StaticResource ToolButtonStyle}" Content="Apply Rename" Width="130" Click="ApplyRenameButton_Click"/>
                 </Grid>
             </TabItem>
             <TabItem Header="Replace / Consolidate">
                 <Grid Margin="10">
-                    <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="6"/><RowDefinition Height="Auto"/><RowDefinition Height="8"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                    <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="6"/><RowDefinition Height="Auto"/><RowDefinition Height="8"/><RowDefinition Height="*"/><RowDefinition Height="8"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
                     <StackPanel Grid.Row="0" Orientation="Horizontal"><TextBlock Text="Source:" VerticalAlignment="Center" Foreground="{StaticResource TextPrimaryBrush}"/><ComboBox x:Name="SourceComboBox" Width="280" Margin="6,0,12,0"/><TextBlock Text="Target:" VerticalAlignment="Center" Foreground="{StaticResource TextPrimaryBrush}"/><ComboBox x:Name="TargetComboBox" Width="280" Margin="6,0,12,0"/><Button x:Name="PreviewReplaceButton" Style="{StaticResource ToolButtonStyle}" Content="Preview Usage" Width="130" Click="PreviewReplaceButton_Click"/></StackPanel>
                     <TextBlock x:Name="ReplaceStatusTextBlock" Grid.Row="2" Text="" Foreground="{StaticResource AccentBrush}" TextWrapping="Wrap"/>
                     <DataGrid x:Name="ReplaceGrid" Grid.Row="4" AutoGenerateColumns="False"><DataGrid.Columns><DataGridTextColumn Header="View / Template" Binding="{Binding ViewName}" Width="*"/><DataGridTextColumn Header="Type" Binding="{Binding ViewKind}" Width="140"/><DataGridTextColumn Header="Source Applied" Binding="{Binding HasSource}" Width="100"/><DataGridTextColumn Header="Target Applied" Binding="{Binding HasTarget}" Width="100"/></DataGrid.Columns></DataGrid>
+                    <Button x:Name="ApplyReplaceButton" Grid.Row="6" HorizontalAlignment="Right" Style="{StaticResource ToolButtonStyle}" Content="Apply Replace" Width="130" Click="ApplyReplaceButton_Click"/>
                 </Grid>
             </TabItem>
             <TabItem Header="Reports">
