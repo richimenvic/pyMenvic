@@ -200,6 +200,15 @@ def update_extension_from_git():
     return True, ""
 
 
+def _reload_pyrevit_now():
+    try:
+        from pyrevit.loader import sessionmgr
+        sessionmgr.reload_pyrevit()
+        return True
+    except:
+        return False
+
+
 def load_bitmap(path):
     bmp = BitmapImage()
     bmp.BeginInit()
@@ -275,13 +284,61 @@ class AboutWindow(forms.WPFWindow):
                     ok=False
                 )
                 if update_now:
-                    success, reason = update_extension_from_git()
-                    if success:
+                    extension_root = _find_extension_root(os.path.dirname(os.path.abspath(__file__)))
+                    if not extension_root:
+                        forms.alert("Could not locate the pyMenvic extension folder.", title="pyMenvic")
+                        return
+
+                    code, status_out, status_err = _run_process(["git", "status", "--porcelain"], extension_root, 10)
+                    if code != 0:
                         forms.alert(
-                            "pyMenvic was updated successfully.\n"
-                            "Please reload pyRevit or restart Revit to apply the changes.",
+                            "Could not verify local repository status.\n"
+                            "Reason: {}".format(status_err or status_out or "Unknown error."),
                             title="pyMenvic"
                         )
+                        return
+
+                    status_lines = [line for line in (status_out or "").splitlines() if line.strip()]
+                    if status_lines:
+                        changed_files = []
+                        for line in status_lines:
+                            if len(line) > 3:
+                                changed_files.append(line[3:].strip())
+                            else:
+                                changed_files.append(line.strip())
+                        forms.alert(
+                            "pyMenvic has local changes and cannot be updated automatically.\n\n"
+                            "Please commit, stash, or discard local changes before updating.\n\n"
+                            "Modified files:\n- {}".format("\n- ".join(changed_files)),
+                            title="pyMenvic"
+                        )
+                        return
+
+                    success, reason = update_extension_from_git()
+                    if success:
+                        updated_local_version = read_local_version()
+                        remote_version_after_pull = read_remote_version()
+                        if compare_versions(updated_local_version, remote_version_after_pull) != 0:
+                            forms.alert(
+                                "Could not confirm pyMenvic update completion.\n\n"
+                                "Installed version: {}\n"
+                                "Latest version: {}\n\n"
+                                "Please try updating again later.".format(updated_local_version, remote_version_after_pull),
+                                title="pyMenvic"
+                            )
+                            return
+
+                        reload_choice = forms.CommandSwitchWindow.show(
+                            ["Reload Now", "Later"],
+                            message="pyMenvic was updated successfully.\n\nReload pyRevit now to apply the changes?"
+                        )
+                        if reload_choice == "Reload Now":
+                            if not _reload_pyrevit_now():
+                                forms.alert(
+                                    "pyMenvic was updated, but pyRevit could not be reloaded automatically.\n"
+                                    "Please use the pyRevit Reload button or restart Revit.",
+                                    title="pyMenvic"
+                                )
                     else:
                         forms.alert(
                             "Could not update pyMenvic automatically.\n"
