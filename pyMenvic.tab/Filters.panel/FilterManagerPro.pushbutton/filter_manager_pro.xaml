@@ -18,22 +18,25 @@
                     <DataGrid x:Name="AuditGrid" Grid.Row="2" AutoGenerateColumns="False">
                         <DataGrid.Columns>
                             <DataGridTextColumn Header="Filter" Binding="{Binding FilterName}" Width="*"/>
+                            <DataGridTextColumn Header="Categories" Binding="{Binding Categories}" Width="2*"/>
                             <DataGridTextColumn Header="Views" Binding="{Binding ViewCount}" Width="90"/>
                             <DataGridTextColumn Header="Templates" Binding="{Binding TemplateCount}" Width="90"/>
                             <DataGridTextColumn Header="Total Uses" Binding="{Binding TotalCount}" Width="90"/>
+                            <DataGridTextColumn Header="Status" Binding="{Binding Status}" Width="90"/>
                         </DataGrid.Columns>
                     </DataGrid>
                 </Grid>
             </TabItem>
             <TabItem Header="Rename / Standardize">
                 <Grid Margin="10">
-                    <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="8"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                    <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="6"/><RowDefinition Height="Auto"/><RowDefinition Height="8"/><RowDefinition Height="*"/></Grid.RowDefinitions>
                     <StackPanel Orientation="Horizontal">
                         <TextBlock Text="Prefix:" VerticalAlignment="Center" Margin="0,0,8,0"/>
                         <TextBox x:Name="RenamePrefixTextBox" Width="220" Height="28" Text=""/>
                         <Button x:Name="PreviewRenameButton" Content="Preview" Width="120" Height="30" Margin="10,0,0,0" Click="PreviewRenameButton_Click"/>
                     </StackPanel>
-                    <DataGrid x:Name="RenameGrid" Grid.Row="2" AutoGenerateColumns="False">
+                    <TextBlock x:Name="RenameStatusTextBlock" Grid.Row="2" Text="" Foreground="#A8D3FF" TextWrapping="Wrap"/>
+                    <DataGrid x:Name="RenameGrid" Grid.Row="4" AutoGenerateColumns="False">
                         <DataGrid.Columns>
                             <DataGridTextColumn Header="Current Name" Binding="{Binding CurrentName}" Width="*"/>
                             <DataGridTextColumn Header="Proposed Name" Binding="{Binding ProposedName}" Width="*"/>
@@ -43,15 +46,16 @@
             </TabItem>
             <TabItem Header="Replace / Consolidate">
                 <Grid Margin="10">
-                    <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="8"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                    <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="6"/><RowDefinition Height="Auto"/><RowDefinition Height="8"/><RowDefinition Height="*"/></Grid.RowDefinitions>
                     <StackPanel Orientation="Horizontal">
                         <TextBlock Text="Source:" VerticalAlignment="Center"/>
-                        <ComboBox x:Name="SourceComboBox" Width="280" Margin="6,0,12,0"/>
+                        <ComboBox x:Name="SourceComboBox" Width="280" Margin="6,0,12,0" DisplayMemberPath="Name"/>
                         <TextBlock Text="Target:" VerticalAlignment="Center"/>
-                        <ComboBox x:Name="TargetComboBox" Width="280" Margin="6,0,12,0"/>
+                        <ComboBox x:Name="TargetComboBox" Width="280" Margin="6,0,12,0" DisplayMemberPath="Name"/>
                         <Button x:Name="PreviewReplaceButton" Content="Preview Usage" Width="130" Height="30" Click="PreviewReplaceButton_Click"/>
                     </StackPanel>
-                    <DataGrid x:Name="ReplaceGrid" Grid.Row="2" AutoGenerateColumns="False">
+                    <TextBlock x:Name="ReplaceStatusTextBlock" Grid.Row="2" Text="" Foreground="#A8D3FF" TextWrapping="Wrap"/>
+                    <DataGrid x:Name="ReplaceGrid" Grid.Row="4" AutoGenerateColumns="False">
                         <DataGrid.Columns>
                             <DataGridTextColumn Header="View / Template" Binding="{Binding ViewName}" Width="*"/>
                             <DataGridTextColumn Header="Type" Binding="{Binding ViewKind}" Width="140"/>
@@ -63,7 +67,11 @@
             </TabItem>
             <TabItem Header="Reports">
                 <Grid Margin="10">
-                    <TextBlock Text="Reports export is not implemented yet. This tab is reserved for CSV/JSON outputs in a future iteration." TextWrapping="Wrap"/>
+                    <StackPanel>
+                        <TextBlock Text="Reports are planned for a future release. Upcoming outputs: Audit Summary, Unused Filters, and Replace Impact snapshots." TextWrapping="Wrap" Margin="0,0,0,10"/>
+                        <Button Content="Copy Audit Summary (Coming Soon)" Width="240" Height="30" HorizontalAlignment="Left" Margin="0,0,0,6" IsEnabled="False"/>
+                        <Button Content="Export CSV (Coming Soon)" Width="240" Height="30" HorizontalAlignment="Left" IsEnabled="False"/>
+                    </StackPanel>
                 </Grid>
             </TabItem>
         </TabControl>
