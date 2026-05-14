@@ -6,7 +6,11 @@ import os
 import sys
 
 try:
-    from lib.core.branding import get_logo_path
+    from lib.filters.collectors import collect_parameter_filters
+    from lib.filters.compat import element_id_value
+    from lib.filters.elements import element_name
+    from lib.filters.resources import get_filters_logo_path
+    from lib.filters.ui_strings import load_ui_strings, ui_text
 except ImportError:
     current_dir = os.path.dirname(os.path.abspath(__file__))
     while True:
@@ -19,7 +23,11 @@ except ImportError:
         if parent_dir == current_dir:
             break
         current_dir = parent_dir
-    from core.branding import get_logo_path
+    from filters.collectors import collect_parameter_filters
+    from filters.compat import element_id_value
+    from filters.elements import element_name
+    from filters.resources import get_filters_logo_path
+    from filters.ui_strings import load_ui_strings, ui_text
 
 __title__ = "Manage Filters"
 __author__ = "OpenAI Codex"
@@ -47,41 +55,16 @@ uidoc = revit.uidoc
 
 
 XAML_FILE = script.get_bundle_file("manage_filters.xaml")
-LOGO_FILE = get_logo_path()
+LOGO_FILE = get_filters_logo_path()
 STRINGS_FILE = script.get_bundle_file("strings.py")
 logger = script.get_logger()
 
 
-def _load_ui_strings():
-    data = {}
-    try:
-        execfile(STRINGS_FILE, data)
-        language = data.get("LANGUAGE", "en")
-        return data.get("STRINGS", {}).get(language, {})
-    except Exception:
-        return {}
-
-
-UI_STRINGS = _load_ui_strings()
+UI_STRINGS = load_ui_strings(STRINGS_FILE)
 
 
 def _ui_text(text):
-    return UI_STRINGS.get(text, text)
-
-
-def _element_id_value(element_id):
-    """Return a stable integer value for ElementId across Revit versions."""
-    if element_id is None:
-        return None
-    for attr_name in ("Value", "IntegerValue"):
-        try:
-            return int(getattr(element_id, attr_name))
-        except Exception:
-            pass
-    try:
-        return int(element_id)
-    except Exception:
-        return str(element_id)
+    return ui_text(text, UI_STRINGS)
 
 
 def _set_localized_property(obj, property_name):
@@ -200,15 +183,6 @@ class ManageFiltersWindow(forms.WPFWindow):
                 except Exception:
                     pass
 
-    def _element_name(self, element):
-        try:
-            return Element.Name.GetValue(element)
-        except Exception:
-            try:
-                return element.Name
-            except Exception:
-                return ""
-
     def _match_key(self, text):
         cleaned = re.sub(r"[^A-Z0-9]+", " ", (text or "").upper())
         return " ".join(cleaned.split())
@@ -221,7 +195,7 @@ class ManageFiltersWindow(forms.WPFWindow):
         values = []
         for category_id in category_ids:
             try:
-                values.append(str(_element_id_value(category_id)))
+                values.append(str(element_id_value(category_id)))
             except Exception:
                 values.append(str(category_id))
         return "|".join(sorted(values))
@@ -242,7 +216,7 @@ class ManageFiltersWindow(forms.WPFWindow):
             except Exception:
                 pass
             try:
-                names.append(str(_element_id_value(category_id)))
+                names.append(str(element_id_value(category_id)))
             except Exception:
                 names.append(str(category_id))
 
@@ -264,12 +238,12 @@ class ManageFiltersWindow(forms.WPFWindow):
         try:
             element = doc.GetElement(parameter_id)
             if element is not None:
-                return self._element_name(element)
+                return element_name(element)
         except Exception:
             pass
 
         try:
-            integer_value = _element_id_value(parameter_id)
+            integer_value = element_id_value(parameter_id)
         except Exception:
             try:
                 integer_value = int(parameter_id)
@@ -388,7 +362,7 @@ class ManageFiltersWindow(forms.WPFWindow):
         )
 
     def _build_rows(self):
-        filters = list(FilteredElementCollector(doc).OfClass(ParameterFilterElement))
+        filters = collect_parameter_filters(doc, key_selector=lambda item: element_name(item).lower())
         if not filters:
             return []
 
@@ -396,7 +370,7 @@ class ManageFiltersWindow(forms.WPFWindow):
         content_groups = {}
         exact_groups = {}
         for filt in filters:
-            name_key = self._match_key(self._element_name(filt))
+            name_key = self._match_key(element_name(filt))
             content_key = self._filter_content_signature(filt)
             exact_key = "{0} || {1}".format(name_key, content_key)
             duplicate_groups.setdefault(name_key, []).append(filt)
@@ -405,7 +379,7 @@ class ManageFiltersWindow(forms.WPFWindow):
 
         filter_usage = {}
         for filt in filters:
-            filter_usage[_element_id_value(filt.Id)] = {"views": [], "templates": []}
+            filter_usage[element_id_value(filt.Id)] = {"views": [], "templates": []}
 
         for view in FilteredElementCollector(doc).OfClass(View):
             try:
@@ -416,10 +390,10 @@ class ManageFiltersWindow(forms.WPFWindow):
                 continue
 
             for filter_id in filter_ids:
-                usage = filter_usage.get(_element_id_value(filter_id))
+                usage = filter_usage.get(element_id_value(filter_id))
                 if usage is None:
                     continue
-                view_name = self._element_name(view)
+                view_name = element_name(view)
                 if getattr(view, "IsTemplate", False):
                     usage["templates"].append(view_name)
                 else:
@@ -427,7 +401,7 @@ class ManageFiltersWindow(forms.WPFWindow):
 
         rows = []
         for filt in filters:
-            group_key = self._match_key(self._element_name(filt))
+            group_key = self._match_key(element_name(filt))
             content_key = self._filter_content_signature(filt)
             exact_key = "{0} || {1}".format(group_key, content_key)
 
@@ -443,11 +417,11 @@ class ManageFiltersWindow(forms.WPFWindow):
                 duplicate_group = group_key
                 duplicate_type = "Name Duplicate"
 
-            usage = filter_usage.get(_element_id_value(filt.Id), {"views": [], "templates": []})
+            usage = filter_usage.get(element_id_value(filt.Id), {"views": [], "templates": []})
             rows.append(
                 FilterRow(
-                    _element_id_value(filt.Id),
-                    self._element_name(filt),
+                    element_id_value(filt.Id),
+                    element_name(filt),
                     sorted(usage["views"]),
                     sorted(usage["templates"]),
                     duplicate_group,
