@@ -279,21 +279,22 @@ class ReplaceFiltersWindow(forms.WPFWindow):
     def _build_filter_names(self, filter_options):
         names = []
         for option in filter_options:
-            names.append(option.Name)
+            names.append(str(option.Name))
         return names
 
     def _build_filter_name_map(self, filter_options):
         name_map = {}
         for option in filter_options:
-            if option.Name not in name_map:
-                name_map[option.Name] = option
+            option_name = str(option.Name)
+            if option_name not in name_map:
+                name_map[option_name] = option
         return name_map
 
     def _selected_filter_option(self, combo_box):
         selected_name = combo_box.SelectedItem
         if selected_name is None:
             return None
-        return self.filter_name_map.get(selected_name)
+        return self.filter_name_map.get(str(selected_name))
 
     def _selected_source(self):
         return self._selected_filter_option(self.SourceFilterComboBox)
