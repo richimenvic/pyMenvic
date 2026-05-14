@@ -6,7 +6,11 @@ import os
 import sys
 
 try:
-    from lib.core.branding import get_logo_path
+    from lib.filters.collectors import collect_parameter_filters
+    from lib.filters.compat import element_id_value
+    from lib.filters.elements import element_name
+    from lib.filters.resources import get_filters_logo_path
+    from lib.filters.ui_strings import load_ui_strings, ui_text
 except ImportError:
     current_dir = os.path.dirname(os.path.abspath(__file__))
     while True:
@@ -19,7 +23,11 @@ except ImportError:
         if parent_dir == current_dir:
             break
         current_dir = parent_dir
-    from core.branding import get_logo_path
+    from filters.collectors import collect_parameter_filters
+    from filters.compat import element_id_value
+    from filters.elements import element_name
+    from filters.resources import get_filters_logo_path
+    from filters.ui_strings import load_ui_strings, ui_text
 
 __title__ = "Replace Filters In Views"
 __author__ = "OpenAI Codex"
@@ -52,40 +60,16 @@ uidoc = revit.uidoc
 
 
 XAML_FILE = script.get_bundle_file("replace_filters_in_views.xaml")
-LOGO_FILE = get_logo_path()
+LOGO_FILE = get_filters_logo_path()
 STRINGS_FILE = script.get_bundle_file("strings.py")
 
 
-def _load_ui_strings():
-    data = {}
-    try:
-        execfile(STRINGS_FILE, data)
-        language = data.get("LANGUAGE", "en")
-        return data.get("STRINGS", {}).get(language, {})
-    except Exception:
-        return {}
-
-
-UI_STRINGS = _load_ui_strings()
-
-def _element_id_value(element_id):
-    """Return a stable numeric value for Revit ElementId across Revit versions."""
-    if element_id is None:
-        return None
-    for attr_name in ("Value", "IntegerValue"):
-        try:
-            return int(getattr(element_id, attr_name))
-        except Exception:
-            pass
-    try:
-        return int(element_id)
-    except Exception:
-        return str(element_id)
+UI_STRINGS = load_ui_strings(STRINGS_FILE)
 
 
 
 def _ui_text(text):
-    return UI_STRINGS.get(text, text)
+    return ui_text(text, UI_STRINGS)
 
 
 def _set_localized_property(obj, property_name):
@@ -159,16 +143,12 @@ class ReplaceFiltersWindow(forms.WPFWindow):
         _localize_window_text(self)
         self._load_header_logo()
         self.filters = self._collect_filters()
-        self.filter_options_by_name = {}
-        for filter_option in self.filters:
-            self.filter_options_by_name[filter_option.Name] = filter_option
         self.sheet_map = self._build_sheet_map()
         self.all_rows = []
         self.preview_rows = ObservableCollection[object]()
         self.ResultsGrid.ItemsSource = self.preview_rows
-        filter_names = [filter_option.Name for filter_option in self.filters]
-        self.SourceFilterComboBox.ItemsSource = filter_names
-        self.TargetFilterComboBox.ItemsSource = filter_names
+        self.SourceFilterComboBox.ItemsSource = self.filters
+        self.TargetFilterComboBox.ItemsSource = self.filters
         self.IncludeTemplatesCheckBox.IsChecked = True
         self.IncludeViewsCheckBox.IsChecked = True
         self.MergeExistingCheckBox.IsChecked = True
@@ -192,7 +172,7 @@ class ReplaceFiltersWindow(forms.WPFWindow):
 
     def _collect_filters(self):
         items = []
-        for filt in FilteredElementCollector(doc).OfClass(ParameterFilterElement):
+        for filt in collect_parameter_filters(doc, key_selector=lambda item: element_name(item).lower()):
             items.append(FilterOption(filt.Id, self._filter_name(filt)))
         return sorted(items, key=lambda item: item.Name.lower())
 
@@ -223,16 +203,7 @@ class ReplaceFiltersWindow(forms.WPFWindow):
         try:
             return filter_element.Name
         except Exception:
-            return self._element_name(filter_element)
-
-    def _element_name(self, element):
-        try:
-            return Element.Name.GetValue(element)
-        except Exception:
-            try:
-                return element.Name
-            except Exception:
-                return ""
+            return element_name(filter_element)
 
     def _view_kind_name(self, view):
         try:
@@ -257,7 +228,7 @@ class ReplaceFiltersWindow(forms.WPFWindow):
         for view in FilteredElementCollector(doc).OfClass(View):
             try:
                 if str(view.ViewType) == "DrawingSheet":
-                    sheet_names[_element_id_value(view.Id)] = self._sheet_label(view)
+                    sheet_names[element_id_value(view.Id)] = self._sheet_label(view)
             except Exception:
                 continue
 
@@ -265,8 +236,8 @@ class ReplaceFiltersWindow(forms.WPFWindow):
 
         for viewport in FilteredElementCollector(doc).OfClass(Viewport):
             try:
-                view_id = _element_id_value(viewport.ViewId)
-                sheet_id = _element_id_value(viewport.SheetId)
+                view_id = element_id_value(viewport.ViewId)
+                sheet_id = element_id_value(viewport.SheetId)
                 if sheet_id in sheet_names:
                     placed.setdefault(view_id, []).append(sheet_names[sheet_id])
             except Exception:
@@ -284,8 +255,8 @@ class ReplaceFiltersWindow(forms.WPFWindow):
             except Exception:
                 pass
             try:
-                owner_view_id = _element_id_value(schedule_instance.OwnerViewId)
-                schedule_id = _element_id_value(schedule_instance.ScheduleId)
+                owner_view_id = element_id_value(schedule_instance.OwnerViewId)
+                schedule_id = element_id_value(schedule_instance.ScheduleId)
                 if owner_view_id in sheet_names:
                     placed.setdefault(schedule_id, []).append(sheet_names[owner_view_id])
             except Exception:
@@ -304,12 +275,10 @@ class ReplaceFiltersWindow(forms.WPFWindow):
         return placed
 
     def _selected_source(self):
-        selected_name = self.SourceFilterComboBox.SelectedItem
-        return self.filter_options_by_name.get(selected_name)
+        return self.SourceFilterComboBox.SelectedItem
 
     def _selected_target(self):
-        selected_name = self.TargetFilterComboBox.SelectedItem
-        return self.filter_options_by_name.get(selected_name)
+        return self.TargetFilterComboBox.SelectedItem
 
     def _include_templates(self):
         return bool(self.IncludeTemplatesCheckBox.IsChecked)
@@ -367,13 +336,13 @@ class ReplaceFiltersWindow(forms.WPFWindow):
             except Exception:
                 continue
 
-            has_source = any(_element_id_value(fid) == _element_id_value(source_id) for fid in filter_ids)
+            has_source = any(element_id_value(fid) == element_id_value(source_id) for fid in filter_ids)
             if not has_source:
                 continue
 
             has_target = False
             if target_id is not None:
-                has_target = any(_element_id_value(fid) == _element_id_value(target_id) for fid in filter_ids)
+                has_target = any(element_id_value(fid) == element_id_value(target_id) for fid in filter_ids)
 
             source_visible = self._get_filter_visibility(view, source_id)
             source_enabled = self._get_filter_enabled(view, source_id)
@@ -388,11 +357,11 @@ class ReplaceFiltersWindow(forms.WPFWindow):
                 if target_enabled is None:
                     target_enabled = True
 
-            sheet_labels = self.sheet_map.get(_element_id_value(view.Id), [])
+            sheet_labels = self.sheet_map.get(element_id_value(view.Id), [])
             rows.append(
                 FilterUsageRow(
-                    _element_id_value(view.Id),
-                    self._element_name(view),
+                    element_id_value(view.Id),
+                    element_name(view),
                     self._view_kind_name(view),
                     ", ".join(sheet_labels) if sheet_labels else "-",
                     bool(getattr(view, "IsTemplate", False)),
@@ -431,7 +400,7 @@ class ReplaceFiltersWindow(forms.WPFWindow):
                 issues += 1
                 continue
 
-            if _element_id_value(source.ElementId) == _element_id_value(target.ElementId):
+            if element_id_value(source.ElementId) == element_id_value(target.ElementId):
                 row.Status = self._status_text("Same filter")
                 row.Include = False
                 row.Match = _ui_text("Same")
@@ -574,9 +543,9 @@ class ReplaceFiltersWindow(forms.WPFWindow):
         target_exists = False
 
         for idx, filter_id in enumerate(ordered_filters):
-            if _element_id_value(filter_id) == _element_id_value(source_id):
+            if element_id_value(filter_id) == element_id_value(source_id):
                 source_index = idx
-            if _element_id_value(filter_id) == _element_id_value(target_id):
+            if element_id_value(filter_id) == element_id_value(target_id):
                 target_exists = True
 
         if source_index < 0:
@@ -597,7 +566,7 @@ class ReplaceFiltersWindow(forms.WPFWindow):
         desired_enabled = None
 
         try:
-            row = self._row_map_by_view_id.get(_element_id_value(view.Id))
+            row = self._row_map_by_view_id.get(element_id_value(view.Id))
         except Exception:
             row = None
 
@@ -657,7 +626,7 @@ class ReplaceFiltersWindow(forms.WPFWindow):
             forms.alert(_ui_text("Select a source filter and a target filter."), title=_ui_text("Replace Filters"), exitscript=False)
             return
 
-        if _element_id_value(source.ElementId) == _element_id_value(target.ElementId):
+        if element_id_value(source.ElementId) == element_id_value(target.ElementId):
             forms.alert(_ui_text("The source filter and target filter cannot be the same."), title=_ui_text("Replace Filters"), exitscript=False)
             return
 

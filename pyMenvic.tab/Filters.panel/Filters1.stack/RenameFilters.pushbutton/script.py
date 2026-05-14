@@ -6,7 +6,11 @@ import os
 import sys
 
 try:
-    from lib.core.branding import get_logo_path
+    from lib.filters.collectors import collect_parameter_filters
+    from lib.filters.compat import element_id_value
+    from lib.filters.elements import element_name
+    from lib.filters.resources import get_filters_logo_path
+    from lib.filters.ui_strings import load_ui_strings, ui_text
 except ImportError:
     current_dir = os.path.dirname(os.path.abspath(__file__))
     while True:
@@ -19,7 +23,11 @@ except ImportError:
         if parent_dir == current_dir:
             break
         current_dir = parent_dir
-    from core.branding import get_logo_path
+    from filters.collectors import collect_parameter_filters
+    from filters.compat import element_id_value
+    from filters.elements import element_name
+    from filters.resources import get_filters_logo_path
+    from filters.ui_strings import load_ui_strings, ui_text
 
 __title__ = "Filter Standardizer"
 __author__ = "Ricardo J. Mendieta"
@@ -37,7 +45,7 @@ from System.Windows import LogicalTreeHelper
 from System.Windows.Controls import Button, CheckBox, DataGrid, DataGridEditingUnit, TextBlock
 from System.Windows.Media.Imaging import BitmapImage, BitmapCacheOption
 
-from Autodesk.Revit.DB import Element, FilteredElementCollector, ParameterFilterElement, ViewFamily, ViewFamilyType
+from Autodesk.Revit.DB import FilteredElementCollector, ViewFamily, ViewFamilyType
 from pyrevit import forms, revit, script
 
 doc = revit.doc
@@ -46,34 +54,11 @@ uidoc = revit.uidoc
 
 XAML_FILE = script.get_bundle_file("filters_renamer.xaml")
 EDIT_VIEW_TYPES_XAML = script.get_bundle_file("edit_view_types.xaml")
-LOGO_FILE = get_logo_path()
+LOGO_FILE = get_filters_logo_path()
 STRINGS_FILE = script.get_bundle_file("strings.py")
 
 
-def _load_ui_strings():
-    data = {}
-    try:
-        execfile(STRINGS_FILE, data)
-        language = data.get("LANGUAGE", "en")
-        return data.get("STRINGS", {}).get(language, {})
-    except Exception:
-        return {}
-
-
-UI_STRINGS = _load_ui_strings()
-
-def _element_id_value(element_id):
-    if element_id is None:
-        return None
-    for attr_name in ("Value", "IntegerValue"):
-        try:
-            return int(getattr(element_id, attr_name))
-        except Exception:
-            pass
-    try:
-        return int(element_id)
-    except Exception:
-        return str(element_id)
+UI_STRINGS = load_ui_strings(STRINGS_FILE)
 
 
 def _load_bitmap_from_file(file_path):
@@ -100,7 +85,7 @@ def _load_bitmap_from_file(file_path):
 
 
 def _ui_text(text):
-    return UI_STRINGS.get(text, text)
+    return ui_text(text, UI_STRINGS)
 
 
 def _set_localized_property(obj, property_name):
@@ -210,19 +195,7 @@ class RenameFiltersWindow(forms.WPFWindow):
             pass
 
     def _collect_filters(self):
-        return sorted(
-            list(FilteredElementCollector(doc).OfClass(ParameterFilterElement)),
-            key=lambda item: item.Name.lower()
-        )
-
-    def _element_name(self, element):
-        try:
-            return Element.Name.GetValue(element)
-        except Exception:
-            try:
-                return element.Name
-            except Exception:
-                return ""
+        return collect_parameter_filters(doc, key_selector=lambda item: element_name(item).lower())
 
     def _normalize_name(self, name_text):
         value = (name_text or "").strip()
@@ -259,7 +232,7 @@ class RenameFiltersWindow(forms.WPFWindow):
     def _collect_section_type_names(self):
         section_names = []
         for view_type in self._collect_section_view_types():
-            section_names.append(self._element_name(view_type))
+            section_names.append(element_name(view_type))
         return sorted(set(name for name in section_names if name))
 
     def _collect_section_view_types(self):
@@ -270,7 +243,7 @@ class RenameFiltersWindow(forms.WPFWindow):
                     section_types.append(view_type)
             except Exception:
                 continue
-        return sorted(section_types, key=lambda item: self._element_name(item).lower())
+        return sorted(section_types, key=lambda item: element_name(item).lower())
 
     def _load_view_type_debug_rows(self):
         debug_rows = []
@@ -279,7 +252,7 @@ class RenameFiltersWindow(forms.WPFWindow):
                 family_name = str(view_type.ViewFamily)
             except Exception:
                 family_name = "Unknown"
-            debug_rows.append(ViewTypeDebugRow(self._element_name(view_type), family_name))
+            debug_rows.append(ViewTypeDebugRow(element_name(view_type), family_name))
 
         self.all_view_type_debug_rows = sorted(debug_rows, key=lambda item: (item.ViewFamilyName, item.TypeName))
         self._update_view_types_button_label()
@@ -405,7 +378,7 @@ class RenameFiltersWindow(forms.WPFWindow):
                 proposed_name = self._format_section_suggestion_name(section_suggestion)
 
             proposed_name = self._normalize_name(proposed_name)
-            rows.append(FilterRenameRow(_element_id_value(filt.Id), current_name, proposed_name, section_suggestion, False))
+            rows.append(FilterRenameRow(element_id_value(filt.Id), current_name, proposed_name, section_suggestion, False))
 
         return rows
 
@@ -628,7 +601,7 @@ class RenameFiltersWindow(forms.WPFWindow):
 
         applied = 0
         skipped = []
-        by_id = {_element_id_value(f.Id): f for f in self.filters}
+        by_id = {element_id_value(f.Id): f for f in self.filters}
 
         with revit.Transaction("Filter Standardizer"):
             for row in rows:
@@ -667,20 +640,11 @@ class ViewTypesEditorWindow(forms.WPFWindow):
         self.ViewFamilyFilterComboBox.SelectedIndex = 0
         self._load_rows()
 
-    def _element_name(self, element):
-        try:
-            return Element.Name.GetValue(element)
-        except Exception:
-            try:
-                return element.Name
-            except Exception:
-                return ""
-
     def _collect_view_types(self):
         view_types = []
         for view_type in FilteredElementCollector(doc).OfClass(ViewFamilyType):
             view_types.append(view_type)
-        return sorted(view_types, key=lambda item: (str(item.ViewFamily), self._element_name(item).lower()))
+        return sorted(view_types, key=lambda item: (str(item.ViewFamily), element_name(item).lower()))
 
     def _commit_grid_edits(self):
         try:
@@ -690,7 +654,7 @@ class ViewTypesEditorWindow(forms.WPFWindow):
             pass
 
     def _evaluate_rows(self):
-        existing_names = set(self._element_name(view_type) for view_type in FilteredElementCollector(doc).OfClass(ViewFamilyType))
+        existing_names = set(element_name(view_type) for view_type in FilteredElementCollector(doc).OfClass(ViewFamilyType))
         proposed_names = {}
         ready = 0
         issues = 0
@@ -751,12 +715,12 @@ class ViewTypesEditorWindow(forms.WPFWindow):
     def _load_rows(self):
         self.all_rows = []
         for view_type in self._collect_view_types():
-            current_name = self._element_name(view_type)
+            current_name = element_name(view_type)
             try:
                 family_name = str(view_type.ViewFamily)
             except Exception:
                 family_name = "Unknown"
-            self.all_rows.append(ViewTypeEditRow(_element_id_value(view_type.Id), current_name, current_name, family_name, False))
+            self.all_rows.append(ViewTypeEditRow(element_id_value(view_type.Id), current_name, current_name, family_name, False))
         families = sorted(set(row.ViewFamilyName for row in self.all_rows))
         self.ViewFamilyFilterComboBox.ItemsSource = ["All View Families"] + families
         self.ViewFamilyFilterComboBox.SelectedIndex = 0
@@ -817,7 +781,7 @@ class ViewTypesEditorWindow(forms.WPFWindow):
         if not confirm:
             return
 
-        by_id = {_element_id_value(view_type.Id): view_type for view_type in self._collect_view_types()}
+        by_id = {element_id_value(view_type.Id): view_type for view_type in self._collect_view_types()}
         renamed = []
         with revit.Transaction("Rename View Types"):
             for row in self.all_rows:
@@ -838,6 +802,4 @@ class ViewTypesEditorWindow(forms.WPFWindow):
 
 
 RenameFiltersWindow().ShowDialog()
-
-
 
