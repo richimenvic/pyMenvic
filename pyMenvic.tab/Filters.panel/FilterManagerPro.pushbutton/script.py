@@ -36,6 +36,7 @@ clr.AddReference("WindowsBase")
 from System.Collections.ObjectModel import ObservableCollection
 from System.IO import FileStream, FileMode, FileAccess
 from System.Windows.Media.Imaging import BitmapImage, BitmapCacheOption
+from System.Windows import Visibility
 
 from Autodesk.Revit.DB import View, Element
 from pyrevit import forms, revit, script
@@ -100,12 +101,6 @@ class FilterManagerProWindow(forms.WPFWindow):
         self._load_audit()
         self._set_rename_status("Click Preview to load all filters.")
         self._set_replace_status("Select Source and Target filters, then click Preview Usage.")
-        self._update_audit_cards()
-        self._refresh_active_tab_summary()
-        self._update_rename_cards()
-        self._refresh_active_tab_summary()
-        self._update_replace_cards()
-        self._refresh_active_tab_summary()
         self._refresh_active_tab_summary()
 
 
@@ -115,13 +110,22 @@ class FilterManagerProWindow(forms.WPFWindow):
         except Exception:
             pass
 
-    def _set_header_cards(self, labels, values):
-        cards = 6
-        for i in range(cards):
-            label = labels[i] if i < len(labels) else ""
-            value = values[i] if i < len(values) else ""
+    def _set_header_cards(self, cards):
+        card_slots = 6
+        for i in range(card_slots):
+            data = cards[i] if i < len(cards) else None
+            label = data[0] if data is not None else ""
+            value = data[1] if data is not None else ""
             self._set_text("HeaderCardLabel{}".format(i + 1), label)
             self._set_text("HeaderCardValue{}".format(i + 1), value)
+            try:
+                border = getattr(self, "HeaderCardBorder{}".format(i + 1))
+                border.Visibility = Visibility.Visible if data is not None else Visibility.Collapsed
+            except Exception:
+                pass
+
+    def _card(self, label, value):
+        return (label, str(value))
 
     def _refresh_active_tab_summary(self):
         selected = self.MainTabControl.SelectedItem
@@ -131,45 +135,49 @@ class FilterManagerProWindow(forms.WPFWindow):
         except Exception:
             pass
         if "Audit" in header:
-            self._set_header_cards(["FILTERS", "USED", "UNUSED", "VIEWS", "TEMPLATES", "DUPLICATES"],
-                                   [len(self.audit_rows), len([x for x in self.audit_rows if x.TotalCount > 0]), len([x for x in self.audit_rows if x.TotalCount == 0]), sum([x.ViewCount for x in self.audit_rows]), sum([x.TemplateCount for x in self.audit_rows]), 0])
+            total = len(self.audit_rows)
+            used = len([x for x in self.audit_rows if x.TotalCount > 0])
+            unused = len([x for x in self.audit_rows if x.TotalCount == 0])
+            views = sum([x.ViewCount for x in self.audit_rows])
+            templates = sum([x.TemplateCount for x in self.audit_rows])
+            cards = [self._card("FILTERS", total), self._card("USED", used)]
+            if unused > 0:
+                cards.append(self._card("UNUSED", unused))
+            if views > 0:
+                cards.append(self._card("VIEWS", views))
+            if templates > 0:
+                cards.append(self._card("TEMPLATES", templates))
+            self._set_header_cards(cards)
         elif "Rename" in header:
             total = len(self.rename_rows)
             no_change = len([x for x in self.rename_rows if x.CurrentName == x.ProposedName])
-            self._set_header_cards(["TOTAL", "READY", "NO CHANGE", "ISSUES"], [total, total - no_change, no_change, 0])
+            ready = total - no_change
+            issues = 0
+            cards = [self._card("TOTAL", total)]
+            if ready > 0:
+                cards.append(self._card("READY", ready))
+            if no_change > 0:
+                cards.append(self._card("NO CHANGE", no_change))
+            if issues > 0:
+                cards.append(self._card("ISSUES", issues))
+            self._set_header_cards(cards)
         elif "Replace" in header:
             source = self.SourceComboBox.SelectedItem
             target = self.TargetComboBox.SelectedItem
             ready = 1 if (source is not None and target is not None and element_id_value(source.ElementId) != element_id_value(target.ElementId)) else 0
-            self._set_header_cards(["FILTERS", "AFFECTED", "READY", "ISSUES"], [len(self.filters), len(self.replace_rows), ready, 0 if ready else 1])
+            issues = 0 if ready else 1
+            affected = len(self.replace_rows)
+            cards = [self._card("FILTERS", len(self.filters))]
+            if affected > 0:
+                cards.append(self._card("AFFECTED", affected))
+            if ready > 0:
+                cards.append(self._card("READY", ready))
+            if issues > 0:
+                cards.append(self._card("ISSUES", issues))
+            self._set_header_cards(cards)
         else:
-            self._set_header_cards(["REPORTS", "AVAILABLE", "COMING SOON"], [3, 0, 3])
-
-    def _update_audit_cards(self):
-        total = len(self.audit_rows)
-        used = len([x for x in self.audit_rows if x.TotalCount > 0])
-        unused = total - used
-        views = sum([x.ViewCount for x in self.audit_rows])
-        templates = sum([x.TemplateCount for x in self.audit_rows])
-        self._set_text("AuditFiltersCardText", total)
-        self._set_text("AuditUsedCardText", used)
-        self._set_text("AuditUnusedCardText", unused)
-        self._set_text("AuditViewsCardText", views)
-        self._set_text("AuditTemplatesCardText", templates)
-
-    def _update_rename_cards(self):
-        total = len(self.rename_rows)
-        no_change = len([x for x in self.rename_rows if x.CurrentName == x.ProposedName])
-        ready = total - no_change
-        self._set_text("RenameTotalCardText", total)
-        self._set_text("RenameReadyCardText", ready)
-        self._set_text("RenameNoChangeCardText", no_change)
-
-    def _update_replace_cards(self):
-        source = self.SourceComboBox.SelectedItem
-        target = self.TargetComboBox.SelectedItem
-        ready = 1 if (source is not None and target is not None and element_id_value(source.ElementId) != element_id_value(target.ElementId)) else 0
-        issues = 0 if ready else 1
+            cards = [self._card("REPORTS", "Available")]
+            self._set_header_cards(cards)
 
     def _load_header_logo(self):
         stream = None
@@ -223,7 +231,7 @@ class FilterManagerProWindow(forms.WPFWindow):
                 else:
                     view_count += 1
             self.audit_rows.Add(AuditRow(filt.Name, self._get_filter_categories_text(filt.ElementId), view_count, template_count))
-        self._update_audit_cards()
+        self._refresh_active_tab_summary()
 
     def _preview_rename(self):
         self.rename_rows.Clear()
@@ -237,7 +245,7 @@ class FilterManagerProWindow(forms.WPFWindow):
             self._set_rename_status("Previewing {} filters with prefix '{}'".format(len(self.filters), prefix))
         else:
             self._set_rename_status("Previewing {} filters. Prefix is empty, so proposed names match current names.".format(len(self.filters)))
-        self._update_rename_cards()
+        self._refresh_active_tab_summary()
 
     def _preview_replace(self):
         self.replace_rows.Clear()
@@ -245,12 +253,10 @@ class FilterManagerProWindow(forms.WPFWindow):
         target = self.TargetComboBox.SelectedItem
         if source is None or target is None:
             self._set_replace_status("Select both Source and Target filters.")
-            self._update_replace_cards()
             self._refresh_active_tab_summary()
             return
         if element_id_value(source.ElementId) == element_id_value(target.ElementId):
             self._set_replace_status("Source and Target are the same filter. Select different filters to compare usage.")
-            self._update_replace_cards()
             self._refresh_active_tab_summary()
             return
         source_id = element_id_value(source.ElementId)
@@ -270,7 +276,6 @@ class FilterManagerProWindow(forms.WPFWindow):
                 view_kind = "Unknown"
             self.replace_rows.Add(ReplacePreviewRow(element_name(view), view_kind, has_source, has_target))
         self._set_replace_status("Preview shows {} views/templates affected by Source or Target.".format(len(self.replace_rows)))
-        self._update_replace_cards()
         self._refresh_active_tab_summary()
 
     def _set_rename_status(self, text):
@@ -282,14 +287,25 @@ class FilterManagerProWindow(forms.WPFWindow):
     def _get_filter_categories_text(self, filter_id):
         try:
             filt = doc.GetElement(filter_id)
-            categories = getattr(filt, "Categories", None)
-            if categories is None:
-                return "N/A"
+            category_ids = []
+            get_categories = getattr(filt, "GetCategories", None)
+            if callable(get_categories):
+                try:
+                    category_ids = list(get_categories())
+                except Exception:
+                    category_ids = []
+            if not category_ids:
+                categories_prop = getattr(filt, "Categories", None)
+                if categories_prop is not None:
+                    try:
+                        category_ids = list(categories_prop)
+                    except Exception:
+                        category_ids = []
             names = []
-            for cat_id in categories:
-                cat = doc.Settings.Categories.get_Item(cat_id)
-                if cat is not None and cat.Name:
-                    names.append(cat.Name)
+            for cat_id in category_ids:
+                cat_name = self._resolve_category_name(cat_id)
+                if cat_name:
+                    names.append(cat_name)
             if not names:
                 return "N/A"
             names = sorted(list(set(names)))
@@ -298,6 +314,34 @@ class FilterManagerProWindow(forms.WPFWindow):
             return "{} categories".format(len(names))
         except Exception:
             return "N/A"
+
+    def _resolve_category_name(self, category_ref):
+        try:
+            if category_ref is None:
+                return None
+            category_obj = None
+            if hasattr(category_ref, "Name"):
+                category_obj = category_ref
+            else:
+                cat_id = category_ref
+                if hasattr(category_ref, "Id"):
+                    cat_id = category_ref.Id
+                try:
+                    category_obj = doc.Settings.Categories.get_Item(cat_id)
+                except Exception:
+                    category_obj = None
+                if category_obj is None:
+                    try:
+                        cat_elem = doc.GetElement(cat_id)
+                        if cat_elem is not None and hasattr(cat_elem, "Name"):
+                            return cat_elem.Name
+                    except Exception:
+                        pass
+            if category_obj is not None and getattr(category_obj, "Name", None):
+                return category_obj.Name
+            return None
+        except Exception:
+            return None
 
     def RefreshAuditButton_Click(self, sender, args):
         self._load_audit()
