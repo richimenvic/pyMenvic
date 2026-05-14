@@ -1,7 +1,24 @@
 # -*- coding: utf-8 -*-
 __title__ = "About pyMenvic"
 
+try:
+    from lib.core.branding import get_logo_path
+except ImportError:
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    while True:
+        if os.path.basename(current_dir).lower() == "pymenvic.extension":
+            lib_dir = os.path.join(current_dir, "lib")
+            if lib_dir not in sys.path:
+                sys.path.append(lib_dir)
+            break
+        parent_dir = os.path.dirname(current_dir)
+        if parent_dir == current_dir:
+            break
+        current_dir = parent_dir
+    from core.branding import get_logo_path
+
 import os
+import sys
 import webbrowser
 
 from pyrevit import forms, script, versionmgr
@@ -14,22 +31,6 @@ CONTACT_EMAIL = "contact@menvic.com"
 WEBSITE_URL = "https://github.com/richimenvic/pyMenvic"
 
 
-def get_logo_path():
-    try:
-        current_dir = os.path.dirname(os.path.abspath(__file__))
-        while True:
-            if os.path.basename(current_dir).lower() == "pymenvic.extension":
-                logo_path = os.path.join(current_dir, "_resources", "logos", "menvic_logo.png")
-                if os.path.exists(logo_path):
-                    return logo_path
-                return None
-            parent_dir = os.path.dirname(current_dir)
-            if parent_dir == current_dir:
-                break
-            current_dir = parent_dir
-    except Exception:
-        pass
-    return None
 
 
 def read_version():
