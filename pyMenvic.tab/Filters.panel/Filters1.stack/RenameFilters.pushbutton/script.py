@@ -40,6 +40,9 @@ from System.Windows.Media.Imaging import BitmapImage, BitmapCacheOption
 from Autodesk.Revit.DB import Element, FilteredElementCollector, ParameterFilterElement, ViewFamily, ViewFamilyType
 from pyrevit import forms, revit, script
 
+doc = revit.doc
+uidoc = revit.uidoc
+
 
 XAML_FILE = script.get_bundle_file("filters_renamer.xaml")
 EDIT_VIEW_TYPES_XAML = script.get_bundle_file("edit_view_types.xaml")

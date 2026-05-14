@@ -42,6 +42,9 @@ from System.Windows.Media.Imaging import BitmapImage, BitmapCacheOption
 from Autodesk.Revit.DB import BuiltInParameter, Element, ElementId, FilteredElementCollector, LabelUtils, ParameterFilterElement, View
 from pyrevit import forms, revit, script
 
+doc = revit.doc
+uidoc = revit.uidoc
+
 
 XAML_FILE = script.get_bundle_file("manage_filters.xaml")
 LOGO_FILE = get_logo_path()
