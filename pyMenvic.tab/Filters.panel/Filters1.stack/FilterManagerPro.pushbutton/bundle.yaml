@@ -1,0 +1,26 @@
+title:
+  en_us: Filter Manager Pro
+  es_es: Gestor de Filtros Pro
+
+tooltip:
+  en_us: |
+    Unified audit, rename preview, and replace planning for filters.
+  es_es: |
+    Auditoria unificada, vista previa de renombrado y plan de reemplazo de filtros.
+
+description:
+  en_us: >
+    Filter Manager Pro centralizes filter audit, rename standardization preview,
+    replacement planning, and reporting placeholders in one tabbed tool.
+
+author: Ricardo J. Mendieta | pyMENVIC
+version: 0.4.0-preview
+help_url: https://www.menvic.com
+min_revit_version: 2020
+max_revit_version: 2026
+context: doc-project
+
+engine:
+  clean: true
+  fullframe: false
+  persistent: false
