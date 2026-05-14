@@ -293,11 +293,11 @@
                     </Grid.ColumnDefinitions>
                     <StackPanel Grid.Column="0">
                         <TextBlock Text="SOURCE FILTER" Style="{StaticResource LabelStyle}"/>
-                        <ComboBox x:Name="SourceFilterComboBox" SelectionChanged="FilterComboBox_SelectionChanged" DisplayMemberPath="Name"/>
+                        <ComboBox x:Name="SourceFilterComboBox" SelectionChanged="FilterComboBox_SelectionChanged"/>
                     </StackPanel>
                     <StackPanel Grid.Column="2">
                         <TextBlock Text="TARGET FILTER" Style="{StaticResource LabelStyle}"/>
-                        <ComboBox x:Name="TargetFilterComboBox" SelectionChanged="FilterComboBox_SelectionChanged" DisplayMemberPath="Name"/>
+                        <ComboBox x:Name="TargetFilterComboBox" SelectionChanged="FilterComboBox_SelectionChanged"/>
                     </StackPanel>
                     <StackPanel Grid.Column="4" VerticalAlignment="Bottom">
                         <Button x:Name="RefreshButton" Width="130" Content="REFRESH" Click="RefreshButton_Click"/>
