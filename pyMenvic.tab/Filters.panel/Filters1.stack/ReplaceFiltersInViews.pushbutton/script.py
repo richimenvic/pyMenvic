@@ -143,12 +143,14 @@ class ReplaceFiltersWindow(forms.WPFWindow):
         _localize_window_text(self)
         self._load_header_logo()
         self.filters = self._collect_filters()
+        self.filter_name_map = self._build_filter_name_map(self.filters)
+        self.filter_names = self._build_filter_names(self.filters)
         self.sheet_map = self._build_sheet_map()
         self.all_rows = []
         self.preview_rows = ObservableCollection[object]()
         self.ResultsGrid.ItemsSource = self.preview_rows
-        self.SourceFilterComboBox.ItemsSource = self.filters
-        self.TargetFilterComboBox.ItemsSource = self.filters
+        self.SourceFilterComboBox.ItemsSource = self.filter_names
+        self.TargetFilterComboBox.ItemsSource = self.filter_names
         self.IncludeTemplatesCheckBox.IsChecked = True
         self.IncludeViewsCheckBox.IsChecked = True
         self.MergeExistingCheckBox.IsChecked = True
@@ -274,11 +276,31 @@ class ReplaceFiltersWindow(forms.WPFWindow):
 
         return placed
 
+    def _build_filter_names(self, filter_options):
+        names = []
+        for option in filter_options:
+            names.append(str(option.Name))
+        return names
+
+    def _build_filter_name_map(self, filter_options):
+        name_map = {}
+        for option in filter_options:
+            option_name = str(option.Name)
+            if option_name not in name_map:
+                name_map[option_name] = option
+        return name_map
+
+    def _selected_filter_option(self, combo_box):
+        selected_name = combo_box.SelectedItem
+        if selected_name is None:
+            return None
+        return self.filter_name_map.get(str(selected_name))
+
     def _selected_source(self):
-        return self.SourceFilterComboBox.SelectedItem
+        return self._selected_filter_option(self.SourceFilterComboBox)
 
     def _selected_target(self):
-        return self.TargetFilterComboBox.SelectedItem
+        return self._selected_filter_option(self.TargetFilterComboBox)
 
     def _include_templates(self):
         return bool(self.IncludeTemplatesCheckBox.IsChecked)
