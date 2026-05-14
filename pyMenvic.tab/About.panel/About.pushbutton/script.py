@@ -291,7 +291,7 @@ class AboutWindow(forms.WPFWindow):
                             title="pyMenvic"
                         )
             else:
-                forms.alert("pyMenvic is up to date.", title="pyMenvic")
+                forms.alert("pyMenvic is up to date.", title="pyMenvic", warn_icon=False)
         except:
             forms.alert("Could not check for updates. Please verify your internet connection or GitHub access.", title="pyMenvic")
 
