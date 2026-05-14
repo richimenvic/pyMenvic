@@ -85,17 +85,17 @@ class FilterManagerProWindow(forms.WPFWindow):
         forms.WPFWindow.__init__(self, XAML_FILE)
         self._load_header_logo()
         self.filters = self._collect_filters()
+        self.filter_name_to_option = {filt.Name: filt for filt in self.filters}
+        self.filter_names = sorted(self.filter_name_to_option.keys(), key=lambda item: item.lower())
         self.audit_rows = ObservableCollection[object]()
         self.rename_rows = ObservableCollection[object]()
         self.replace_rows = ObservableCollection[object]()
         self.AuditGrid.ItemsSource = self.audit_rows
         self.RenameGrid.ItemsSource = self.rename_rows
         self.ReplaceGrid.ItemsSource = self.replace_rows
-        self.SourceComboBox.ItemsSource = self.filters
-        self.TargetComboBox.ItemsSource = self.filters
-        self.SourceComboBox.DisplayMemberPath = "Name"
-        self.TargetComboBox.DisplayMemberPath = "Name"
-        if len(self.filters) > 0:
+        self.SourceComboBox.ItemsSource = self.filter_names
+        self.TargetComboBox.ItemsSource = self.filter_names
+        if len(self.filter_names) > 0:
             self.SourceComboBox.SelectedIndex = 0
             self.TargetComboBox.SelectedIndex = 0
         self._load_audit()
@@ -162,8 +162,10 @@ class FilterManagerProWindow(forms.WPFWindow):
                 cards.append(self._card("ISSUES", issues))
             self._set_header_cards(cards)
         elif "Replace" in header:
-            source = self.SourceComboBox.SelectedItem
-            target = self.TargetComboBox.SelectedItem
+            source_name = self.SourceComboBox.SelectedItem
+            target_name = self.TargetComboBox.SelectedItem
+            source = self.filter_name_to_option.get(source_name) if source_name else None
+            target = self.filter_name_to_option.get(target_name) if target_name else None
             ready = 1 if (source is not None and target is not None and element_id_value(source.ElementId) != element_id_value(target.ElementId)) else 0
             issues = 0 if ready else 1
             affected = len(self.replace_rows)
@@ -249,8 +251,10 @@ class FilterManagerProWindow(forms.WPFWindow):
 
     def _preview_replace(self):
         self.replace_rows.Clear()
-        source = self.SourceComboBox.SelectedItem
-        target = self.TargetComboBox.SelectedItem
+        source_name = self.SourceComboBox.SelectedItem
+        target_name = self.TargetComboBox.SelectedItem
+        source = self.filter_name_to_option.get(source_name) if source_name else None
+        target = self.filter_name_to_option.get(target_name) if target_name else None
         if source is None or target is None:
             self._set_replace_status("Select both Source and Target filters.")
             self._refresh_active_tab_summary()
