@@ -302,10 +302,12 @@ class AboutWindow(forms.WPFWindow):
                     if status_lines:
                         changed_files = []
                         for line in status_lines:
-                            if len(line) > 3:
-                                changed_files.append(line[3:].strip())
-                            else:
-                                changed_files.append(line.strip())
+                            parsed_path = line.strip()
+                            if len(line) >= 4 and line[2] == " ":
+                                parsed_path = line[3:].strip()
+                            elif len(line) >= 3:
+                                parsed_path = line[2:].lstrip()
+                            changed_files.append(parsed_path)
                         forms.alert(
                             "pyMenvic has local changes and cannot be updated automatically.\n\n"
                             "Please commit, stash, or discard local changes before updating.\n\n"
