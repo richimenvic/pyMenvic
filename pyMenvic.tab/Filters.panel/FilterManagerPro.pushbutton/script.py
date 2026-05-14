@@ -101,8 +101,12 @@ class FilterManagerProWindow(forms.WPFWindow):
         self._set_rename_status("Click Preview to load all filters.")
         self._set_replace_status("Select Source and Target filters, then click Preview Usage.")
         self._update_audit_cards()
+        self._refresh_active_tab_summary()
         self._update_rename_cards()
+        self._refresh_active_tab_summary()
         self._update_replace_cards()
+        self._refresh_active_tab_summary()
+        self._refresh_active_tab_summary()
 
 
     def _set_text(self, control_name, value):
@@ -110,6 +114,36 @@ class FilterManagerProWindow(forms.WPFWindow):
             getattr(self, control_name).Text = str(value)
         except Exception:
             pass
+
+    def _set_header_cards(self, labels, values):
+        cards = 6
+        for i in range(cards):
+            label = labels[i] if i < len(labels) else ""
+            value = values[i] if i < len(values) else ""
+            self._set_text("HeaderCardLabel{}".format(i + 1), label)
+            self._set_text("HeaderCardValue{}".format(i + 1), value)
+
+    def _refresh_active_tab_summary(self):
+        selected = self.MainTabControl.SelectedItem
+        header = ""
+        try:
+            header = str(selected.Header)
+        except Exception:
+            pass
+        if "Audit" in header:
+            self._set_header_cards(["FILTERS", "USED", "UNUSED", "VIEWS", "TEMPLATES", "DUPLICATES"],
+                                   [len(self.audit_rows), len([x for x in self.audit_rows if x.TotalCount > 0]), len([x for x in self.audit_rows if x.TotalCount == 0]), sum([x.ViewCount for x in self.audit_rows]), sum([x.TemplateCount for x in self.audit_rows]), 0])
+        elif "Rename" in header:
+            total = len(self.rename_rows)
+            no_change = len([x for x in self.rename_rows if x.CurrentName == x.ProposedName])
+            self._set_header_cards(["TOTAL", "READY", "NO CHANGE", "ISSUES"], [total, total - no_change, no_change, 0])
+        elif "Replace" in header:
+            source = self.SourceComboBox.SelectedItem
+            target = self.TargetComboBox.SelectedItem
+            ready = 1 if (source is not None and target is not None and element_id_value(source.ElementId) != element_id_value(target.ElementId)) else 0
+            self._set_header_cards(["FILTERS", "AFFECTED", "READY", "ISSUES"], [len(self.filters), len(self.replace_rows), ready, 0 if ready else 1])
+        else:
+            self._set_header_cards(["REPORTS", "AVAILABLE", "COMING SOON"], [3, 0, 3])
 
     def _update_audit_cards(self):
         total = len(self.audit_rows)
@@ -122,7 +156,6 @@ class FilterManagerProWindow(forms.WPFWindow):
         self._set_text("AuditUnusedCardText", unused)
         self._set_text("AuditViewsCardText", views)
         self._set_text("AuditTemplatesCardText", templates)
-        self._set_text("AuditDuplicatesCardText", 0)
 
     def _update_rename_cards(self):
         total = len(self.rename_rows)
@@ -131,17 +164,12 @@ class FilterManagerProWindow(forms.WPFWindow):
         self._set_text("RenameTotalCardText", total)
         self._set_text("RenameReadyCardText", ready)
         self._set_text("RenameNoChangeCardText", no_change)
-        self._set_text("RenameIssuesCardText", 0)
 
     def _update_replace_cards(self):
-        self._set_text("ReplaceFiltersCardText", len(self.filters))
-        self._set_text("ReplaceAffectedCardText", len(self.replace_rows))
         source = self.SourceComboBox.SelectedItem
         target = self.TargetComboBox.SelectedItem
         ready = 1 if (source is not None and target is not None and element_id_value(source.ElementId) != element_id_value(target.ElementId)) else 0
         issues = 0 if ready else 1
-        self._set_text("ReplaceReadyCardText", ready)
-        self._set_text("ReplaceIssuesCardText", issues)
 
     def _load_header_logo(self):
         stream = None
@@ -218,10 +246,12 @@ class FilterManagerProWindow(forms.WPFWindow):
         if source is None or target is None:
             self._set_replace_status("Select both Source and Target filters.")
             self._update_replace_cards()
+            self._refresh_active_tab_summary()
             return
         if element_id_value(source.ElementId) == element_id_value(target.ElementId):
             self._set_replace_status("Source and Target are the same filter. Select different filters to compare usage.")
             self._update_replace_cards()
+            self._refresh_active_tab_summary()
             return
         source_id = element_id_value(source.ElementId)
         target_id = element_id_value(target.ElementId)
@@ -241,6 +271,7 @@ class FilterManagerProWindow(forms.WPFWindow):
             self.replace_rows.Add(ReplacePreviewRow(element_name(view), view_kind, has_source, has_target))
         self._set_replace_status("Preview shows {} views/templates affected by Source or Target.".format(len(self.replace_rows)))
         self._update_replace_cards()
+        self._refresh_active_tab_summary()
 
     def _set_rename_status(self, text):
         self.RenameStatusTextBlock.Text = text
@@ -276,6 +307,9 @@ class FilterManagerProWindow(forms.WPFWindow):
 
     def PreviewReplaceButton_Click(self, sender, args):
         self._preview_replace()
+
+    def MainTabControl_SelectionChanged(self, sender, args):
+        self._refresh_active_tab_summary()
 
 
 def collect_views_with_filters(current_doc):

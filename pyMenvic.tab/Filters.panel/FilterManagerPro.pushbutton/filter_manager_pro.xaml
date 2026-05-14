@@ -67,6 +67,31 @@
             <Setter Property="VerticalContentAlignment" Value="Center"/>
         </Style>
 
+        <Style x:Key="DarkComboBoxItemStyle" TargetType="ComboBoxItem">
+            <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
+            <Setter Property="Background" Value="#1F2A33"/>
+            <Setter Property="Padding" Value="8,4"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ComboBoxItem">
+                        <Border x:Name="ItemBorder" Background="{TemplateBinding Background}">
+                            <ContentPresenter Margin="2,1"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsHighlighted" Value="True">
+                                <Setter TargetName="ItemBorder" Property="Background" Value="#2F4B63"/>
+                                <Setter Property="Foreground" Value="#FFFFFF"/>
+                            </Trigger>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="ItemBorder" Property="Background" Value="#2E7FB8"/>
+                                <Setter Property="Foreground" Value="#FFFFFF"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
         <Style TargetType="ComboBox">
             <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
             <Setter Property="Background" Value="{StaticResource InputBgBrush}"/>
@@ -74,6 +99,18 @@
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="Padding" Value="6,1"/>
             <Setter Property="Height" Value="28"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="ItemContainerStyle" Value="{StaticResource DarkComboBoxItemStyle}"/>
+            <Setter Property="Resources">
+                <Setter.Value>
+                    <ResourceDictionary>
+                        <SolidColorBrush x:Key="{x:Static SystemColors.WindowBrushKey}" Color="#1F2A33"/>
+                        <SolidColorBrush x:Key="{x:Static SystemColors.ControlBrushKey}" Color="#1A2229"/>
+                        <SolidColorBrush x:Key="{x:Static SystemColors.HighlightBrushKey}" Color="#2E7FB8"/>
+                        <SolidColorBrush x:Key="{x:Static SystemColors.HighlightTextBrushKey}" Color="#FFFFFF"/>
+                    </ResourceDictionary>
+                </Setter.Value>
+            </Setter>
         </Style>
 
         <Style TargetType="TabControl">
@@ -185,108 +222,53 @@
     <Grid Margin="12">
         <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="8"/><RowDefinition Height="*"/></Grid.RowDefinitions>
         <Border Grid.Row="0" Background="{StaticResource PanelBgBrush}" BorderBrush="{StaticResource BorderBrushBase}" BorderThickness="1" CornerRadius="6" Padding="12,8">
-            <StackPanel Orientation="Horizontal">
-                <Image x:Name="HeaderLogoImage" Width="24" Height="24" Margin="0,0,8,0"/>
-                <TextBlock Text="FILTER MANAGER PRO - pyMENVIC" FontSize="18" FontWeight="SemiBold" Foreground="{StaticResource TextPrimaryBrush}"/>
-            </StackPanel>
+            <Grid>
+                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Image x:Name="HeaderLogoImage" Width="24" Height="24" Margin="0,0,8,0"/>
+                    <TextBlock Text="FILTER MANAGER PRO - pyMENVIC" FontSize="18" FontWeight="SemiBold" Foreground="{StaticResource TextPrimaryBrush}"/>
+                </StackPanel>
+                <WrapPanel Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Center">
+                    <Border Style="{StaticResource SummaryCardBorder}" Padding="8,6"><StackPanel><TextBlock x:Name="HeaderCardLabel1" Text="-" Foreground="{StaticResource TextMutedBrush}" FontSize="10"/><TextBlock x:Name="HeaderCardValue1" Text="0" FontSize="17" FontWeight="Bold"/></StackPanel></Border>
+                    <Border Style="{StaticResource SummaryCardBorder}" Padding="8,6"><StackPanel><TextBlock x:Name="HeaderCardLabel2" Text="-" Foreground="{StaticResource TextMutedBrush}" FontSize="10"/><TextBlock x:Name="HeaderCardValue2" Text="0" FontSize="17" FontWeight="Bold"/></StackPanel></Border>
+                    <Border Style="{StaticResource SummaryCardBorder}" Padding="8,6"><StackPanel><TextBlock x:Name="HeaderCardLabel3" Text="-" Foreground="{StaticResource TextMutedBrush}" FontSize="10"/><TextBlock x:Name="HeaderCardValue3" Text="0" FontSize="17" FontWeight="Bold"/></StackPanel></Border>
+                    <Border Style="{StaticResource SummaryCardBorder}" Padding="8,6"><StackPanel><TextBlock x:Name="HeaderCardLabel4" Text="-" Foreground="{StaticResource TextMutedBrush}" FontSize="10"/><TextBlock x:Name="HeaderCardValue4" Text="0" FontSize="17" FontWeight="Bold"/></StackPanel></Border>
+                    <Border Style="{StaticResource SummaryCardBorder}" Padding="8,6"><StackPanel><TextBlock x:Name="HeaderCardLabel5" Text="-" Foreground="{StaticResource TextMutedBrush}" FontSize="10"/><TextBlock x:Name="HeaderCardValue5" Text="0" FontSize="17" FontWeight="Bold"/></StackPanel></Border>
+                    <Border Style="{StaticResource SummaryCardBorder}" Padding="8,6" Margin="0"><StackPanel><TextBlock x:Name="HeaderCardLabel6" Text="-" Foreground="{StaticResource TextMutedBrush}" FontSize="10"/><TextBlock x:Name="HeaderCardValue6" Text="0" FontSize="17" FontWeight="Bold"/></StackPanel></Border>
+                </WrapPanel>
+            </Grid>
         </Border>
-        <TabControl Grid.Row="2" Background="{StaticResource CardBgBrush}" BorderBrush="{StaticResource BorderBrushBase}" Foreground="{StaticResource TextPrimaryBrush}">
+        <TabControl x:Name="MainTabControl" Grid.Row="2" Background="{StaticResource CardBgBrush}" BorderBrush="{StaticResource BorderBrushBase}" Foreground="{StaticResource TextPrimaryBrush}" SelectionChanged="MainTabControl_SelectionChanged">
             <TabItem Header="Audit">
                 <Grid Margin="10">
-                    <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="6"/><RowDefinition Height="Auto"/><RowDefinition Height="8"/><RowDefinition Height="*"/></Grid.RowDefinitions>
-                    <WrapPanel Grid.Row="0">
-                        <Border Style="{StaticResource SummaryCardBorder}"><StackPanel><TextBlock Text="FILTERS" Foreground="{StaticResource TextMutedBrush}" FontSize="11"/><TextBlock x:Name="AuditFiltersCardText" Text="0" FontSize="20" FontWeight="Bold"/></StackPanel></Border>
-                        <Border Style="{StaticResource SummaryCardBorder}"><StackPanel><TextBlock Text="USED" Foreground="{StaticResource TextMutedBrush}" FontSize="11"/><TextBlock x:Name="AuditUsedCardText" Text="0" FontSize="20" FontWeight="Bold"/></StackPanel></Border>
-                        <Border Style="{StaticResource SummaryCardBorder}"><StackPanel><TextBlock Text="UNUSED" Foreground="{StaticResource TextMutedBrush}" FontSize="11"/><TextBlock x:Name="AuditUnusedCardText" Text="0" FontSize="20" FontWeight="Bold"/></StackPanel></Border>
-                        <Border Style="{StaticResource SummaryCardBorder}"><StackPanel><TextBlock Text="TEMPLATES" Foreground="{StaticResource TextMutedBrush}" FontSize="11"/><TextBlock x:Name="AuditTemplatesCardText" Text="0" FontSize="20" FontWeight="Bold"/></StackPanel></Border>
-                        <Border Style="{StaticResource SummaryCardBorder}"><StackPanel><TextBlock Text="VIEWS" Foreground="{StaticResource TextMutedBrush}" FontSize="11"/><TextBlock x:Name="AuditViewsCardText" Text="0" FontSize="20" FontWeight="Bold"/></StackPanel></Border>
-                        <Border Style="{StaticResource SummaryCardBorder}"><StackPanel><TextBlock Text="DUPLICATES" Foreground="{StaticResource TextMutedBrush}" FontSize="11"/><TextBlock x:Name="AuditDuplicatesCardText" Text="0" FontSize="20" FontWeight="Bold"/></StackPanel></Border>
-                    </WrapPanel>
-                    <StackPanel Grid.Row="2" Orientation="Horizontal">
+                    <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="8"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                    <StackPanel Grid.Row="0" Orientation="Horizontal">
                         <Button x:Name="RefreshAuditButton" Style="{StaticResource ToolButtonStyle}" Content="Refresh Audit" Width="140" Click="RefreshAuditButton_Click"/>
                         <TextBlock Margin="12,6,0,0" Foreground="{StaticResource TextMutedBrush}" Text="Categories show which Revit categories each filter applies to. They help identify comparable or duplicate filters." TextWrapping="Wrap"/>
                     </StackPanel>
-                    <DataGrid x:Name="AuditGrid" Grid.Row="4" AutoGenerateColumns="False">
-                        <DataGrid.Columns>
-                            <DataGridTextColumn Header="Filter" Binding="{Binding FilterName}" Width="*"/>
-                            <DataGridTextColumn Header="Categories" Binding="{Binding Categories}" Width="2*"/>
-                            <DataGridTextColumn Header="Views" Binding="{Binding ViewCount}" Width="90"/>
-                            <DataGridTextColumn Header="Templates" Binding="{Binding TemplateCount}" Width="90"/>
-                            <DataGridTextColumn Header="Total Uses" Binding="{Binding TotalCount}" Width="90"/>
-                            <DataGridTextColumn Header="Status" Binding="{Binding Status}" Width="90"/>
-                        </DataGrid.Columns>
+                    <DataGrid x:Name="AuditGrid" Grid.Row="2" AutoGenerateColumns="False">
+                        <DataGrid.Columns><DataGridTextColumn Header="Filter" Binding="{Binding FilterName}" Width="*"/><DataGridTextColumn Header="Categories" Binding="{Binding Categories}" Width="2*"/><DataGridTextColumn Header="Views" Binding="{Binding ViewCount}" Width="90"/><DataGridTextColumn Header="Templates" Binding="{Binding TemplateCount}" Width="90"/><DataGridTextColumn Header="Total Uses" Binding="{Binding TotalCount}" Width="90"/><DataGridTextColumn Header="Status" Binding="{Binding Status}" Width="90"/></DataGrid.Columns>
                     </DataGrid>
                 </Grid>
             </TabItem>
             <TabItem Header="Rename / Standardize">
                 <Grid Margin="10">
-                    <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="6"/><RowDefinition Height="Auto"/><RowDefinition Height="6"/><RowDefinition Height="Auto"/><RowDefinition Height="8"/><RowDefinition Height="*"/></Grid.RowDefinitions>
-                    <WrapPanel Grid.Row="0">
-                        <Border Style="{StaticResource SummaryCardBorder}"><StackPanel><TextBlock Text="TOTAL" Foreground="{StaticResource TextMutedBrush}" FontSize="11"/><TextBlock x:Name="RenameTotalCardText" Text="0" FontSize="20" FontWeight="Bold"/></StackPanel></Border>
-                        <Border Style="{StaticResource SummaryCardBorder}"><StackPanel><TextBlock Text="READY" Foreground="{StaticResource TextMutedBrush}" FontSize="11"/><TextBlock x:Name="RenameReadyCardText" Text="0" FontSize="20" FontWeight="Bold"/></StackPanel></Border>
-                        <Border Style="{StaticResource SummaryCardBorder}"><StackPanel><TextBlock Text="NO CHANGE" Foreground="{StaticResource TextMutedBrush}" FontSize="11"/><TextBlock x:Name="RenameNoChangeCardText" Text="0" FontSize="20" FontWeight="Bold"/></StackPanel></Border>
-                        <Border Style="{StaticResource SummaryCardBorder}"><StackPanel><TextBlock Text="ISSUES" Foreground="{StaticResource TextMutedBrush}" FontSize="11"/><TextBlock x:Name="RenameIssuesCardText" Text="0" FontSize="20" FontWeight="Bold"/></StackPanel></Border>
-                    </WrapPanel>
-                    <StackPanel Grid.Row="2" Orientation="Horizontal">
-                        <TextBlock Text="Prefix:" VerticalAlignment="Center" Margin="0,0,8,0" Foreground="{StaticResource TextPrimaryBrush}"/>
-                        <TextBox x:Name="RenamePrefixTextBox" Width="220" Height="28" Text=""/>
-                        <Button x:Name="PreviewRenameButton" Style="{StaticResource ToolButtonStyle}" Content="Preview" Width="120" Margin="10,0,0,0" Click="PreviewRenameButton_Click"/>
-                    </StackPanel>
-                    <TextBlock x:Name="RenameStatusTextBlock" Grid.Row="4" Text="" Foreground="{StaticResource AccentBrush}" TextWrapping="Wrap"/>
-                    <DataGrid x:Name="RenameGrid" Grid.Row="6" AutoGenerateColumns="False">
-                        <DataGrid.Columns>
-                            <DataGridTextColumn Header="Current Name" Binding="{Binding CurrentName}" Width="*"/>
-                            <DataGridTextColumn Header="Proposed Name" Binding="{Binding ProposedName}" Width="*"/>
-                        </DataGrid.Columns>
-                    </DataGrid>
+                    <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="6"/><RowDefinition Height="Auto"/><RowDefinition Height="8"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                    <StackPanel Grid.Row="0" Orientation="Horizontal"><TextBlock Text="Prefix:" VerticalAlignment="Center" Margin="0,0,8,0" Foreground="{StaticResource TextPrimaryBrush}"/><TextBox x:Name="RenamePrefixTextBox" Width="220" Height="28" Text=""/><Button x:Name="PreviewRenameButton" Style="{StaticResource ToolButtonStyle}" Content="Preview" Width="120" Margin="10,0,0,0" Click="PreviewRenameButton_Click"/></StackPanel>
+                    <TextBlock x:Name="RenameStatusTextBlock" Grid.Row="2" Text="" Foreground="{StaticResource AccentBrush}" TextWrapping="Wrap"/>
+                    <DataGrid x:Name="RenameGrid" Grid.Row="4" AutoGenerateColumns="False"><DataGrid.Columns><DataGridTextColumn Header="Current Name" Binding="{Binding CurrentName}" Width="*"/><DataGridTextColumn Header="Proposed Name" Binding="{Binding ProposedName}" Width="*"/></DataGrid.Columns></DataGrid>
                 </Grid>
             </TabItem>
             <TabItem Header="Replace / Consolidate">
                 <Grid Margin="10">
-                    <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="6"/><RowDefinition Height="Auto"/><RowDefinition Height="6"/><RowDefinition Height="Auto"/><RowDefinition Height="8"/><RowDefinition Height="*"/></Grid.RowDefinitions>
-                    <WrapPanel Grid.Row="0">
-                        <Border Style="{StaticResource SummaryCardBorder}"><StackPanel><TextBlock Text="FILTERS" Foreground="{StaticResource TextMutedBrush}" FontSize="11"/><TextBlock x:Name="ReplaceFiltersCardText" Text="0" FontSize="20" FontWeight="Bold"/></StackPanel></Border>
-                        <Border Style="{StaticResource SummaryCardBorder}"><StackPanel><TextBlock Text="AFFECTED VIEWS/TEMPLATES" Foreground="{StaticResource TextMutedBrush}" FontSize="11"/><TextBlock x:Name="ReplaceAffectedCardText" Text="0" FontSize="20" FontWeight="Bold"/></StackPanel></Border>
-                        <Border Style="{StaticResource SummaryCardBorder}"><StackPanel><TextBlock Text="READY" Foreground="{StaticResource TextMutedBrush}" FontSize="11"/><TextBlock x:Name="ReplaceReadyCardText" Text="0" FontSize="20" FontWeight="Bold"/></StackPanel></Border>
-                        <Border Style="{StaticResource SummaryCardBorder}"><StackPanel><TextBlock Text="ISSUES" Foreground="{StaticResource TextMutedBrush}" FontSize="11"/><TextBlock x:Name="ReplaceIssuesCardText" Text="0" FontSize="20" FontWeight="Bold"/></StackPanel></Border>
-                    </WrapPanel>
-                    <StackPanel Grid.Row="2" Orientation="Horizontal">
-                        <TextBlock Text="Source:" VerticalAlignment="Center" Foreground="{StaticResource TextPrimaryBrush}"/>
-                        <ComboBox x:Name="SourceComboBox" Width="280" Margin="6,0,12,0" DisplayMemberPath="Name"/>
-                        <TextBlock Text="Target:" VerticalAlignment="Center" Foreground="{StaticResource TextPrimaryBrush}"/>
-                        <ComboBox x:Name="TargetComboBox" Width="280" Margin="6,0,12,0" DisplayMemberPath="Name"/>
-                        <Button x:Name="PreviewReplaceButton" Style="{StaticResource ToolButtonStyle}" Content="Preview Usage" Width="130" Click="PreviewReplaceButton_Click"/>
-                    </StackPanel>
-                    <TextBlock x:Name="ReplaceStatusTextBlock" Grid.Row="4" Text="" Foreground="{StaticResource AccentBrush}" TextWrapping="Wrap"/>
-                    <DataGrid x:Name="ReplaceGrid" Grid.Row="6" AutoGenerateColumns="False">
-                        <DataGrid.Columns>
-                            <DataGridTextColumn Header="View / Template" Binding="{Binding ViewName}" Width="*"/>
-                            <DataGridTextColumn Header="Type" Binding="{Binding ViewKind}" Width="140"/>
-                            <DataGridTextColumn Header="Source Applied" Binding="{Binding HasSource}" Width="100"/>
-                            <DataGridTextColumn Header="Target Applied" Binding="{Binding HasTarget}" Width="100"/>
-                        </DataGrid.Columns>
-                    </DataGrid>
+                    <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="6"/><RowDefinition Height="Auto"/><RowDefinition Height="8"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                    <StackPanel Grid.Row="0" Orientation="Horizontal"><TextBlock Text="Source:" VerticalAlignment="Center" Foreground="{StaticResource TextPrimaryBrush}"/><ComboBox x:Name="SourceComboBox" Width="280" Margin="6,0,12,0" DisplayMemberPath="Name"/><TextBlock Text="Target:" VerticalAlignment="Center" Foreground="{StaticResource TextPrimaryBrush}"/><ComboBox x:Name="TargetComboBox" Width="280" Margin="6,0,12,0" DisplayMemberPath="Name"/><Button x:Name="PreviewReplaceButton" Style="{StaticResource ToolButtonStyle}" Content="Preview Usage" Width="130" Click="PreviewReplaceButton_Click"/></StackPanel>
+                    <TextBlock x:Name="ReplaceStatusTextBlock" Grid.Row="2" Text="" Foreground="{StaticResource AccentBrush}" TextWrapping="Wrap"/>
+                    <DataGrid x:Name="ReplaceGrid" Grid.Row="4" AutoGenerateColumns="False"><DataGrid.Columns><DataGridTextColumn Header="View / Template" Binding="{Binding ViewName}" Width="*"/><DataGridTextColumn Header="Type" Binding="{Binding ViewKind}" Width="140"/><DataGridTextColumn Header="Source Applied" Binding="{Binding HasSource}" Width="100"/><DataGridTextColumn Header="Target Applied" Binding="{Binding HasTarget}" Width="100"/></DataGrid.Columns></DataGrid>
                 </Grid>
             </TabItem>
             <TabItem Header="Reports">
-                <Grid Margin="10">
-                    <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="8"/><RowDefinition Height="*"/></Grid.RowDefinitions>
-                    <WrapPanel Grid.Row="0">
-                        <Border Style="{StaticResource SummaryCardBorder}"><StackPanel><TextBlock Text="REPORTS" Foreground="{StaticResource TextMutedBrush}" FontSize="11"/><TextBlock Text="3" FontSize="20" FontWeight="Bold"/></StackPanel></Border>
-                        <Border Style="{StaticResource SummaryCardBorder}"><StackPanel><TextBlock Text="AVAILABLE" Foreground="{StaticResource TextMutedBrush}" FontSize="11"/><TextBlock Text="0" FontSize="20" FontWeight="Bold"/></StackPanel></Border>
-                        <Border Style="{StaticResource SummaryCardBorder}"><StackPanel><TextBlock Text="COMING SOON" Foreground="{StaticResource TextMutedBrush}" FontSize="11"/><TextBlock Text="3" FontSize="20" FontWeight="Bold"/></StackPanel></Border>
-                    </WrapPanel>
-                    <Border Grid.Row="2" Background="{StaticResource PanelBgBrush}" BorderBrush="{StaticResource BorderBrushBase}" BorderThickness="1" CornerRadius="5" Padding="12">
-                        <StackPanel>
-                            <TextBlock Text="Reports are planned for a future release. Upcoming outputs: Audit Summary, Unused Filters, and Replace Impact snapshots."
-                                       TextWrapping="Wrap" Margin="0,0,0,10" Foreground="{StaticResource TextMutedBrush}"/>
-                            <TextBlock Text="Planned exports will reuse active tab context and preserve current sorting and filters."
-                                       TextWrapping="Wrap" Margin="0,0,0,12" Foreground="{StaticResource TextMutedBrush}"/>
-                            <Button Content="Copy Audit Summary (Coming Soon)" Style="{StaticResource ToolButtonStyle}" Width="240" HorizontalAlignment="Left" Margin="0,0,0,6" IsEnabled="False"/>
-                            <Button Content="Export CSV (Coming Soon)" Style="{StaticResource ToolButtonStyle}" Width="240" HorizontalAlignment="Left" IsEnabled="False"/>
-                        </StackPanel>
-                    </Border>
-                </Grid>
+                <Grid Margin="10"><Border Background="{StaticResource PanelBgBrush}" BorderBrush="{StaticResource BorderBrushBase}" BorderThickness="1" CornerRadius="5" Padding="12"><StackPanel><TextBlock Text="Reports are planned for a future release. Upcoming outputs: Audit Summary, Unused Filters, and Replace Impact snapshots." TextWrapping="Wrap" Margin="0,0,0,10" Foreground="{StaticResource TextMutedBrush}"/><TextBlock Text="Planned exports will reuse active tab context and preserve current sorting and filters." TextWrapping="Wrap" Margin="0,0,0,12" Foreground="{StaticResource TextMutedBrush}"/><Button Content="Copy Audit Summary (Coming Soon)" Style="{StaticResource ToolButtonStyle}" Width="240" HorizontalAlignment="Left" Margin="0,0,0,6" IsEnabled="False"/><Button Content="Export CSV (Coming Soon)" Style="{StaticResource ToolButtonStyle}" Width="240" HorizontalAlignment="Left" IsEnabled="False"/></StackPanel></Border></Grid>
             </TabItem>
         </TabControl>
     </Grid>
