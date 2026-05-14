@@ -101,7 +101,21 @@ class FilterManagerProWindow(forms.WPFWindow):
             except Exception: pass
     def _card(self,l,v): return (l,str(v))
     def _refresh_active_tab_summary(self):
-        h = str(self.MainTabControl.SelectedItem.Header)
+        h = "Audit"
+        selected = None
+        try: selected = self.MainTabControl.SelectedItem
+        except Exception: selected = None
+        if selected is not None:
+            try: h = str(selected.Header)
+            except Exception: h = "Audit"
+        else:
+            try:
+                idx = int(self.MainTabControl.SelectedIndex)
+            except Exception:
+                idx = 0
+            if idx == 1: h = "Rename / Standardize"
+            elif idx == 2: h = "Replace / Consolidate"
+            elif idx == 3: h = "Reports"
         if "Audit" in h:
             used = len([r for r in self.audit_rows if r.TotalCount>0]); self._set_header_cards([self._card("FILTERS",len(self.audit_rows)),self._card("USED",used),self._card("UNUSED",len(self.audit_rows)-used)])
         elif "Rename" in h:
@@ -285,6 +299,12 @@ class FilterManagerProWindow(forms.WPFWindow):
     def _set_replace_status(self,t): self.ReplaceStatusTextBlock.Text=t
     def _set_reports_status(self,t): self.ReportsStatusTextBlock.Text=t
     def RefreshAuditButton_Click(self,s,a): self._load_audit()
-    def MainTabControl_SelectionChanged(self,s,a): self._refresh_active_tab_summary()
+    def MainTabControl_SelectionChanged(self,s,a):
+        try:
+            if s is not self.MainTabControl:
+                return
+        except Exception:
+            pass
+        self._refresh_active_tab_summary()
 
 FilterManagerProWindow().ShowDialog()
