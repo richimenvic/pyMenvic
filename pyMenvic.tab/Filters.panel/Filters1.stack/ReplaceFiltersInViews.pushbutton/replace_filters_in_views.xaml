@@ -17,7 +17,7 @@
         <SolidColorBrush x:Key="TextHigh" Color="#EAF1F5"/>
         <SolidColorBrush x:Key="TextMed" Color="#A8BAC7"/>
         <SolidColorBrush x:Key="TextLow" Color="#708392"/>
-        <SolidColorBrush x:Key="BtnPrimary" Color="#245D7C"/>
+        <SolidColorBrush x:Key="BtnPrimary" Color="#0A84D6"/>
         <SolidColorBrush x:Key="BtnSuccess" Color="#2A6B3F"/>
         <SolidColorBrush x:Key="BtnDanger" Color="#6B3131"/>
         <SolidColorBrush x:Key="StatusReady" Color="#8ED59B"/>
@@ -42,7 +42,11 @@
             </Border>
             <ControlTemplate.Triggers>
                 <Trigger Property="IsMouseOver" Value="True">
-                    <Setter TargetName="ButtonBorder" Property="Opacity" Value="0.92"/>
+                    <Setter TargetName="ButtonBorder" Property="Opacity" Value="1"/>
+                    <Setter TargetName="ButtonBorder" Property="Background" Value="#249DF0"/>
+                </Trigger>
+                <Trigger Property="IsPressed" Value="True">
+                    <Setter TargetName="ButtonBorder" Property="Background" Value="#086EB2"/>
                 </Trigger>
             </ControlTemplate.Triggers>
         </ControlTemplate>
