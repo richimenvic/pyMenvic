@@ -243,13 +243,9 @@ class AboutWindow(forms.WPFWindow):
             self.Icon = bmp
 
         # BUTTONS
-        self.closeBtn.Click += self.close_window
         self.copyEmailBtn.Click += self.copy_email
         self.webBtn.Click += self.open_website
         self.checkUpdatesBtn.Click += self.check_for_updates
-
-    def close_window(self, sender, args):
-        self.Close()
 
     def copy_email(self, sender, args):
         Clipboard.SetText(CONTACT_EMAIL)
