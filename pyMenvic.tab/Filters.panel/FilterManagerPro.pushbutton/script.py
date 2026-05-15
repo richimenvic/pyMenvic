@@ -122,10 +122,10 @@ class FilterManagerProWindow(forms.WPFWindow):
         self._load_rename_rows()
         self._set_reports_status("Ready to export from current tab data.")
         self._set_audit_status("Audit is safe. Edit only filter names in the Filter column, then apply changes.")
-        self._set_audit_details("Select a filter to review categories, usage and rules.")
         self._set_rename_status("Configure rename options and click Preview.")
         self._set_replace_status("Select Source and Target, then Preview Usage.")
         self._refresh_active_tab_summary()
+        self._select_first_visible_audit_row()
 
     def _rebuild_maps(self):
         self.filter_name_to_option = {f.Name: f for f in self.filters}
@@ -671,29 +671,27 @@ class FilterManagerProWindow(forms.WPFWindow):
         except Exception:
             pass
         if not row:
-            self._set_audit_details("Select a filter to review categories, usage and rules.")
+            self._set_audit_details_columns("Select a filter row.", "-", "-")
             return
         filter_el = doc.GetElement(ElementId(row.FilterId))
-
-        filter_lines = []
-        filter_lines.append("Name: {}".format(row.FilterName))
-        filter_lines.append("Categories: {}".format(row.Categories))
-        filter_lines.append("Usage: {} Views | {} Templates | {} Total".format(row.ViewCount, row.TemplateCount, row.TotalCount))
-        filter_lines.append("Status: {}".format(row.Status))
-
-        duplicate_lines = []
-        duplicate_lines.append("Type: {}".format(row.DuplicateType))
-        duplicate_lines.append("Set: {}".format(row.DuplicateGroup))
+        filter_lines = [
+            "Name: {}".format(row.FilterName),
+            "Categories: {}".format(row.Categories),
+            "Usage: {} Views | {} Templates | {} Total".format(row.ViewCount, row.TemplateCount, row.TotalCount),
+            "Status: {}".format(row.Status)
+        ]
+        duplicate_lines = [
+            "Type: {}".format(row.DuplicateType),
+            "Set: {}".format(row.DuplicateGroup)
+        ]
         same_set = [r.FilterName for r in self.all_audit_rows if r.DuplicateGroup == row.DuplicateGroup and r.DuplicateGroup != "-" and r.FilterId != row.FilterId]
         if same_set:
             duplicate_lines.append("Same Duplicate Set:")
             for name in sorted(same_set):
                 duplicate_lines.append("- {}".format(name))
-
         rule_lines = self._filter_rule_lines(filter_el)
         if not rule_lines:
             rule_lines = ["<No readable rules / category-only filter>"]
-
         self._set_audit_details_columns("\n".join(filter_lines), "\n".join(duplicate_lines), "\n".join(rule_lines))
 
     def ApplyAuditChangesButton_Click(self, s, a):
