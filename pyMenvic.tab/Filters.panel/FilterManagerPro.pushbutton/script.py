@@ -42,6 +42,7 @@ from System.IO import FileStream, FileMode, FileAccess
 from System.Windows.Media.Imaging import BitmapImage, BitmapCacheOption
 from System.Windows import Visibility
 from System.Windows.Controls import DataGridEditingUnit
+from System import Int64
 
 from Autodesk.Revit.DB import View, ElementId, Transaction, Category, BuiltInParameter, LabelUtils
 try:
@@ -54,6 +55,18 @@ from pyrevit import forms, revit, script
 doc = revit.doc
 XAML_FILE = script.get_bundle_file("filter_manager_pro.xaml")
 LOGO_FILE = get_filters_logo_path()
+
+
+def safe_element_id(value):
+    try:
+        if isinstance(value, ElementId):
+            return value
+    except Exception:
+        pass
+    try:
+        return ElementId(Int64(value))
+    except Exception:
+        return ElementId(value)
 
 
 class FilterOption(object):
@@ -815,7 +828,7 @@ class FilterManagerProWindow(forms.WPFWindow):
         if not row:
             self._set_audit_details_columns("Select a filter row.", "-", "-")
             return
-        filter_el = doc.GetElement(ElementId(row.FilterId))
+        filter_el = doc.GetElement(safe_element_id(row.FilterId))
         filter_lines = [
             "Name: {}".format(row.FilterName),
             "Usage: {} Views | {} Templates | {} Total".format(row.ViewCount, row.TemplateCount, row.TotalCount),
@@ -873,7 +886,7 @@ class FilterManagerProWindow(forms.WPFWindow):
         try:
             for r in changed:
                 try:
-                    doc.GetElement(ElementId(r.FilterId)).Name = (r.FilterName or "").strip()
+                    doc.GetElement(safe_element_id(r.FilterId)).Name = (r.FilterName or "").strip()
                     ok += 1
                 except Exception:
                     fail += 1
@@ -923,7 +936,7 @@ class FilterManagerProWindow(forms.WPFWindow):
                     skipped += 1
                     continue
                 try:
-                    doc.Delete(ElementId(r.FilterId))
+                    doc.Delete(safe_element_id(r.FilterId))
                     ok += 1
                 except Exception:
                     fail += 1
@@ -1049,7 +1062,7 @@ class FilterManagerProWindow(forms.WPFWindow):
         try:
             for r in rows:
                 try:
-                    doc.GetElement(ElementId(r.FilterId)).Name = r.ProposedName
+                    doc.GetElement(safe_element_id(r.FilterId)).Name = r.ProposedName
                     ok += 1
                 except Exception:
                     fail += 1
@@ -1148,7 +1161,7 @@ class FilterManagerProWindow(forms.WPFWindow):
         tx.Start()
         try:
             for r in rows:
-                v = doc.GetElement(ElementId(r.ViewId))
+                v = doc.GetElement(safe_element_id(r.ViewId))
                 if not v:
                     sk += 1
                     continue
