@@ -134,13 +134,20 @@ class FilterManagerProWindow(forms.WPFWindow):
     def _duplicate_rows(self, rows):
         return [r for r in rows if r.DuplicateType != "Not duplicate"]
 
+    def _duplicate_group_count(self, rows):
+        groups = set()
+        for r in self._duplicate_rows(rows):
+            if r.DuplicateGroup and r.DuplicateGroup != "-":
+                groups.add(r.DuplicateGroup)
+        return len(groups)
+
     def _refresh_active_tab_summary(self):
         h = "Audit"
         try: h = str(self.MainTabControl.SelectedItem.Header)
         except Exception: pass
         if "Audit" in h:
             used = len([r for r in self.all_audit_rows if r.TotalCount > 0])
-            self._set_header_cards([self._card("FILTERS", len(self.all_audit_rows)), self._card("VISIBLE", len(self.audit_rows)), self._card("UNUSED", len(self.all_audit_rows) - used), self._card("DUPLICATES", len(self._duplicate_rows(self.all_audit_rows)))])
+            self._set_header_cards([self._card("FILTERS", len(self.all_audit_rows)), self._card("VISIBLE", len(self.audit_rows)), self._card("UNUSED", len(self.all_audit_rows) - used), self._card("DUP. SETS", self._duplicate_group_count(self.all_audit_rows))])
         elif "Rename" in h:
             ready = len([r for r in self.rename_rows if r.Apply])
             self._set_header_cards([self._card("ROWS", len(self.rename_rows)), self._card("READY", ready)])
@@ -332,7 +339,7 @@ class FilterManagerProWindow(forms.WPFWindow):
                 haystack = " | ".join([r.FilterName or "", r.Categories or "", r.Status or "", r.DuplicateType or "", r.DuplicateGroup or ""]).lower()
                 if term not in haystack: continue
             self.audit_rows.Add(r)
-        self._set_audit_status("Visible: {} of {} filter(s).".format(len(self.audit_rows), len(self.all_audit_rows)))
+        self._set_audit_status("Visible: {} of {} filters. Edit names in the Filter column only. Apply activates after a name change.".format(len(self.audit_rows), len(self.all_audit_rows)))
         self._refresh_active_tab_summary()
 
     def _commit_audit_edits(self):
