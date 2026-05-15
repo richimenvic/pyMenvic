@@ -10,62 +10,7 @@
       <Setter Property="Padding" Value="12,4"/>
       <Setter Property="Margin" Value="0,0,6,0"/>
     </Style>
-    <Style x:Key="ApplyButtonStyle" TargetType="Button" BasedOn="{StaticResource ToolButtonStyle}">
-      <Setter Property="Background" Value="#2D9D55"/>
-      <Setter Property="BorderBrush" Value="#49B571"/>
-    </Style>
-    <Style x:Key="SectionLabelStyle" TargetType="TextBlock">
-      <Setter Property="Foreground" Value="#DCE9F4"/>
-      <Setter Property="FontWeight" Value="SemiBold"/>
-      <Setter Property="Margin" Value="0,0,6,0"/>
-      <Setter Property="VerticalAlignment" Value="Center"/>
-    </Style>
-    <Style x:Key="ValueBoxStyle" TargetType="TextBox">
-      <Setter Property="Background" Value="#F2F6FA"/>
-      <Setter Property="MinHeight" Value="28"/>
-      <Setter Property="Margin" Value="0,0,12,0"/>
-      <Setter Property="Padding" Value="6,4"/>
-    </Style>
-    <Style TargetType="DataGrid">
-      <Setter Property="CanUserAddRows" Value="False"/>
-      <Setter Property="Background" Value="#F8FBFF"/>
-    </Style>
-    <Style TargetType="TabItem">
-      <Setter Property="Foreground" Value="#C3D1DD"/>
-      <Setter Property="Background" Value="#24323E"/>
-      <Setter Property="Padding" Value="14,8"/>
-      <Style.Triggers>
-        <Trigger Property="IsSelected" Value="True">
-          <Setter Property="Foreground" Value="White"/>
-          <Setter Property="Background" Value="#2E4354"/>
-          <Setter Property="BorderBrush" Value="#0A84D6"/>
-          <Setter Property="BorderThickness" Value="0,0,0,2"/>
-        </Trigger>
-      </Style.Triggers>
-    </Style>
   </Window.Resources>
   <Grid Margin="12">
-    <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="8"/><RowDefinition Height="*"/></Grid.RowDefinitions>
-    <Border Grid.Row="0" Background="#26303A" Padding="12">
-      <Grid>
-        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-        <StackPanel Orientation="Horizontal" Grid.Column="0" VerticalAlignment="Center">
-          <Image x:Name="HeaderLogoImage" Width="28" Height="28" Margin="0,0,8,0"/>
-          <TextBlock Text="FILTER MANAGER PRO - pyMENVIC" Foreground="White" FontSize="18" FontWeight="Bold" VerticalAlignment="Center"/>
-        </StackPanel>
-        <WrapPanel x:Name="HeaderCardsPanel" Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Center">
-          <Border x:Name="HeaderCardBorder1" Background="#1F2B35" BorderBrush="#3E556A" BorderThickness="1" CornerRadius="4" Padding="10,6" Margin="4,0"><StackPanel><TextBlock x:Name="HeaderCardLabel1" Foreground="#8FA7BA" FontSize="11"/><TextBlock x:Name="HeaderCardValue1" Foreground="White" FontSize="16" FontWeight="Bold"/></StackPanel></Border>
-          <Border x:Name="HeaderCardBorder2" Background="#1F2B35" BorderBrush="#3E556A" BorderThickness="1" CornerRadius="4" Padding="10,6" Margin="4,0"><StackPanel><TextBlock x:Name="HeaderCardLabel2" Foreground="#8FA7BA" FontSize="11"/><TextBlock x:Name="HeaderCardValue2" Foreground="White" FontSize="16" FontWeight="Bold"/></StackPanel></Border>
-          <Border x:Name="HeaderCardBorder3" Background="#1F2B35" BorderBrush="#3E556A" BorderThickness="1" CornerRadius="4" Padding="10,6" Margin="4,0"><StackPanel><TextBlock x:Name="HeaderCardLabel3" Foreground="#8FA7BA" FontSize="11"/><TextBlock x:Name="HeaderCardValue3" Foreground="White" FontSize="16" FontWeight="Bold"/></StackPanel></Border>
-          <Border x:Name="HeaderCardBorder4" Background="#1F2B35" BorderBrush="#3E556A" BorderThickness="1" CornerRadius="4" Padding="10,6" Margin="4,0"><StackPanel><TextBlock x:Name="HeaderCardLabel4" Foreground="#8FA7BA" FontSize="11"/><TextBlock x:Name="HeaderCardValue4" Foreground="White" FontSize="16" FontWeight="Bold"/></StackPanel></Border>
-        </WrapPanel>
-      </Grid>
-    </Border>
-    <TabControl x:Name="MainTabControl" Grid.Row="2" SelectionChanged="MainTabControl_SelectionChanged">
-      <TabItem Header="Audit"><Grid Margin="8"><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions><StackPanel Orientation="Horizontal"><Button x:Name="RefreshAuditButton" Content="Refresh Audit" Style="{StaticResource ToolButtonStyle}" Click="RefreshAuditButton_Click"/></StackPanel><DataGrid x:Name="AuditGrid" Grid.Row="1" AutoGenerateColumns="False"><DataGrid.Columns><DataGridTextColumn Header="Filter" Binding="{Binding FilterName}" Width="*"/><DataGridTextColumn Header="Categories" Binding="{Binding Categories}" IsReadOnly="True" Width="2*"/><DataGridTextColumn Header="Views" Binding="{Binding ViewCount}" IsReadOnly="True"/><DataGridTextColumn Header="Templates" Binding="{Binding TemplateCount}" IsReadOnly="True"/><DataGridTextColumn Header="Total" Binding="{Binding TotalCount}" IsReadOnly="True"/><DataGridTextColumn Header="Status" Binding="{Binding Status}" IsReadOnly="True"/><DataGridTextColumn Header="Duplicate" Binding="{Binding Duplicate}" IsReadOnly="True"/></DataGrid.Columns></DataGrid><Button Grid.Row="2" x:Name="ApplyAuditChangesButton" HorizontalAlignment="Right" Content="Apply Audit Changes" Style="{StaticResource ApplyButtonStyle}" Click="ApplyAuditChangesButton_Click"/></Grid></TabItem>
-      <TabItem Header="Rename / Standardize"><Grid Margin="8"><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions><Border Background="#26303A" Padding="10" CornerRadius="4"><WrapPanel><TextBlock Text="Search / Find" Style="{StaticResource SectionLabelStyle}"/><TextBox x:Name="RenameSearchTextBox" Width="140" Style="{StaticResource ValueBoxStyle}" TextChanged="RenameSearchTextBox_TextChanged"/><TextBlock Text="Replace With" Style="{StaticResource SectionLabelStyle}"/><TextBox x:Name="FindTextBox" Width="120" Style="{StaticResource ValueBoxStyle}"/><TextBox x:Name="ReplaceTextBox" Width="120" Style="{StaticResource ValueBoxStyle}"/><TextBlock Text="Prefix" Style="{StaticResource SectionLabelStyle}"/><TextBox x:Name="RenamePrefixTextBox" Width="120" Style="{StaticResource ValueBoxStyle}"/><TextBlock Text="Suffix" Style="{StaticResource SectionLabelStyle}"/><TextBox x:Name="RenameSuffixTextBox" Width="120" Style="{StaticResource ValueBoxStyle}"/><CheckBox x:Name="UppercaseCheckBox" Content="Uppercase" Foreground="#E1EBF3" VerticalAlignment="Center" Margin="2,0,10,0"/><Button x:Name="PreviewRenameButton" Content="Preview" Style="{StaticResource ToolButtonStyle}" Click="PreviewRenameButton_Click"/></WrapPanel></Border><TextBlock x:Name="RenameStatusTextBlock" Grid.Row="1" Foreground="#7EC8FF" Margin="2,6,0,6"/><DataGrid x:Name="RenameGrid" Grid.Row="2" AutoGenerateColumns="False"><DataGrid.Columns><DataGridCheckBoxColumn Header="Apply" Binding="{Binding Apply}"/><DataGridTextColumn Header="Current Name" Binding="{Binding CurrentName}" IsReadOnly="True" Width="*"/><DataGridTextColumn Header="Proposed Name" Binding="{Binding ProposedName}" Width="*"/><DataGridTextColumn Header="Status" Binding="{Binding Status}" IsReadOnly="True"/></DataGrid.Columns></DataGrid><StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right"><Button x:Name="ResetRenameRowButton" Content="Reset Selected Row" Click="ResetRenameRowButton_Click" Style="{StaticResource ToolButtonStyle}" Margin="0,0,8,0"/><Button x:Name="ApplyRenameButton" Content="Apply Rename" Click="ApplyRenameButton_Click" Style="{StaticResource ApplyButtonStyle}"/></StackPanel></Grid></TabItem>
-      <TabItem Header="Replace / Consolidate"><Grid Margin="8"><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions><Border Background="#26303A" Padding="10" CornerRadius="4"><WrapPanel><TextBlock Text="Source Filter" Style="{StaticResource SectionLabelStyle}"/><ComboBox x:Name="SourceComboBox" Width="250" Margin="0,0,12,0"/><TextBlock Text="Target Filter" Style="{StaticResource SectionLabelStyle}"/><ComboBox x:Name="TargetComboBox" Width="250" Margin="0,0,12,0"/><CheckBox x:Name="IncludeViewsCheckBox" Content="Include Views" Foreground="#E1EBF3" IsChecked="True" Margin="0,0,10,0"/><CheckBox x:Name="IncludeTemplatesCheckBox" Content="Include Templates" Foreground="#E1EBF3" IsChecked="True" Margin="0,0,10,0"/><CheckBox x:Name="MergeExistingCheckBox" Content="Merge if Target Exists" Foreground="#E1EBF3" IsChecked="True" Margin="0,0,10,0"/><CheckBox x:Name="CopyVisibilityCheckBox" Content="Copy Visibility" Foreground="#E1EBF3" IsChecked="True" Margin="0,0,10,0"/><CheckBox x:Name="CopyEnabledCheckBox" Content="Copy Enabled/Active" Foreground="#E1EBF3" IsChecked="True" Margin="0,0,10,0"/><TextBlock Text="Search" Style="{StaticResource SectionLabelStyle}"/><TextBox x:Name="ReplaceSearchTextBox" Width="160" Style="{StaticResource ValueBoxStyle}" TextChanged="ReplaceSearchTextBox_TextChanged"/><Button x:Name="PreviewReplaceButton" Content="Preview" Style="{StaticResource ToolButtonStyle}" Click="PreviewReplaceButton_Click"/></WrapPanel></Border><TextBlock x:Name="ReplaceStatusTextBlock" Grid.Row="1" Foreground="#7EC8FF" Margin="2,6,0,6"/><DataGrid x:Name="ReplaceGrid" Grid.Row="2" AutoGenerateColumns="False"><DataGrid.Columns><DataGridCheckBoxColumn Header="Apply" Binding="{Binding Apply}"/><DataGridTextColumn Header="View / Template" Binding="{Binding ViewName}" Width="*"/><DataGridTextColumn Header="Type" Binding="{Binding ViewKind}"/><DataGridCheckBoxColumn Header="Template" Binding="{Binding IsTemplate}" IsReadOnly="True"/><DataGridCheckBoxColumn Header="Has Source" Binding="{Binding HasSource}" IsReadOnly="True"/><DataGridCheckBoxColumn Header="Has Target" Binding="{Binding HasTarget}" IsReadOnly="True"/><DataGridTextColumn Header="Status" Binding="{Binding Status}" IsReadOnly="True"/></DataGrid.Columns></DataGrid><Button Grid.Row="3" x:Name="ApplyReplaceButton" HorizontalAlignment="Right" Content="Apply Replace" Style="{StaticResource ApplyButtonStyle}" Click="ApplyReplaceButton_Click"/></Grid></TabItem>
-      <TabItem Header="Reports"><StackPanel Margin="10"><TextBlock Text="Export current audit, unused filter, and replace preview data to CSV reports." Foreground="#D6E2ED" Margin="0,0,0,6"/><TextBlock x:Name="ReportsStatusTextBlock" Foreground="#7EC8FF" Margin="0,0,0,8"/><Button x:Name="ExportAuditCsvButton" Content="Export Audit Summary CSV" Click="ExportAuditCsvButton_Click" Style="{StaticResource ToolButtonStyle}" Width="260" Margin="0,0,0,6"/><Button x:Name="ExportUnusedCsvButton" Content="Export Unused Filters CSV" Click="ExportUnusedCsvButton_Click" Style="{StaticResource ToolButtonStyle}" Width="260" Margin="0,0,0,6"/><Button x:Name="ExportReplaceCsvButton" Content="Export Replace Preview CSV" Click="ExportReplaceCsvButton_Click" Style="{StaticResource ToolButtonStyle}" Width="260"/></StackPanel></TabItem>
-    </TabControl>
   </Grid>
 </Window>
