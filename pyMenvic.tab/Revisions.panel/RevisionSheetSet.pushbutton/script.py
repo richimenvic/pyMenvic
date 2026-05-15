@@ -695,6 +695,25 @@ def _revision_labels(revisions):
     return labels
 
 
+def _limited_revision_text(labels, limit=6):
+    if not labels:
+        return "None"
+    visible = labels[:limit]
+    lines = ["- {}".format(label) for label in visible]
+    if len(labels) > limit:
+        lines.append("- ... and {} more".format(len(labels) - limit))
+    return "\n".join(lines)
+
+
+def _show_result_dialog(title, message, warn_icon=False):
+    try:
+        forms.alert(message, title=title, warn_icon=warn_icon)
+        return True
+    except Exception as ex:
+        _log_debug("Failed to show result dialog", ex)
+        return False
+
+
 def _print_revision_list(labels):
     if not labels:
         return
@@ -707,12 +726,43 @@ def _print_final_report(result, revisions):
     labels = _revision_labels(revisions)
     mode_text = result["selected_switch"] or _cfg("messages.mode_none")
 
-    output.print_md("### pyMENVIC | Revision Sheet Set")
-
     if result["run_status"] == "CANCELLED":
-        output.print_md("## Operation cancelled")
-        output.print_md("No sheet set was created.")
         return
+
+    if result["run_status"] == "NO_MATCHES":
+        message = "No sheet set was created.\n\n{}\n\nMode: {}\nMatching sheets: {}\n\nSelected revisions:\n{}".format(
+            result["error_reason"] or _cfg("messages.no_matches"),
+            mode_text,
+            result["match_count"],
+            _limited_revision_text(labels)
+        )
+        if _show_result_dialog("Revision Sheet Set", message, warn_icon=True):
+            return
+
+    elif result["run_status"] == "ERROR":
+        message = "Sheet set was not created.\n\nReason:\n{}\n\nMode: {}\n\nSelected revisions:\n{}".format(
+            result["error_reason"] or "Unknown error.",
+            mode_text,
+            _limited_revision_text(labels)
+        )
+        if _show_result_dialog("Revision Sheet Set", message, warn_icon=True):
+            return
+
+    elif result["run_status"] == "OK":
+        sheetset_text = result["sheetset_name"]
+        if sheetset_text == _cfg("messages.created_name_unknown"):
+            sheetset_text = "Created successfully. Current print set updated."
+        message = "Sheet set created successfully.\n\nSheet Set: {}\nMode: {}\nSheets included: {}\nEmpty sheets: {}\n\nSelected revisions:\n{}".format(
+            sheetset_text,
+            mode_text,
+            result["rev_sheetset_count"],
+            len(result["empty_sheets"]),
+            _limited_revision_text(labels)
+        )
+        if _show_result_dialog("Revision Sheet Set", message, warn_icon=False):
+            return
+
+    output.print_md("### pyMENVIC | Revision Sheet Set")
 
     if result["run_status"] == "NO_MATCHES":
         output.print_md("## No sheet set created")
@@ -729,12 +779,13 @@ def _print_final_report(result, revisions):
         output.print_md("**Mode:** {}".format(mode_text))
         return
 
-    output.print_md("## Sheet set created successfully")
-    output.print_md("**Sheet Set:** {}".format(result["sheetset_name"]))
-    output.print_md("**Mode:** {}".format(mode_text))
-    output.print_md("**Sheets included:** {}".format(result["rev_sheetset_count"]))
-    output.print_md("**Empty sheets:** {}".format(len(result["empty_sheets"])))
-    _print_revision_list(labels)
+    if result["run_status"] == "OK":
+        output.print_md("## Sheet set created successfully")
+        output.print_md("**Sheet Set:** {}".format(result["sheetset_name"]))
+        output.print_md("**Mode:** {}".format(mode_text))
+        output.print_md("**Sheets included:** {}".format(result["rev_sheetset_count"]))
+        output.print_md("**Empty sheets:** {}".format(len(result["empty_sheets"])))
+        _print_revision_list(labels)
 
 
 # ----------------------------
