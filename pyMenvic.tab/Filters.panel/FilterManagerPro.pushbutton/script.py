@@ -54,7 +54,7 @@ class FilterOption(object):
 
 
 class AuditRow(object):
-    def __init__(self, filter_id, original_name, name, categories, vc, tc, duplicate_label):
+    def __init__(self, filter_id, original_name, name, categories, vc, tc, duplicate_type, duplicate_group):
         self.FilterId = filter_id
         self.OriginalName = original_name
         self.FilterName = name
@@ -63,7 +63,9 @@ class AuditRow(object):
         self.TemplateCount = tc
         self.TotalCount = vc + tc
         self.Status = "Used" if self.TotalCount > 0 else "Unused"
-        self.Duplicate = duplicate_label or "-"
+        self.DuplicateType = duplicate_type or "Not duplicate"
+        self.DuplicateGroup = duplicate_group or "-"
+        self.Duplicate = self.DuplicateType
 
 
 class RenameRow(object):
@@ -87,11 +89,14 @@ class FilterManagerProWindow(forms.WPFWindow):
         forms.WPFWindow.__init__(self, XAML_FILE)
         self._load_header_logo(); self.filters = self._collect_filters(); self._rebuild_maps()
         self.audit_rows = ObservableCollection[object](); self.rename_rows = ObservableCollection[object](); self.replace_rows = ObservableCollection[object]()
-        self.all_rename_rows = []; self.all_replace_rows = []
+        self.all_audit_rows = []; self.all_rename_rows = []; self.all_replace_rows = []
         self.AuditGrid.ItemsSource = self.audit_rows; self.RenameGrid.ItemsSource = self.rename_rows; self.ReplaceGrid.ItemsSource = self.replace_rows
+        try: self.AuditScopeComboBox.SelectedIndex = 0
+        except Exception: pass
         self.SourceComboBox.ItemsSource = self.filter_names; self.TargetComboBox.ItemsSource = self.filter_names
         if self.filter_names: self.SourceComboBox.SelectedIndex = 0; self.TargetComboBox.SelectedIndex = min(1, len(self.filter_names)-1)
         self._load_audit(); self._load_rename_rows(); self._set_reports_status("Ready to export from current tab data.")
+        self._set_audit_status("Review filter usage. Edit names directly in Filter column, then Apply Audit Changes.")
         self._set_rename_status("Configure rename options and click Preview."); self._set_replace_status("Select Source and Target, then Preview Usage.")
         self._refresh_active_tab_summary()
 
@@ -126,13 +131,16 @@ class FilterManagerProWindow(forms.WPFWindow):
 
     def _card(self, l, v): return (l, str(v))
 
+    def _duplicate_rows(self, rows):
+        return [r for r in rows if r.DuplicateType != "Not duplicate"]
+
     def _refresh_active_tab_summary(self):
         h = "Audit"
         try: h = str(self.MainTabControl.SelectedItem.Header)
         except Exception: pass
         if "Audit" in h:
-            used = len([r for r in self.audit_rows if r.TotalCount > 0])
-            self._set_header_cards([self._card("FILTERS", len(self.audit_rows)), self._card("USED", used), self._card("UNUSED", len(self.audit_rows) - used), self._card("DUPLICATES", len([r for r in self.audit_rows if r.Duplicate != "-"]))])
+            used = len([r for r in self.all_audit_rows if r.TotalCount > 0])
+            self._set_header_cards([self._card("FILTERS", len(self.all_audit_rows)), self._card("VISIBLE", len(self.audit_rows)), self._card("UNUSED", len(self.all_audit_rows) - used), self._card("DUPLICATES", len(self._duplicate_rows(self.all_audit_rows)))])
         elif "Rename" in h:
             ready = len([r for r in self.rename_rows if r.Apply])
             self._set_header_cards([self._card("ROWS", len(self.rename_rows)), self._card("READY", ready)])
@@ -260,12 +268,16 @@ class FilterManagerProWindow(forms.WPFWindow):
                 for rule in list(filter_el.GetRules()):
                     rule_parts.append(self._rule_signature(rule))
             except Exception: pass
-            filter_sig = "RULES({})".format(";".join(sorted(rule_parts)))
-        if not cat_sig and not filter_sig: return ""
+            if rule_parts:
+                filter_sig = "RULES({})".format(";".join(sorted(rule_parts)))
+        if not cat_sig or not filter_sig: return ""
         return "CATS[{}] FILTER[{}]".format(cat_sig, filter_sig)
 
+    def _name_key(self, value):
+        return " ".join("".join([c if c.isalnum() else " " for c in (value or "").upper()]).split())
+
     def _load_audit(self):
-        self.audit_rows.Clear(); views = self._views(); rows = []; sig_groups = {}
+        views = self._views(); rows = []; content_groups = {}; name_groups = {}
         for f in self.filters:
             fid = element_id_value(f.ElementId); filter_el = doc.GetElement(f.ElementId)
             cats = self._get_categories(filter_el); sig = self._filter_content_signature(filter_el); vc = 0; tc = 0
@@ -273,12 +285,48 @@ class FilterManagerProWindow(forms.WPFWindow):
                 try: ids = [element_id_value(x) for x in v.GetFilters()]
                 except Exception: continue
                 if fid in ids: tc += 1 if v.IsTemplate else 0; vc += 0 if v.IsTemplate else 1
-            rows.append((fid, f.Name, cats, vc, tc, sig))
-            if sig: sig_groups.setdefault(sig, []).append(fid)
+            name_key = self._name_key(f.Name)
+            rows.append((fid, f.Name, cats, vc, tc, sig, name_key))
+            if sig: content_groups.setdefault(sig, []).append(fid)
+            if name_key: name_groups.setdefault(name_key, []).append(fid)
+        self.all_audit_rows = []
         for row in rows:
-            dup = "Exact" if row[5] and len(sig_groups.get(row[5], [])) > 1 else "-"
-            self.audit_rows.Add(AuditRow(row[0], row[1], row[1], row[2], row[3], row[4], dup))
+            dup_type = "Not duplicate"; dup_group = "-"
+            if row[5] and len(content_groups.get(row[5], [])) > 1:
+                dup_type = "Exact rules"; dup_group = "Group {}".format(content_groups.get(row[5], [])[0])
+            elif row[6] and len(name_groups.get(row[6], [])) > 1:
+                dup_type = "Name match"; dup_group = row[6]
+            self.all_audit_rows.append(AuditRow(row[0], row[1], row[1], row[2], row[3], row[4], dup_type, dup_group))
+        self._filter_audit_rows()
         self._update_audit_apply_state()
+        self._refresh_active_tab_summary()
+
+    def _audit_scope(self):
+        try:
+            selected = self.AuditScopeComboBox.SelectedItem
+            return str(selected.Content) if hasattr(selected, "Content") else str(selected)
+        except Exception:
+            return "All Filters"
+
+    def _audit_row_matches_scope(self, row):
+        scope = self._audit_scope()
+        if scope == "Unused Only": return row.TotalCount == 0
+        if scope == "Used Only": return row.TotalCount > 0
+        if scope == "Duplicates Only": return row.DuplicateType != "Not duplicate"
+        return True
+
+    def _filter_audit_rows(self):
+        term = ""
+        try: term = (self.AuditSearchTextBox.Text or "").strip().lower()
+        except Exception: pass
+        self.audit_rows.Clear()
+        for r in self.all_audit_rows:
+            if not self._audit_row_matches_scope(r): continue
+            if term:
+                haystack = " | ".join([r.FilterName or "", r.Categories or "", r.Status or "", r.DuplicateType or "", r.DuplicateGroup or ""]).lower()
+                if term not in haystack: continue
+            self.audit_rows.Add(r)
+        self._set_audit_status("Visible: {} of {} filter(s).".format(len(self.audit_rows), len(self.all_audit_rows)))
         self._refresh_active_tab_summary()
 
     def _commit_audit_edits(self):
@@ -289,7 +337,7 @@ class FilterManagerProWindow(forms.WPFWindow):
 
     def _get_changed_audit_rows(self):
         changed = []
-        for r in self.audit_rows:
+        for r in self.all_audit_rows:
             if (r.FilterName or "").strip() != (r.OriginalName or "").strip(): changed.append(r)
         return changed
 
@@ -309,24 +357,24 @@ class FilterManagerProWindow(forms.WPFWindow):
         self._commit_audit_edits()
         changed = self._get_changed_audit_rows()
         if not changed:
-            self._set_reports_status("Audit Apply: no filter name changes to apply.")
+            self._set_audit_status("No filter name changes to apply.")
             self._update_audit_apply_state()
             return
         names = [(r.FilterName or "").strip() for r in changed]
         if "" in names:
-            self._set_reports_status("Audit Apply failed: filter names cannot be empty.")
+            self._set_audit_status("Apply failed: filter names cannot be empty.")
             self._update_audit_apply_state()
             return
         lowered = [n.lower() for n in names]
         if len(set(lowered)) != len(lowered):
-            self._set_reports_status("Audit Apply failed: duplicate edited filter names.")
+            self._set_audit_status("Apply failed: duplicate edited filter names.")
             self._update_audit_apply_state()
             return
         changed_ids = set([r.FilterId for r in changed])
         existing = set([f.Name.lower() for f in self.filters if element_id_value(f.ElementId) not in changed_ids])
         for n in names:
             if n.lower() in existing:
-                self._set_reports_status("Audit Apply failed: name already exists: {}".format(n))
+                self._set_audit_status("Apply failed: name already exists: {}".format(n))
                 self._update_audit_apply_state()
                 return
         ok = 0; fail = 0
@@ -343,7 +391,7 @@ class FilterManagerProWindow(forms.WPFWindow):
             except Exception: pass
             fail = len(changed)
         self.filters = self._collect_filters(); self._rebuild_maps(); self.SourceComboBox.ItemsSource = self.filter_names; self.TargetComboBox.ItemsSource = self.filter_names
-        self._load_audit(); self._load_rename_rows(); self._set_reports_status("Audit Apply complete. Renamed: {} | Failed: {}".format(ok, fail))
+        self._load_audit(); self._load_rename_rows(); self._set_audit_status("Apply complete. Renamed: {} | Failed: {}".format(ok, fail))
 
     def _load_rename_rows(self):
         self.all_rename_rows = [RenameRow(element_id_value(f.ElementId), f.Name, f.Name) for f in self.filters]
@@ -370,12 +418,13 @@ class FilterManagerProWindow(forms.WPFWindow):
         r = self.RenameGrid.SelectedItem
         if r: r.ProposedName = r.CurrentName; r.Apply = False; r.Status = "Reset"; self.RenameGrid.Items.Refresh(); self._refresh_active_tab_summary()
 
+    def AuditSearchTextBox_TextChanged(self, s, a): self._filter_audit_rows()
+    def AuditScopeComboBox_SelectionChanged(self, s, a): self._filter_audit_rows()
     def RenameSearchTextBox_TextChanged(self, s, a): self._filter_rename_rows()
     def ReplaceSearchTextBox_TextChanged(self, s, a): self._filter_replace_rows()
     def RefreshAuditButton_Click(self, s, a): self._load_audit()
     def MainTabControl_SelectionChanged(self, s, a): self._refresh_active_tab_summary()
 
-    # existing apply/replace/export methods preserved
     def ApplyRenameButton_Click(self,s,a):
         rows=[r for r in self.all_rename_rows if r.Apply]
         if not rows: self._set_rename_status("Nothing selected to rename."); return
@@ -465,9 +514,9 @@ class FilterManagerProWindow(forms.WPFWindow):
             fl+=1
         self._load_audit(); self.PreviewReplaceButton_Click(None,None); self._set_replace_status("Apply Replace complete. Updated: {} | Skipped: {} | Failed: {}".format(ok,sk,fl))
 
-    def ExportAuditCsvButton_Click(self,s,a): self._export_csv("audit_summary.csv", ["Filter","Categories","Views","Templates","Total","Status","Duplicate"], self.audit_rows, lambda r:[r.FilterName,r.Categories,r.ViewCount,r.TemplateCount,r.TotalCount,r.Status,r.Duplicate])
+    def ExportAuditCsvButton_Click(self,s,a): self._export_csv("audit_summary.csv", ["Filter","Categories","Views","Templates","Total","Status","Duplicate Type","Duplicate Group"], self.all_audit_rows, lambda r:[r.FilterName,r.Categories,r.ViewCount,r.TemplateCount,r.TotalCount,r.Status,r.DuplicateType,r.DuplicateGroup])
     def ExportUnusedCsvButton_Click(self,s,a):
-        rows=[r for r in self.audit_rows if r.TotalCount==0]; self._export_csv("unused_filters.csv", ["Filter","Categories"], rows, lambda r:[r.FilterName,r.Categories])
+        rows=[r for r in self.all_audit_rows if r.TotalCount==0]; self._export_csv("unused_filters.csv", ["Filter","Categories"], rows, lambda r:[r.FilterName,r.Categories])
     def ExportReplaceCsvButton_Click(self,s,a): self._export_csv("replace_preview.csv", ["View","Type","Template","Source","Target","Apply"], self.all_replace_rows, lambda r:[r.ViewName,r.ViewKind,r.IsTemplate,r.HasSource,r.HasTarget,r.Apply])
     def _export_csv(self, filename, header, rows, rowf):
         path=forms.save_file(file_ext='csv', default_name=filename)
@@ -480,6 +529,9 @@ class FilterManagerProWindow(forms.WPFWindow):
             self._set_reports_status("Exported: {}".format(path))
         except Exception as ex: self._set_reports_status("Export failed: {}".format(ex))
 
+    def _set_audit_status(self,t):
+        try: self.AuditStatusTextBlock.Text=t
+        except Exception: pass
     def _set_rename_status(self,t): self.RenameStatusTextBlock.Text=t
     def _set_replace_status(self,t): self.ReplaceStatusTextBlock.Text=t
     def _set_reports_status(self,t): self.ReportsStatusTextBlock.Text=t
