@@ -66,6 +66,7 @@ class AuditRow(object):
         self.DuplicateType = duplicate_type or "Not duplicate"
         self.DuplicateGroup = duplicate_group or "-"
         self.Duplicate = self.DuplicateType
+        self.Purge = False
 
 
 class RenameRow(object):
@@ -312,6 +313,7 @@ class FilterManagerProWindow(forms.WPFWindow):
             self.all_audit_rows.append(AuditRow(row[0], row[1], row[1], row[2], row[3], row[4], dup_type, dup_group))
         self._filter_audit_rows()
         self._update_audit_apply_state()
+        self._update_audit_purge_ui()
         self._refresh_active_tab_summary()
 
     def _audit_scope(self):
@@ -320,6 +322,9 @@ class FilterManagerProWindow(forms.WPFWindow):
             return str(selected.Content) if hasattr(selected, "Content") else str(selected)
         except Exception:
             return "All Filters"
+
+    def _is_unused_scope(self):
+        return self._audit_scope() == "Unused Only"
 
     def _audit_row_matches_scope(self, row):
         scope = self._audit_scope()
@@ -332,6 +337,9 @@ class FilterManagerProWindow(forms.WPFWindow):
         term = ""
         try: term = (self.AuditSearchTextBox.Text or "").strip().lower()
         except Exception: pass
+        if not self._is_unused_scope():
+            for r in self.all_audit_rows:
+                r.Purge = False
         self.audit_rows.Clear()
         for r in self.all_audit_rows:
             if not self._audit_row_matches_scope(r): continue
@@ -339,8 +347,20 @@ class FilterManagerProWindow(forms.WPFWindow):
                 haystack = " | ".join([r.FilterName or "", r.Categories or "", r.Status or "", r.DuplicateType or "", r.DuplicateGroup or ""]).lower()
                 if term not in haystack: continue
             self.audit_rows.Add(r)
-        self._set_audit_status("Visible: {} of {} filters. Edit names in the Filter column only. Apply activates after a name change.".format(len(self.audit_rows), len(self.all_audit_rows)))
+        if self._is_unused_scope():
+            msg = "Visible: {} unused of {} filters. Check Purge only for unused filters you want to delete.".format(len(self.audit_rows), len(self.all_audit_rows))
+        else:
+            msg = "Visible: {} of {} filters. Edit names in the Filter column only. Apply activates after a name change.".format(len(self.audit_rows), len(self.all_audit_rows))
+        self._set_audit_status(msg)
+        self._update_audit_purge_ui()
         self._refresh_active_tab_summary()
+
+    def _update_audit_purge_ui(self):
+        visible = Visibility.Visible if self._is_unused_scope() else Visibility.Collapsed
+        try: self.PurgeSelectedUnusedButton.Visibility = visible
+        except Exception: pass
+        try: self.AuditGrid.Columns[0].Visibility = visible
+        except Exception: pass
 
     def _commit_audit_edits(self):
         try: self.AuditGrid.CommitEdit(DataGridEditingUnit.Cell, True)
@@ -360,9 +380,12 @@ class FilterManagerProWindow(forms.WPFWindow):
 
     def AuditGrid_CellEditEnding(self, sender, args):
         try:
-            if str(args.Column.Header) != "Filter": return
+            header = str(args.Column.Header)
             row = args.Row.Item
-            row.FilterName = args.EditingElement.Text
+            if header == "Filter":
+                row.FilterName = args.EditingElement.Text
+            elif header == "Purge":
+                row.Purge = bool(args.EditingElement.IsChecked) if row.TotalCount == 0 else False
         except Exception: pass
         self._update_audit_apply_state()
 
@@ -405,6 +428,46 @@ class FilterManagerProWindow(forms.WPFWindow):
             fail = len(changed)
         self.filters = self._collect_filters(); self._rebuild_maps(); self.SourceComboBox.ItemsSource = self.filter_names; self.TargetComboBox.ItemsSource = self.filter_names
         self._load_audit(); self._load_rename_rows(); self._set_audit_status("Apply complete. Renamed: {} | Failed: {}".format(ok, fail))
+
+    def PurgeSelectedUnusedButton_Click(self, s, a):
+        self._commit_audit_edits()
+        selected = [r for r in self.all_audit_rows if r.Purge and r.TotalCount == 0]
+        if not selected:
+            self._set_audit_status("No unused filters selected to purge.")
+            return
+        names = sorted([r.FilterName for r in selected])
+        preview = "\n".join(names[:10])
+        if len(names) > 10:
+            preview += "\n...and {} more".format(len(names) - 10)
+        confirmed = forms.alert(
+            "You are about to delete {} unused filter(s). This cannot be undone.\n\n{}\n\nContinue?".format(len(selected), preview),
+            title="Purge Selected Unused Filters",
+            yes=True,
+            no=True,
+            exitscript=False
+        )
+        if not confirmed:
+            self._set_audit_status("Purge cancelled.")
+            return
+        ok = 0; fail = 0; skipped = 0
+        tx = Transaction(doc, "Filter Manager Pro - Purge Selected Unused Filters")
+        tx.Start()
+        try:
+            for r in selected:
+                if r.TotalCount != 0:
+                    skipped += 1
+                    continue
+                try:
+                    doc.Delete(ElementId(r.FilterId)); ok += 1
+                except Exception:
+                    fail += 1
+            tx.Commit()
+        except Exception:
+            try: tx.RollBack()
+            except Exception: pass
+            fail = len(selected)
+        self.filters = self._collect_filters(); self._rebuild_maps(); self.SourceComboBox.ItemsSource = self.filter_names; self.TargetComboBox.ItemsSource = self.filter_names
+        self._load_audit(); self._load_rename_rows(); self._set_audit_status("Purge complete. Deleted: {} | Skipped: {} | Failed: {}".format(ok, skipped, fail))
 
     def _load_rename_rows(self):
         self.all_rename_rows = [RenameRow(element_id_value(f.ElementId), f.Name, f.Name) for f in self.filters]
@@ -527,7 +590,7 @@ class FilterManagerProWindow(forms.WPFWindow):
             fl+=1
         self._load_audit(); self.PreviewReplaceButton_Click(None,None); self._set_replace_status("Apply Replace complete. Updated: {} | Skipped: {} | Failed: {}".format(ok,sk,fl))
 
-    def ExportAuditCsvButton_Click(self,s,a): self._export_csv("audit_summary.csv", ["Filter","Categories","Views","Templates","Total","Status","Duplicate Type","Duplicate Group"], self.all_audit_rows, lambda r:[r.FilterName,r.Categories,r.ViewCount,r.TemplateCount,r.TotalCount,r.Status,r.DuplicateType,r.DuplicateGroup])
+    def ExportAuditCsvButton_Click(self,s,a): self._export_csv("audit_summary.csv", ["Filter","Categories","Views","Templates","Total","Status","Duplicate Type","Duplicate Set"], self.all_audit_rows, lambda r:[r.FilterName,r.Categories,r.ViewCount,r.TemplateCount,r.TotalCount,r.Status,r.DuplicateType,r.DuplicateGroup])
     def ExportUnusedCsvButton_Click(self,s,a):
         rows=[r for r in self.all_audit_rows if r.TotalCount==0]; self._export_csv("unused_filters.csv", ["Filter","Categories"], rows, lambda r:[r.FilterName,r.Categories])
     def ExportReplaceCsvButton_Click(self,s,a): self._export_csv("replace_preview.csv", ["View","Type","Template","Source","Target","Apply"], self.all_replace_rows, lambda r:[r.ViewName,r.ViewKind,r.IsTemplate,r.HasSource,r.HasTarget,r.Apply])
