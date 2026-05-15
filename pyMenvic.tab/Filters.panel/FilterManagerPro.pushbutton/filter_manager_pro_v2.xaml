@@ -137,7 +137,9 @@
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="*"/>
               </Grid.RowDefinitions>
-              <TextBlock Text="FILTER DETAILS" FontWeight="SemiBold" Foreground="#1E252B" Margin="0,0,0,4"/>
+              <Border Background="#E9EEF3" BorderBrush="#C8D2DC" BorderThickness="0,0,0,1" Padding="6,3" Margin="0,0,0,6">
+                <TextBlock Text="FILTER DETAILS" FontWeight="Bold" Foreground="#1E252B" FontSize="13"/>
+              </Border>
               <Grid Grid.Row="1">
                 <Grid.ColumnDefinitions>
                   <ColumnDefinition Width="1.05*"/>
