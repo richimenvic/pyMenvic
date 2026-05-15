@@ -383,16 +383,16 @@ class FilterManagerProWindow(forms.WPFWindow):
             "FilterNumericLessOrEqual": "less than or equal",
             "FilterElementIdEquals": "equals",
             "FilterElementIdNotEquals": "does not equal",
-            "FilterStringRule": "string rule",
-            "FilterIntegerRule": "integer rule",
-            "FilterDoubleRule": "number rule",
-            "FilterElementIdRule": "element id rule",
+            "FilterStringRule": "equals",
+            "FilterIntegerRule": "equals",
+            "FilterDoubleRule": "equals",
+            "FilterElementIdRule": "equals",
             "FilterInverseRule": "not"
         }
         if raw in lookup:
             return lookup[raw]
-        cleaned = raw.replace("Filter", "").replace("Evaluator", "").replace("Rule", " rule")
-        return cleaned.strip() or "operator not readable"
+        cleaned = raw.replace("Filter", "").replace("Evaluator", "").replace("Rule", "")
+        return cleaned.strip().lower() or "operator not readable"
 
     def _extract_rule_operator(self, rule):
         return self._friendly_operator_name(self._extract_rule_evaluator_name(rule), self._safe_class_name(rule))
@@ -415,8 +415,7 @@ class FilterManagerProWindow(forms.WPFWindow):
         parameter_name = self._param_name(self._extract_rule_parameter_id(rule))
         operator_name = self._extract_rule_operator(rule)
         value = self._display_value(self._extract_rule_value(rule))
-        rule_type = self._safe_class_name(rule)
-        return "- Parameter: {} | Operator: {} | Value: {} | Type: {}".format(parameter_name, operator_name, value, rule_type)
+        return "- {} {} {}".format(parameter_name, operator_name, value)
 
     def _element_filter_signature(self, element_filter):
         if element_filter is None:
@@ -663,29 +662,26 @@ class FilterManagerProWindow(forms.WPFWindow):
             return
         filter_el = doc.GetElement(ElementId(row.FilterId))
 
-        left_lines = []
-        left_lines.append("FILTER")
-        left_lines.append("Name: {}".format(row.FilterName))
-        left_lines.append("Categories: {}".format(row.Categories))
-        left_lines.append("Usage: {} Views | {} Templates | {} Total".format(row.ViewCount, row.TemplateCount, row.TotalCount))
-        left_lines.append("Status: {}".format(row.Status))
-        left_lines.append("")
-        left_lines.append("DUPLICATE")
-        left_lines.append("Type: {}".format(row.DuplicateType))
-        left_lines.append("Set: {}".format(row.DuplicateGroup))
+        filter_lines = []
+        filter_lines.append("Name: {}".format(row.FilterName))
+        filter_lines.append("Categories: {}".format(row.Categories))
+        filter_lines.append("Usage: {} Views | {} Templates | {} Total".format(row.ViewCount, row.TemplateCount, row.TotalCount))
+        filter_lines.append("Status: {}".format(row.Status))
+
+        duplicate_lines = []
+        duplicate_lines.append("Type: {}".format(row.DuplicateType))
+        duplicate_lines.append("Set: {}".format(row.DuplicateGroup))
         same_set = [r.FilterName for r in self.all_audit_rows if r.DuplicateGroup == row.DuplicateGroup and r.DuplicateGroup != "-" and r.FilterId != row.FilterId]
         if same_set:
-            left_lines.append("Same Duplicate Set:")
+            duplicate_lines.append("Same Duplicate Set:")
             for name in sorted(same_set):
-                left_lines.append("- {}".format(name))
+                duplicate_lines.append("- {}".format(name))
 
-        rule_lines = ["RULES"]
-        parsed_rules = self._filter_rule_lines(filter_el)
-        if not parsed_rules:
-            parsed_rules = ["<No readable rules / category-only filter>"]
-        rule_lines.extend(parsed_rules)
+        rule_lines = self._filter_rule_lines(filter_el)
+        if not rule_lines:
+            rule_lines = ["<No readable rules / category-only filter>"]
 
-        self._set_audit_details_columns("\n".join(left_lines), "\n".join(rule_lines))
+        self._set_audit_details_columns("\n".join(filter_lines), "\n".join(duplicate_lines), "\n".join(rule_lines))
 
     def ApplyAuditChangesButton_Click(self, s, a):
         self._commit_audit_edits()
@@ -1044,10 +1040,15 @@ class FilterManagerProWindow(forms.WPFWindow):
         except Exception:
             pass
 
-    def _set_audit_details_columns(self, left_text, rules_text):
+    def _set_audit_details_columns(self, filter_text, duplicate_text, rules_text):
         wrote_new = False
         try:
-            self.AuditDetailsLeftTextBlock.Text = left_text
+            self.AuditDetailsFilterTextBlock.Text = filter_text
+            wrote_new = True
+        except Exception:
+            pass
+        try:
+            self.AuditDetailsDuplicateTextBlock.Text = duplicate_text
             wrote_new = True
         except Exception:
             pass
@@ -1056,16 +1057,13 @@ class FilterManagerProWindow(forms.WPFWindow):
             wrote_new = True
         except Exception:
             pass
-        try:
-            self.AuditDetailsLeftScrollViewer.ScrollToTop()
-        except Exception:
-            pass
-        try:
-            self.AuditDetailsRulesScrollViewer.ScrollToTop()
-        except Exception:
-            pass
+        for viewer_name in ("AuditDetailsFilterScrollViewer", "AuditDetailsDuplicateScrollViewer", "AuditDetailsRulesScrollViewer"):
+            try:
+                getattr(self, viewer_name).ScrollToTop()
+            except Exception:
+                pass
         if not wrote_new:
-            self._set_audit_details(left_text + "\n\n" + rules_text)
+            self._set_audit_details("FILTER\n{}\n\nDUPLICATE\n{}\n\nRULES\n{}".format(filter_text, duplicate_text, rules_text))
 
     def _set_audit_details(self, t):
         try:
@@ -1074,7 +1072,8 @@ class FilterManagerProWindow(forms.WPFWindow):
         except Exception:
             pass
         try:
-            self.AuditDetailsLeftTextBlock.Text = t
+            self.AuditDetailsFilterTextBlock.Text = t
+            self.AuditDetailsDuplicateTextBlock.Text = ""
             self.AuditDetailsRulesTextBlock.Text = ""
         except Exception:
             pass
