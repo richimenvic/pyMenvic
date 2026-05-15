@@ -2,9 +2,10 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Select Revisions"
         Width="760"
-        Height="744"
         MinWidth="640"
-        MinHeight="644"
+        MinHeight="500"
+        MaxHeight="744"
+        SizeToContent="Height"
         WindowStartupLocation="CenterScreen"
         ResizeMode="CanResize"
         Background="{DynamicResource WindowBgBrush}"
@@ -56,7 +57,7 @@
     </Window.Resources>
 
     <Grid Margin="0">
-        <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+        <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
         <Border Grid.Row="0" Background="{DynamicResource PanelBgBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="14" Padding="12" Margin="16,16,16,10"><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><Image x:Name="HeaderLogoImage" Grid.Column="0" Width="28" Height="28" Margin="0,0,10,0" VerticalAlignment="Top"/><StackPanel Grid.Column="1"><TextBlock Text="REVISION SHEET SET - pyMENVIC" FontSize="18" FontWeight="SemiBold"/><TextBlock Text="Select revisions, filter the list, and choose how sheets should match before creating the set." Margin="0,3,0,0" TextWrapping="Wrap" FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}"/></StackPanel></Grid></Border>
         <Grid Grid.Row="1" Margin="16,0,16,6"><Grid.ColumnDefinitions><ColumnDefinition Width="2*"/><ColumnDefinition Width="1.2*"/></Grid.ColumnDefinitions><StackPanel Grid.Column="0" Margin="0,0,16,0"><TextBlock x:Name="lblSearch" Text="Search revisions" Margin="0,0,0,3" FontWeight="SemiBold"/><Grid><TextBox x:Name="txtSearch" Height="32" Padding="10,5" BorderThickness="1"/><TextBlock x:Name="searchPlaceholder" Margin="12,7,0,0" VerticalAlignment="Top" Foreground="{DynamicResource TextSecondaryBrush}" IsHitTestVisible="False" Text="Type to filter revisions..."/></Grid></StackPanel><StackPanel Grid.Column="1" Margin="14,0,0,0"><TextBlock x:Name="lblMode" Text="Match mode" Margin="0,0,0,3" FontWeight="SemiBold"/><Border Background="{DynamicResource InputBgBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="6" Padding="10,6"><StackPanel Orientation="Vertical"><RadioButton x:Name="rbMatchAll" Content="Matching ALL revisions" GroupName="MatchMode" IsChecked="True"/><RadioButton x:Name="rbMatchAny" Content="Matching ANY revision" GroupName="MatchMode" Margin="0"/></StackPanel></Border><TextBlock x:Name="lblModeHelp" Margin="0,4,0,0" TextWrapping="Wrap" FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}" Text="ALL = sheets containing all selected revisions. ANY = sheets containing at least one selected revision."/></StackPanel></Grid>
         <Grid Grid.Row="2" Margin="16,0,16,7"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><TextBlock x:Name="lblRevisions" Grid.Column="0" Text="Available revisions" FontWeight="SemiBold"/><TextBlock x:Name="lblStatus" Grid.Column="1" FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" Text="Selected: 0 | Visible: 0 | Total: 0"/></Grid>
