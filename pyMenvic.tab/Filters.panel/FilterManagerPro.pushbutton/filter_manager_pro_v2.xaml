@@ -50,6 +50,28 @@
       <Setter Property="RowBackground" Value="#FFFFFF"/>
       <Setter Property="AlternatingRowBackground" Value="#F0F3F6"/>
       <Setter Property="GridLinesVisibility" Value="All"/>
+      <Setter Property="SelectionMode" Value="Single"/>
+      <Setter Property="SelectionUnit" Value="FullRow"/>
+    </Style>
+    <Style TargetType="DataGridRow">
+      <Setter Property="Foreground" Value="#1E252B"/>
+      <Style.Triggers>
+        <Trigger Property="IsSelected" Value="True">
+          <Setter Property="Background" Value="#0A70B8"/>
+          <Setter Property="Foreground" Value="White"/>
+          <Setter Property="FontWeight" Value="SemiBold"/>
+        </Trigger>
+      </Style.Triggers>
+    </Style>
+    <Style TargetType="DataGridCell">
+      <Setter Property="Foreground" Value="#1E252B"/>
+      <Setter Property="BorderBrush" Value="#D1D9E0"/>
+      <Style.Triggers>
+        <Trigger Property="IsSelected" Value="True">
+          <Setter Property="Background" Value="#0A70B8"/>
+          <Setter Property="Foreground" Value="White"/>
+        </Trigger>
+      </Style.Triggers>
     </Style>
     <Style TargetType="DataGridColumnHeader">
       <Setter Property="Background" Value="#E9EEF3"/>
