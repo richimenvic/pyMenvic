@@ -874,24 +874,20 @@ class FilterManagerProWindow(forms.WPFWindow):
         try:
             if RevitCommandId is None or PostableCommand is None:
                 raise Exception("Revit UI command API is not available.")
-            command_name = None
-            for candidate in ("Filters", "ViewFilters"):
-                try:
-                    command_name = getattr(PostableCommand, candidate)
-                    break
-                except Exception:
-                    command_name = None
-            if command_name is None:
-                raise Exception("Revit Filters command is not available in this Revit version.")
-            cmd_id = RevitCommandId.LookupPostableCommandId(command_name)
+            cmd_id = RevitCommandId.LookupPostableCommandId(PostableCommand.Filters)
+            if not cmd_id:
+                raise Exception("Revit Filters command id is not available.")
             uiapp = revit.uidoc.Application
-            if cmd_id and uiapp.CanPostCommand(cmd_id):
-                uiapp.PostCommand(cmd_id)
-                self._set_audit_status("Opening Revit Filters dialog.")
-                return
-            raise Exception("Revit could not post the Filters command from this context.")
+            try:
+                self.Close()
+            except Exception:
+                pass
+            uiapp.PostCommand(cmd_id)
         except Exception:
-            self._set_audit_status("Could not open Revit Filters dialog. Use Manage > Filters.")
+            try:
+                self._set_audit_status("Could not open Revit Filters dialog. Use Manage > Filters.")
+            except Exception:
+                pass
             forms.alert(
                 "Could not open Revit Filters dialog from this context.\n\nUse Manage > Filters.",
                 title="Open Revit Filters",
