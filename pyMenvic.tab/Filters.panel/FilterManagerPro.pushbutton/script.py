@@ -601,6 +601,19 @@ class FilterManagerProWindow(forms.WPFWindow):
         self._set_audit_status(msg)
         self._update_audit_purge_ui()
         self._refresh_active_tab_summary()
+        self._select_first_visible_audit_row()
+
+    def _select_first_visible_audit_row(self):
+        try:
+            if len(self.audit_rows) > 0:
+                self.AuditGrid.SelectedIndex = 0
+                self.AuditGrid.ScrollIntoView(self.audit_rows[0])
+                self._update_audit_details()
+            else:
+                self.AuditGrid.SelectedIndex = -1
+                self._set_audit_details_columns("Select a filter row.", "-", "-")
+        except Exception:
+            pass
 
     def _update_audit_purge_ui(self):
         visible = Visibility.Visible if self._is_unused_scope() else Visibility.Collapsed
