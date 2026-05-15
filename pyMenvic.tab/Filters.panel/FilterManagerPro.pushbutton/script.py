@@ -96,7 +96,7 @@ class FilterManagerProWindow(forms.WPFWindow):
         self.SourceComboBox.ItemsSource = self.filter_names; self.TargetComboBox.ItemsSource = self.filter_names
         if self.filter_names: self.SourceComboBox.SelectedIndex = 0; self.TargetComboBox.SelectedIndex = min(1, len(self.filter_names)-1)
         self._load_audit(); self._load_rename_rows(); self._set_reports_status("Ready to export from current tab data.")
-        self._set_audit_status("Review filter usage. Edit names directly in Filter column, then Apply Audit Changes.")
+        self._set_audit_status("Audit is safe. Edit only filter names in the Filter column, then apply changes.")
         self._set_rename_status("Configure rename options and click Preview."); self._set_replace_status("Select Source and Target, then Preview Usage.")
         self._refresh_active_tab_summary()
 
@@ -276,6 +276,11 @@ class FilterManagerProWindow(forms.WPFWindow):
     def _name_key(self, value):
         return " ".join("".join([c if c.isalnum() else " " for c in (value or "").upper()]).split())
 
+    def _group_label(self, label_map, key):
+        if key not in label_map:
+            label_map[key] = "Duplicate Set {:02d}".format(len(label_map) + 1)
+        return label_map[key]
+
     def _load_audit(self):
         views = self._views(); rows = []; content_groups = {}; name_groups = {}
         for f in self.filters:
@@ -290,12 +295,13 @@ class FilterManagerProWindow(forms.WPFWindow):
             if sig: content_groups.setdefault(sig, []).append(fid)
             if name_key: name_groups.setdefault(name_key, []).append(fid)
         self.all_audit_rows = []
+        duplicate_labels = {}
         for row in rows:
             dup_type = "Not duplicate"; dup_group = "-"
             if row[5] and len(content_groups.get(row[5], [])) > 1:
-                dup_type = "Exact rules"; dup_group = "Group {}".format(content_groups.get(row[5], [])[0])
+                dup_type = "Exact Definition"; dup_group = self._group_label(duplicate_labels, "DEF:{}".format(row[5]))
             elif row[6] and len(name_groups.get(row[6], [])) > 1:
-                dup_type = "Name match"; dup_group = row[6]
+                dup_type = "Similar Name"; dup_group = self._group_label(duplicate_labels, "NAME:{}".format(row[6]))
             self.all_audit_rows.append(AuditRow(row[0], row[1], row[1], row[2], row[3], row[4], dup_type, dup_group))
         self._filter_audit_rows()
         self._update_audit_apply_state()
