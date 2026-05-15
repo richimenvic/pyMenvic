@@ -551,6 +551,15 @@ class FilterManagerProWindow(forms.WPFWindow):
     def _rule_detail_line(self, rule):
         return "- " + self._rule_detail_text(rule)
 
+    def _is_unreadable_category_rule_text(self, text):
+        clean = (text or "").strip()
+        return clean in (
+            "Category: value not readable",
+            "Category: category not readable",
+            "- Category: value not readable",
+            "- Category: category not readable"
+        )
+
     def _category_filter_names(self, element_filter):
         if element_filter is None:
             return []
@@ -621,7 +630,10 @@ class FilterManagerProWindow(forms.WPFWindow):
             return texts
         try:
             for rule in list(element_filter.GetRules()):
-                texts.append(self._rule_detail_text(rule))
+                rule_text = self._rule_detail_text(rule)
+                if self._is_unreadable_category_rule_text(rule_text):
+                    continue
+                texts.append(rule_text)
         except Exception:
             pass
         return texts
@@ -640,12 +652,19 @@ class FilterManagerProWindow(forms.WPFWindow):
                     category_names.extend(self._category_filter_names(child_filter))
                     rule_texts.extend(self._parameter_rule_texts_from_filter(child_filter))
                 category_names = sorted(set(category_names))
-                if category_names and rule_texts:
+                filtered_rule_texts = []
+                for rule_text in rule_texts:
+                    if self._is_unreadable_category_rule_text(rule_text):
+                        continue
+                    filtered_rule_texts.append(rule_text)
+                if category_names and filtered_rule_texts:
                     for category_name in category_names:
-                        for rule_text in rule_texts:
-                            if rule_text in ("Category: value not readable", "Category: category not readable"):
-                                continue
+                        for rule_text in filtered_rule_texts:
                             lines.append("{}- {} | {}".format(indent, category_name, rule_text))
+                    return lines
+                if filtered_rule_texts:
+                    for rule_text in filtered_rule_texts:
+                        lines.append("{}- {}".format(indent, rule_text))
                     return lines
             logic_label = "All rules must be true:" if class_name == "LogicalAndFilter" else "Any rule may be true:"
             lines.append("{}{}".format(indent, group_label if group_label else logic_label))
@@ -673,7 +692,10 @@ class FilterManagerProWindow(forms.WPFWindow):
                 if not rules:
                     lines.append("{}<no rules>".format(indent))
                 for rule in rules:
-                    lines.append(indent + self._rule_detail_line(rule))
+                    rule_line = self._rule_detail_line(rule)
+                    if self._is_unreadable_category_rule_text(rule_line):
+                        continue
+                    lines.append(indent + rule_line)
             except Exception:
                 lines.append("{}<unable to read parameter rules>".format(indent))
             return lines
@@ -696,7 +718,14 @@ class FilterManagerProWindow(forms.WPFWindow):
         try:
             rules = list(filter_el.GetRules())
             if rules:
-                return [self._rule_detail_line(rule) for rule in rules]
+                lines = []
+                for rule in rules:
+                    rule_line = self._rule_detail_line(rule)
+                    if self._is_unreadable_category_rule_text(rule_line):
+                        continue
+                    lines.append(rule_line)
+                if lines:
+                    return lines
         except Exception:
             pass
         return ["Category-only filter. No parameter rules."]
