@@ -783,6 +783,25 @@ class FilterManagerProWindow(forms.WPFWindow):
 
     def _load_audit(self):
         views = self._views()
+        usage_by_filter_id = {}
+        for view in views:
+            try:
+                filter_ids = list(view.GetFilters())
+            except Exception:
+                continue
+            is_template = False
+            try:
+                is_template = bool(view.IsTemplate)
+            except Exception:
+                is_template = False
+            for filter_id in filter_ids:
+                fid = element_id_value(filter_id)
+                if fid not in usage_by_filter_id:
+                    usage_by_filter_id[fid] = [0, 0]
+                if is_template:
+                    usage_by_filter_id[fid][1] += 1
+                else:
+                    usage_by_filter_id[fid][0] += 1
         rows = []
         content_groups = {}
         name_groups = {}
@@ -792,16 +811,9 @@ class FilterManagerProWindow(forms.WPFWindow):
             category_names = self._get_category_names(filter_el)
             cats = self._format_category_summary(category_names)
             sig = self._filter_content_signature(filter_el)
-            vc = 0
-            tc = 0
-            for v in views:
-                try:
-                    ids = [element_id_value(x) for x in v.GetFilters()]
-                except Exception:
-                    continue
-                if fid in ids:
-                    tc += 1 if v.IsTemplate else 0
-                    vc += 0 if v.IsTemplate else 1
+            counts = usage_by_filter_id.get(fid, [0, 0])
+            vc = counts[0]
+            tc = counts[1]
             name_key = self._name_key(f.Name)
             rows.append((fid, f.Name, cats, category_names, vc, tc, sig, name_key))
             if sig:
