@@ -4,5 +4,4 @@ title:
 layout:
   - PrintToPDF.pushbutton
   - Revision1.stack
-  - Revision2.stack
   - RevisionSheetSet.pushbutton
