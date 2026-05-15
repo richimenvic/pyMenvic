@@ -98,6 +98,7 @@ class FilterManagerProWindow(forms.WPFWindow):
         if self.filter_names: self.SourceComboBox.SelectedIndex = 0; self.TargetComboBox.SelectedIndex = min(1, len(self.filter_names)-1)
         self._load_audit(); self._load_rename_rows(); self._set_reports_status("Ready to export from current tab data.")
         self._set_audit_status("Audit is safe. Edit only filter names in the Filter column, then apply changes.")
+        self._set_audit_details("Select a filter to review categories, usage and rules.")
         self._set_rename_status("Configure rename options and click Preview."); self._set_replace_status("Select Source and Target, then Preview Usage.")
         self._refresh_active_tab_summary()
 
@@ -218,6 +219,34 @@ class FilterManagerProWindow(forms.WPFWindow):
             except Exception: values.append(str(cid))
         return "|".join(sorted(values))
 
+    def _param_name(self, parameter_id):
+        if parameter_id is None:
+            return "<unknown parameter>"
+        try:
+            el = doc.GetElement(parameter_id)
+            if el:
+                return element_name(el)
+        except Exception:
+            pass
+        try:
+            return "ParameterId {}".format(element_id_value(parameter_id))
+        except Exception:
+            return str(parameter_id)
+
+    def _display_value(self, value):
+        if value is None:
+            return "<none>"
+        try:
+            el = doc.GetElement(value)
+            if el:
+                return element_name(el)
+        except Exception:
+            pass
+        try:
+            return str(element_id_value(value))
+        except Exception:
+            return str(value)
+
     def _extract_rule_parameter_id(self, rule):
         for method_name in ("GetRuleParameter",):
             try: return getattr(rule, method_name)()
@@ -233,6 +262,13 @@ class FilterManagerProWindow(forms.WPFWindow):
             except Exception: pass
         return None
 
+    def _extract_rule_operator(self, rule):
+        try:
+            evaluator = rule.Evaluator
+            return self._safe_class_name(evaluator).replace("Filter", "").replace("Rule", "")
+        except Exception:
+            return self._safe_class_name(rule)
+
     def _rule_signature(self, rule):
         parameter_id = self._extract_rule_parameter_id(rule)
         try: parameter_value = element_id_value(parameter_id)
@@ -244,6 +280,12 @@ class FilterManagerProWindow(forms.WPFWindow):
         try: evaluator_name = self._safe_class_name(rule.Evaluator)
         except Exception: pass
         return "{}|{}|{}|{}".format(self._safe_class_name(rule), parameter_value, value, evaluator_name)
+
+    def _rule_detail_line(self, rule):
+        parameter_name = self._param_name(self._extract_rule_parameter_id(rule))
+        operator_name = self._extract_rule_operator(rule)
+        value = self._display_value(self._extract_rule_value(rule))
+        return "- {} | {} | {}".format(parameter_name, operator_name, value)
 
     def _element_filter_signature(self, element_filter):
         if element_filter is None: return ""
@@ -263,6 +305,50 @@ class FilterManagerProWindow(forms.WPFWindow):
             except Exception: pass
             return "{}({})".format(class_name, ";".join(sorted(rule_parts)))
         return "{}:{}".format(class_name, str(element_filter))
+
+    def _element_filter_detail_lines(self, element_filter, indent=""):
+        if element_filter is None:
+            return []
+        class_name = self._safe_class_name(element_filter)
+        lines = []
+        if class_name in ("LogicalAndFilter", "LogicalOrFilter"):
+            logic_label = "AND" if class_name == "LogicalAndFilter" else "OR"
+            lines.append("{}{} group:".format(indent, logic_label))
+            try:
+                for child_filter in list(element_filter.GetFilters()):
+                    lines.extend(self._element_filter_detail_lines(child_filter, indent + "  "))
+            except Exception:
+                lines.append("{}  <unable to read child filters>".format(indent))
+            return lines
+        if class_name == "ElementParameterFilter":
+            try:
+                rules = list(element_filter.GetRules())
+                if not rules:
+                    lines.append("{}<no rules>".format(indent))
+                for rule in rules:
+                    lines.append(indent + self._rule_detail_line(rule))
+            except Exception:
+                lines.append("{}<unable to read parameter rules>".format(indent))
+            return lines
+        lines.append("{}{}".format(indent, class_name))
+        return lines
+
+    def _filter_rule_lines(self, filter_el):
+        if filter_el is None:
+            return ["<filter not found>"]
+        try:
+            lines = self._element_filter_detail_lines(filter_el.GetElementFilter())
+            if lines:
+                return lines
+        except Exception:
+            pass
+        try:
+            rules = list(filter_el.GetRules())
+            if rules:
+                return [self._rule_detail_line(rule) for rule in rules]
+        except Exception:
+            pass
+        return ["<no readable rules> or rule API is not available in this Revit version."]
 
     def _filter_content_signature(self, filter_el):
         if filter_el is None: return ""
@@ -388,6 +474,31 @@ class FilterManagerProWindow(forms.WPFWindow):
                 row.Purge = bool(args.EditingElement.IsChecked) if row.TotalCount == 0 else False
         except Exception: pass
         self._update_audit_apply_state()
+
+    def AuditGrid_SelectionChanged(self, sender, args):
+        self._update_audit_details()
+
+    def _update_audit_details(self):
+        row = None
+        try: row = self.AuditGrid.SelectedItem
+        except Exception: pass
+        if not row:
+            self._set_audit_details("Select a filter to review categories, usage and rules.")
+            return
+        filter_el = doc.GetElement(ElementId(row.FilterId))
+        lines = []
+        lines.append("Name: {}".format(row.FilterName))
+        lines.append("Categories: {}".format(row.Categories))
+        lines.append("Usage: {} view(s), {} template(s), {} total".format(row.ViewCount, row.TemplateCount, row.TotalCount))
+        lines.append("Status: {}".format(row.Status))
+        lines.append("Duplicate: {} | {}".format(row.DuplicateType, row.DuplicateGroup))
+        same_set = [r.FilterName for r in self.all_audit_rows if r.DuplicateGroup == row.DuplicateGroup and r.DuplicateGroup != "-" and r.FilterId != row.FilterId]
+        if same_set:
+            lines.append("Same set: {}".format(", ".join(sorted(same_set))))
+        lines.append("")
+        lines.append("Rules:")
+        lines.extend(self._filter_rule_lines(filter_el))
+        self._set_audit_details("\n".join(lines))
 
     def ApplyAuditChangesButton_Click(self, s, a):
         self._commit_audit_edits()
@@ -607,6 +718,9 @@ class FilterManagerProWindow(forms.WPFWindow):
 
     def _set_audit_status(self,t):
         try: self.AuditStatusTextBlock.Text=t
+        except Exception: pass
+    def _set_audit_details(self,t):
+        try: self.AuditDetailsTextBlock.Text=t
         except Exception: pass
     def _set_rename_status(self,t): self.RenameStatusTextBlock.Text=t
     def _set_replace_status(self,t): self.ReplaceStatusTextBlock.Text=t
