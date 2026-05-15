@@ -5,8 +5,8 @@
   <Window.Resources>
     <Style x:Key="ToolButtonStyle" TargetType="Button">
       <Setter Property="Foreground" Value="White"/>
-      <Setter Property="Background" Value="#355266"/>
-      <Setter Property="BorderBrush" Value="#4A6C85"/>
+      <Setter Property="Background" Value="#2F4B5E"/>
+      <Setter Property="BorderBrush" Value="#4C6B82"/>
       <Setter Property="Height" Value="30"/>
       <Setter Property="Padding" Value="12,4"/>
       <Setter Property="Margin" Value="0,0,6,0"/>
@@ -108,10 +108,10 @@
           <TextBlock Text="FILTER MANAGER PRO - pyMENVIC" Foreground="White" FontSize="18" FontWeight="Bold" VerticalAlignment="Center"/>
         </StackPanel>
         <WrapPanel Grid.Column="1">
-          <Border x:Name="HeaderCardBorder1" Background="#1F2B35" Padding="10,6" Margin="4,0"><StackPanel><TextBlock x:Name="HeaderCardLabel1" Foreground="#8FA7BA" FontSize="11"/><TextBlock x:Name="HeaderCardValue1" Foreground="White" FontSize="16" FontWeight="Bold"/></StackPanel></Border>
-          <Border x:Name="HeaderCardBorder2" Background="#1F2B35" Padding="10,6" Margin="4,0"><StackPanel><TextBlock x:Name="HeaderCardLabel2" Foreground="#8FA7BA" FontSize="11"/><TextBlock x:Name="HeaderCardValue2" Foreground="White" FontSize="16" FontWeight="Bold"/></StackPanel></Border>
-          <Border x:Name="HeaderCardBorder3" Background="#1F2B35" Padding="10,6" Margin="4,0"><StackPanel><TextBlock x:Name="HeaderCardLabel3" Foreground="#8FA7BA" FontSize="11"/><TextBlock x:Name="HeaderCardValue3" Foreground="White" FontSize="16" FontWeight="Bold"/></StackPanel></Border>
-          <Border x:Name="HeaderCardBorder4" Background="#1F2B35" Padding="10,6" Margin="4,0"><StackPanel><TextBlock x:Name="HeaderCardLabel4" Foreground="#8FA7BA" FontSize="11"/><TextBlock x:Name="HeaderCardValue4" Foreground="White" FontSize="16" FontWeight="Bold"/></StackPanel></Border>
+          <Border x:Name="HeaderCardBorder1" Background="#1F2B35" BorderBrush="#344B5B" BorderThickness="1" CornerRadius="4" Padding="10,6" Margin="4,0"><StackPanel><TextBlock x:Name="HeaderCardLabel1" Foreground="#8FA7BA" FontSize="11"/><TextBlock x:Name="HeaderCardValue1" Foreground="White" FontSize="16" FontWeight="Bold"/></StackPanel></Border>
+          <Border x:Name="HeaderCardBorder2" Background="#1F2B35" BorderBrush="#344B5B" BorderThickness="1" CornerRadius="4" Padding="10,6" Margin="4,0"><StackPanel><TextBlock x:Name="HeaderCardLabel2" Foreground="#8FA7BA" FontSize="11"/><TextBlock x:Name="HeaderCardValue2" Foreground="White" FontSize="16" FontWeight="Bold"/></StackPanel></Border>
+          <Border x:Name="HeaderCardBorder3" Background="#1F2B35" BorderBrush="#344B5B" BorderThickness="1" CornerRadius="4" Padding="10,6" Margin="4,0"><StackPanel><TextBlock x:Name="HeaderCardLabel3" Foreground="#8FA7BA" FontSize="11"/><TextBlock x:Name="HeaderCardValue3" Foreground="White" FontSize="16" FontWeight="Bold"/></StackPanel></Border>
+          <Border x:Name="HeaderCardBorder4" Background="#1F2B35" BorderBrush="#344B5B" BorderThickness="1" CornerRadius="4" Padding="10,6" Margin="4,0"><StackPanel><TextBlock x:Name="HeaderCardLabel4" Foreground="#8FA7BA" FontSize="11"/><TextBlock x:Name="HeaderCardValue4" Foreground="White" FontSize="16" FontWeight="Bold"/></StackPanel></Border>
         </WrapPanel>
       </Grid>
     </Border>
@@ -153,13 +153,13 @@
               <DataGridTextColumn Header="Duplicate Set" Binding="{Binding DuplicateGroup}" IsReadOnly="True" Width="150"/>
             </DataGrid.Columns>
           </DataGrid>
-          <Border Grid.Row="3" Background="White" Padding="8" Margin="0,6">
+          <Border Grid.Row="3" Background="White" BorderBrush="#B8C6D1" BorderThickness="1" Padding="8" Margin="0,6">
             <Grid>
               <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="*"/>
               </Grid.RowDefinitions>
-              <Border Background="#E9EEF3" BorderBrush="#C8D2DC" BorderThickness="0,0,0,1" Padding="6,3" Margin="0,0,0,6">
+              <Border Background="#E6EDF3" BorderBrush="#AAB8C4" BorderThickness="0,0,0,1" Padding="6,3" Margin="0,0,0,6">
                 <TextBlock Text="FILTER DETAILS" FontWeight="Bold" Foreground="#1E252B" FontSize="13"/>
               </Border>
               <Grid Grid.Row="1">
@@ -176,14 +176,14 @@
                     <TextBlock x:Name="AuditDetailsFilterTextBlock" Text="Select a filter." TextWrapping="Wrap" FontFamily="Consolas" FontSize="12"/>
                   </StackPanel>
                 </ScrollViewer>
-                <Border Grid.Column="1" Background="#D1D9E0" Width="1" HorizontalAlignment="Center"/>
+                <Border Grid.Column="1" Background="#C2CCD5" Width="1" HorizontalAlignment="Center"/>
                 <ScrollViewer x:Name="AuditDetailsDuplicateScrollViewer" Grid.Column="2" VerticalScrollBarVisibility="Auto">
                   <StackPanel>
                     <TextBlock Text="DUPLICATE" FontWeight="Bold" Foreground="#1E252B" Margin="0,0,0,4"/>
                     <TextBlock x:Name="AuditDetailsDuplicateTextBlock" Text="Duplicate information will appear here." TextWrapping="Wrap" FontFamily="Consolas" FontSize="12"/>
                   </StackPanel>
                 </ScrollViewer>
-                <Border Grid.Column="3" Background="#D1D9E0" Width="1" HorizontalAlignment="Center"/>
+                <Border Grid.Column="3" Background="#C2CCD5" Width="1" HorizontalAlignment="Center"/>
                 <ScrollViewer x:Name="AuditDetailsRulesScrollViewer" Grid.Column="4" VerticalScrollBarVisibility="Auto">
                   <StackPanel>
                     <TextBlock Text="RULES" FontWeight="Bold" Foreground="#1E252B" Margin="0,0,0,4"/>
