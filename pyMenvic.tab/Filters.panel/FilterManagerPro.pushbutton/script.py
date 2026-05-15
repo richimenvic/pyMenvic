@@ -38,7 +38,7 @@ from System.IO import FileStream, FileMode, FileAccess
 from System.Windows.Media.Imaging import BitmapImage, BitmapCacheOption
 from System.Windows import Visibility
 
-from Autodesk.Revit.DB import View, ElementId, Transaction
+from Autodesk.Revit.DB import View, ElementId, Transaction, Category
 from pyrevit import forms, revit, script
 
 doc = revit.doc
@@ -53,7 +53,7 @@ class FilterOption(object):
 
 
 class AuditRow(object):
-    def __init__(self, filter_id, original_name, name, categories, vc, tc, dup):
+    def __init__(self, filter_id, original_name, name, categories, vc, tc, duplicate_label):
         self.FilterId = filter_id
         self.OriginalName = original_name
         self.FilterName = name
@@ -62,7 +62,7 @@ class AuditRow(object):
         self.TemplateCount = tc
         self.TotalCount = vc + tc
         self.Status = "Used" if self.TotalCount > 0 else "Unused"
-        self.Duplicate = "Possible" if dup else "-"
+        self.Duplicate = duplicate_label or "-"
 
 
 class RenameRow(object):
@@ -150,76 +150,137 @@ class FilterManagerProWindow(forms.WPFWindow):
                 try: s.Close()
                 except Exception: pass
 
-    def _get_categories(self, filter_el):
-        category_ids = []
-        try: category_ids = list(filter_el.GetCategories())
+    def _safe_class_name(self, obj):
+        try: return obj.GetType().Name
+        except Exception:
+            try: return obj.__class__.__name__
+            except Exception: return str(type(obj))
+
+    def _category_ids(self, filter_el):
+        try: return list(filter_el.GetCategories())
         except Exception:
             try:
                 raw = getattr(filter_el, "Categories", None)
-                if raw: category_ids = list(raw)
-            except Exception:
-                category_ids = []
-        names = []
-        for cid in category_ids:
-            try:
-                cobj = doc.Settings.Categories.get_Item(cid)
-                if cobj and cobj.Name: names.append(cobj.Name)
+                if raw: return list(raw)
             except Exception: pass
-        unique = sorted(set(names))
+        return []
+
+    def _category_name_from_id(self, cid):
+        try:
+            cat = Category.GetCategory(doc, cid)
+            if cat and cat.Name: return cat.Name
+        except Exception: pass
+        try:
+            cat = doc.Settings.Categories.get_Item(cid)
+            if cat and cat.Name: return cat.Name
+        except Exception: pass
+        try:
+            cid_value = element_id_value(cid)
+            for cat in doc.Settings.Categories:
+                try:
+                    if element_id_value(cat.Id) == cid_value:
+                        return cat.Name
+                except Exception: pass
+        except Exception: pass
+        try: return "CategoryId {}".format(element_id_value(cid))
+        except Exception: return str(cid)
+
+    def _get_categories(self, filter_el):
+        names = []
+        for cid in self._category_ids(filter_el):
+            names.append(self._category_name_from_id(cid))
+        unique = sorted(set([n for n in names if n]))
         if not unique: return "N/A"
-        if len(unique) <= 3: return ", ".join(unique)
+        if len(unique) <= 4: return ", ".join(unique)
         return "{} categories".format(len(unique))
 
+    def _category_signature(self, filter_el):
+        values = []
+        for cid in self._category_ids(filter_el):
+            try: values.append(str(element_id_value(cid)))
+            except Exception: values.append(str(cid))
+        return "|".join(sorted(values))
+
+    def _extract_rule_parameter_id(self, rule):
+        for method_name in ("GetRuleParameter",):
+            try: return getattr(rule, method_name)()
+            except Exception: pass
+        for property_name in ("RuleParameter", "ParameterId"):
+            try: return getattr(rule, property_name)
+            except Exception: pass
+        return None
+
+    def _extract_rule_value(self, rule):
+        for method_name in ("GetStringValue", "GetValue", "GetIntegerValue", "GetDoubleValue", "GetElementIdValue"):
+            try: return getattr(rule, method_name)()
+            except Exception: pass
+        return None
+
+    def _rule_signature(self, rule):
+        parameter_id = self._extract_rule_parameter_id(rule)
+        try: parameter_value = element_id_value(parameter_id)
+        except Exception: parameter_value = str(parameter_id)
+        value = self._extract_rule_value(rule)
+        try: value = element_id_value(value)
+        except Exception: pass
+        evaluator_name = ""
+        try: evaluator_name = self._safe_class_name(rule.Evaluator)
+        except Exception: pass
+        return "{}|{}|{}|{}".format(self._safe_class_name(rule), parameter_value, value, evaluator_name)
+
+    def _element_filter_signature(self, element_filter):
+        if element_filter is None: return ""
+        class_name = self._safe_class_name(element_filter)
+        if class_name in ("LogicalAndFilter", "LogicalOrFilter"):
+            parts = []
+            try:
+                for child_filter in list(element_filter.GetFilters()):
+                    parts.append(self._element_filter_signature(child_filter))
+            except Exception: pass
+            return "{}({})".format(class_name, ";".join(sorted(parts)))
+        if class_name == "ElementParameterFilter":
+            rule_parts = []
+            try:
+                for rule in list(element_filter.GetRules()):
+                    rule_parts.append(self._rule_signature(rule))
+            except Exception: pass
+            return "{}({})".format(class_name, ";".join(sorted(rule_parts)))
+        return "{}:{}".format(class_name, str(element_filter))
+
+    def _filter_content_signature(self, filter_el):
+        if filter_el is None: return ""
+        cat_sig = self._category_signature(filter_el)
+        filter_sig = ""
+        try: filter_sig = self._element_filter_signature(filter_el.GetElementFilter())
+        except Exception: pass
+        if not filter_sig:
+            rule_parts = []
+            try:
+                for rule in list(filter_el.GetRules()):
+                    rule_parts.append(self._rule_signature(rule))
+            except Exception: pass
+            filter_sig = "RULES({})".format(";".join(sorted(rule_parts)))
+        if not cat_sig and not filter_sig: return ""
+        return "CATS[{}] FILTER[{}]".format(cat_sig, filter_sig)
+
     def _load_audit(self):
-        self.audit_rows.Clear(); views = self._views(); rows = []
+        self.audit_rows.Clear(); views = self._views(); rows = []; sig_groups = {}
         for f in self.filters:
             fid = element_id_value(f.ElementId); filter_el = doc.GetElement(f.ElementId)
-            cats = self._get_categories(filter_el); vc = 0; tc = 0
+            cats = self._get_categories(filter_el); sig = self._filter_content_signature(filter_el); vc = 0; tc = 0
             for v in views:
                 try: ids = [element_id_value(x) for x in v.GetFilters()]
                 except Exception: continue
                 if fid in ids: tc += 1 if v.IsTemplate else 0; vc += 0 if v.IsTemplate else 1
-            rows.append((fid, f.Name, cats, vc, tc))
-        sig_groups = {}
-        for row in rows: sig_groups.setdefault((row[2].lower(), row[3], row[4]), []).append(row[0])
+            rows.append((fid, f.Name, cats, vc, tc, sig))
+            if sig: sig_groups.setdefault(sig, []).append(fid)
         for row in rows:
-            dup = len(sig_groups.get((row[2].lower(), row[3], row[4]), [])) > 1
+            dup = "Exact" if row[5] and len(sig_groups.get(row[5], [])) > 1 else "-"
             self.audit_rows.Add(AuditRow(row[0], row[1], row[1], row[2], row[3], row[4], dup))
         self._refresh_active_tab_summary()
 
     def ApplyAuditChangesButton_Click(self, s, a):
-        changed = [r for r in self.audit_rows if (r.FilterName or "").strip() != (r.OriginalName or "").strip()]
-        if not changed:
-            self._set_reports_status("Audit Apply: no name changes to apply.")
-            return
-        names = [(r.FilterName or "").strip() for r in changed]
-        if "" in names:
-            self._set_reports_status("Audit Apply failed: edited names cannot be empty.")
-            return
-        lowered = [n.lower() for n in names]
-        if len(set(lowered)) != len(lowered):
-            self._set_reports_status("Audit Apply failed: duplicate edited names.")
-            return
-        changed_ids = set([r.FilterId for r in changed])
-        existing = set([f.Name.lower() for f in self.filters if element_id_value(f.ElementId) not in changed_ids])
-        for n in names:
-            if n.lower() in existing:
-                self._set_reports_status("Audit Apply failed: edited names conflict with existing filters.")
-                return
-        ok = 0; fail = 0
-        tx = Transaction(doc, "Filter Manager Pro - Apply Audit Names")
-        tx.Start()
-        try:
-            for r in changed:
-                try: doc.GetElement(ElementId(r.FilterId)).Name = (r.FilterName or "").strip(); ok += 1
-                except Exception: fail += 1
-            tx.Commit()
-        except Exception:
-            try: tx.RollBack()
-            except Exception: pass
-            fail = len(changed)
-        self.filters = self._collect_filters(); self._rebuild_maps(); self.SourceComboBox.ItemsSource = self.filter_names; self.TargetComboBox.ItemsSource = self.filter_names
-        self._load_audit(); self._load_rename_rows(); self._set_reports_status("Audit Apply complete. Renamed: {} | Failed: {}".format(ok, fail))
+        forms.alert("Audit is read-only. Use Rename / Standardize to rename filters.", title="Filter Manager Pro", exitscript=False)
 
     def _load_rename_rows(self):
         self.all_rename_rows = [RenameRow(element_id_value(f.ElementId), f.Name, f.Name) for f in self.filters]
