@@ -55,6 +55,8 @@ from pyrevit import forms, revit, script
 doc = revit.doc
 XAML_FILE = script.get_bundle_file("filter_manager_pro.xaml")
 LOGO_FILE = get_filters_logo_path()
+TOOL_VERSION = "MVP 0.3.39"
+TOOL_LABEL = "pyMENVIC Filter Manager Pro | {}".format(TOOL_VERSION)
 
 
 def safe_element_id(value):
@@ -121,6 +123,10 @@ class FilterManagerProWindow(forms.WPFWindow):
     def __init__(self):
         forms.WPFWindow.__init__(self, XAML_FILE)
         self._load_header_logo()
+        try:
+            self.FooterVersionTextBlock.Text = TOOL_LABEL
+        except Exception:
+            pass
         self.filters = self._collect_filters()
         self._rebuild_maps()
         self.audit_rows = ObservableCollection[object]()
@@ -576,7 +582,7 @@ class FilterManagerProWindow(forms.WPFWindow):
             pass
         return texts
 
-    def _element_filter_detail_lines(self, element_filter, indent=""):
+    def _element_filter_detail_lines(self, element_filter, indent="", group_label=None):
         if element_filter is None:
             return []
         class_name = self._safe_class_name(element_filter)
@@ -596,10 +602,22 @@ class FilterManagerProWindow(forms.WPFWindow):
                             lines.append("{}- {} | {}".format(indent, category_name, rule_text))
                     return lines
             logic_label = "All rules must be true:" if class_name == "LogicalAndFilter" else "Any rule may be true:"
-            lines.append("{}{}".format(indent, logic_label))
+            lines.append("{}{}".format(indent, group_label if group_label else logic_label))
             if child_filters:
+                logical_type_counts = {}
                 for child_filter in child_filters:
-                    lines.extend(self._element_filter_detail_lines(child_filter, indent + "  "))
+                    child_class = self._safe_class_name(child_filter)
+                    if child_class in ("LogicalAndFilter", "LogicalOrFilter"):
+                        logical_type_counts[child_class] = logical_type_counts.get(child_class, 0) + 1
+                logical_type_index = {}
+                for child_filter in child_filters:
+                    child_class = self._safe_class_name(child_filter)
+                    child_group_label = None
+                    if child_class in ("LogicalAndFilter", "LogicalOrFilter") and logical_type_counts.get(child_class, 0) > 1:
+                        logical_type_index[child_class] = logical_type_index.get(child_class, 0) + 1
+                        child_logic_label = "All rules must be true:" if child_class == "LogicalAndFilter" else "Any rule may be true:"
+                        child_group_label = "Rule Set {} - {}".format(logical_type_index[child_class], child_logic_label)
+                    lines.extend(self._element_filter_detail_lines(child_filter, indent + "  ", child_group_label))
             else:
                 lines.append("{}  <unable to read child filters>".format(indent))
             return lines
