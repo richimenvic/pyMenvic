@@ -63,11 +63,12 @@ class FilterOption(object):
 
 
 class AuditRow(object):
-    def __init__(self, filter_id, original_name, name, categories, vc, tc, duplicate_type, duplicate_group):
+    def __init__(self, filter_id, original_name, name, categories, category_names, vc, tc, duplicate_type, duplicate_group):
         self.FilterId = filter_id
         self.OriginalName = original_name
         self.FilterName = name
         self.Categories = categories
+        self.CategoryNames = category_names or []
         self.ViewCount = vc
         self.TemplateCount = tc
         self.TotalCount = vc + tc
@@ -276,16 +277,24 @@ class FilterManagerProWindow(forms.WPFWindow):
         except Exception:
             return str(cid)
 
-    def _get_categories(self, filter_el):
+    def _get_category_names(self, filter_el):
         names = []
         for cid in self._category_ids(filter_el):
-            names.append(self._category_name_from_id(cid))
-        unique = sorted(set([n for n in names if n]))
-        if not unique:
+            name = self._category_name_from_id(cid)
+            if name:
+                names.append(name)
+        return sorted(set(names))
+
+    def _format_category_summary(self, category_names):
+        names = list(category_names or [])
+        if not names:
             return "N/A"
-        if len(unique) <= 4:
-            return ", ".join(unique)
-        return "{} categories".format(len(unique))
+        if len(names) <= 4:
+            return ", ".join(names)
+        return "{}, +{}".format(", ".join(names[:4]), len(names) - 4)
+
+    def _get_categories(self, filter_el):
+        return self._format_category_summary(self._get_category_names(filter_el))
 
     def _category_signature(self, filter_el):
         values = []
@@ -336,30 +345,55 @@ class FilterManagerProWindow(forms.WPFWindow):
         except Exception:
             return str(value)
 
+    def _inner_rule(self, rule):
+        if self._safe_class_name(rule) != "FilterInverseRule":
+            return None
+        for method_name in ("GetInnerRule", "GetRule"):
+            try:
+                inner = getattr(rule, method_name)()
+                if inner:
+                    return inner
+            except Exception:
+                pass
+        for property_name in ("InnerRule", "Rule"):
+            try:
+                inner = getattr(rule, property_name)
+                if inner:
+                    return inner
+            except Exception:
+                pass
+        return None
+
+    def _rule_for_value_access(self, rule):
+        inner = self._inner_rule(rule)
+        return inner if inner else rule
+
     def _extract_rule_parameter_id(self, rule):
+        access_rule = self._rule_for_value_access(rule)
         for method_name in ("GetRuleParameter", "GetParameterId", "GetParameter"):
             try:
-                return getattr(rule, method_name)()
+                return getattr(access_rule, method_name)()
             except Exception:
                 pass
         for property_name in ("RuleParameter", "ParameterId", "Parameter"):
             try:
-                return getattr(rule, property_name)
+                return getattr(access_rule, property_name)
             except Exception:
                 pass
         return None
 
     def _extract_rule_value(self, rule):
+        access_rule = self._rule_for_value_access(rule)
         for method_name in ("GetRuleString", "GetRuleValue", "GetStringValue", "GetValue", "GetIntegerValue", "GetDoubleValue", "GetElementIdValue"):
             try:
-                value = getattr(rule, method_name)()
+                value = getattr(access_rule, method_name)()
                 if value is not None:
                     return value
             except Exception:
                 pass
         for property_name in ("RuleString", "RuleValue", "StringValue", "Value", "IntegerValue", "DoubleValue", "ElementIdValue"):
             try:
-                value = getattr(rule, property_name)
+                value = getattr(access_rule, property_name)
                 if value is not None:
                     return value
             except Exception:
@@ -367,16 +401,17 @@ class FilterManagerProWindow(forms.WPFWindow):
         return None
 
     def _extract_rule_evaluator_name(self, rule):
+        access_rule = self._rule_for_value_access(rule)
         for method_name in ("GetEvaluator",):
             try:
-                evaluator = getattr(rule, method_name)()
+                evaluator = getattr(access_rule, method_name)()
                 if evaluator:
                     return self._safe_class_name(evaluator)
             except Exception:
                 pass
         for property_name in ("Evaluator",):
             try:
-                evaluator = getattr(rule, property_name)
+                evaluator = getattr(access_rule, property_name)
                 if evaluator:
                     return self._safe_class_name(evaluator)
             except Exception:
@@ -408,8 +443,24 @@ class FilterManagerProWindow(forms.WPFWindow):
         cleaned = raw.replace("Filter", "").replace("Evaluator", "").replace("Rule", "")
         return cleaned.strip().lower() or "operator not readable"
 
+    def _invert_operator(self, operator_name):
+        lookup = {
+            "equals": "does not equal",
+            "contains": "does not contain",
+            "begins with": "does not begin with",
+            "ends with": "does not end with",
+            "greater than": "is not greater than",
+            "greater than or equal": "is less than",
+            "less than": "is not less than",
+            "less than or equal": "is greater than"
+        }
+        return lookup.get(operator_name, "not " + operator_name)
+
     def _extract_rule_operator(self, rule):
-        return self._friendly_operator_name(self._extract_rule_evaluator_name(rule), self._safe_class_name(rule))
+        base_operator = self._friendly_operator_name(self._extract_rule_evaluator_name(rule), self._safe_class_name(self._rule_for_value_access(rule)))
+        if self._safe_class_name(rule) == "FilterInverseRule":
+            return self._invert_operator(base_operator)
+        return base_operator
 
     def _rule_signature(self, rule):
         parameter_id = self._extract_rule_parameter_id(rule)
@@ -423,19 +474,52 @@ class FilterManagerProWindow(forms.WPFWindow):
         except Exception:
             pass
         evaluator_name = self._extract_rule_evaluator_name(rule)
-        return "{}|{}|{}|{}".format(self._safe_class_name(rule), parameter_value, value, evaluator_name)
+        inverse = "NOT" if self._safe_class_name(rule) == "FilterInverseRule" else ""
+        return "{}|{}|{}|{}|{}".format(self._safe_class_name(self._rule_for_value_access(rule)), parameter_value, value, evaluator_name, inverse)
 
-    def _rule_detail_line(self, rule):
+    def _rule_detail_text(self, rule):
         parameter_name = self._param_name(self._extract_rule_parameter_id(rule))
         operator_name = self._extract_rule_operator(rule)
         value = self._display_value(self._extract_rule_value(rule))
         if value == "<value not readable>":
-            if parameter_name == "Category":
-                return "- Category is not readable"
-            if operator_name == "not":
-                return "- {} is not readable".format(parameter_name)
-            return "- {} value is not readable".format(parameter_name)
-        return "- {} {} {}".format(parameter_name, operator_name, value)
+            return "{}: value not readable".format(parameter_name)
+        return "{} {} {}".format(parameter_name, operator_name, value)
+
+    def _rule_detail_line(self, rule):
+        return "- " + self._rule_detail_text(rule)
+
+    def _category_filter_names(self, element_filter):
+        if element_filter is None:
+            return []
+        class_name = self._safe_class_name(element_filter)
+        ids = []
+        if class_name == "ElementCategoryFilter":
+            for method_name in ("GetCategoryId",):
+                try:
+                    cid = getattr(element_filter, method_name)()
+                    if cid:
+                        ids.append(cid)
+                except Exception:
+                    pass
+            for property_name in ("CategoryId",):
+                try:
+                    cid = getattr(element_filter, property_name)
+                    if cid:
+                        ids.append(cid)
+                except Exception:
+                    pass
+        elif class_name == "ElementMulticategoryFilter":
+            for method_name in ("GetCategoryIds", "GetCategories"):
+                try:
+                    ids.extend(list(getattr(element_filter, method_name)()))
+                except Exception:
+                    pass
+        names = []
+        for cid in ids:
+            name = self._category_name_from_id(cid)
+            if name:
+                names.append(name)
+        return sorted(set(names))
 
     def _element_filter_signature(self, element_filter):
         if element_filter is None:
@@ -457,7 +541,27 @@ class FilterManagerProWindow(forms.WPFWindow):
             except Exception:
                 pass
             return "{}({})".format(class_name, ";".join(sorted(rule_parts)))
+        category_names = self._category_filter_names(element_filter)
+        if category_names:
+            return "{}({})".format(class_name, ";".join(category_names))
         return "{}:{}".format(class_name, str(element_filter))
+
+    def _child_filters(self, element_filter):
+        try:
+            return list(element_filter.GetFilters())
+        except Exception:
+            return []
+
+    def _parameter_rule_texts_from_filter(self, element_filter):
+        texts = []
+        if self._safe_class_name(element_filter) != "ElementParameterFilter":
+            return texts
+        try:
+            for rule in list(element_filter.GetRules()):
+                texts.append(self._rule_detail_text(rule))
+        except Exception:
+            pass
+        return texts
 
     def _element_filter_detail_lines(self, element_filter, indent=""):
         if element_filter is None:
@@ -465,12 +569,25 @@ class FilterManagerProWindow(forms.WPFWindow):
         class_name = self._safe_class_name(element_filter)
         lines = []
         if class_name in ("LogicalAndFilter", "LogicalOrFilter"):
-            logic_label = "All rules must match:" if class_name == "LogicalAndFilter" else "Any rule can match:"
+            child_filters = self._child_filters(element_filter)
+            if class_name == "LogicalAndFilter":
+                category_names = []
+                rule_texts = []
+                for child_filter in child_filters:
+                    category_names.extend(self._category_filter_names(child_filter))
+                    rule_texts.extend(self._parameter_rule_texts_from_filter(child_filter))
+                category_names = sorted(set(category_names))
+                if category_names and rule_texts:
+                    for category_name in category_names:
+                        for rule_text in rule_texts:
+                            lines.append("{}- {} | {}".format(indent, category_name, rule_text))
+                    return lines
+            logic_label = "All rules must be true:" if class_name == "LogicalAndFilter" else "Any rule may be true:"
             lines.append("{}{}".format(indent, logic_label))
-            try:
-                for child_filter in list(element_filter.GetFilters()):
+            if child_filters:
+                for child_filter in child_filters:
                     lines.extend(self._element_filter_detail_lines(child_filter, indent + "  "))
-            except Exception:
+            else:
                 lines.append("{}  <unable to read child filters>".format(indent))
             return lines
         if class_name == "ElementParameterFilter":
@@ -482,6 +599,10 @@ class FilterManagerProWindow(forms.WPFWindow):
                     lines.append(indent + self._rule_detail_line(rule))
             except Exception:
                 lines.append("{}<unable to read parameter rules>".format(indent))
+            return lines
+        category_names = self._category_filter_names(element_filter)
+        if category_names:
+            lines.append("{}- Category: {}".format(indent, ", ".join(category_names)))
             return lines
         lines.append("{}{}".format(indent, class_name))
         return lines
@@ -541,7 +662,8 @@ class FilterManagerProWindow(forms.WPFWindow):
         for f in self.filters:
             fid = element_id_value(f.ElementId)
             filter_el = doc.GetElement(f.ElementId)
-            cats = self._get_categories(filter_el)
+            category_names = self._get_category_names(filter_el)
+            cats = self._format_category_summary(category_names)
             sig = self._filter_content_signature(filter_el)
             vc = 0
             tc = 0
@@ -554,7 +676,7 @@ class FilterManagerProWindow(forms.WPFWindow):
                     tc += 1 if v.IsTemplate else 0
                     vc += 0 if v.IsTemplate else 1
             name_key = self._name_key(f.Name)
-            rows.append((fid, f.Name, cats, vc, tc, sig, name_key))
+            rows.append((fid, f.Name, cats, category_names, vc, tc, sig, name_key))
             if sig:
                 content_groups.setdefault(sig, []).append(fid)
             if name_key:
@@ -564,13 +686,13 @@ class FilterManagerProWindow(forms.WPFWindow):
         for row in rows:
             dup_type = "Not duplicate"
             dup_group = "-"
-            if row[5] and len(content_groups.get(row[5], [])) > 1:
+            if row[6] and len(content_groups.get(row[6], [])) > 1:
                 dup_type = "Exact Definition"
-                dup_group = self._group_label(duplicate_labels, "DEF:{}".format(row[5]))
-            elif row[6] and len(name_groups.get(row[6], [])) > 1:
+                dup_group = self._group_label(duplicate_labels, "DEF:{}".format(row[6]))
+            elif row[7] and len(name_groups.get(row[7], [])) > 1:
                 dup_type = "Similar Name"
-                dup_group = self._group_label(duplicate_labels, "NAME:{}".format(row[6]))
-            self.all_audit_rows.append(AuditRow(row[0], row[1], row[1], row[2], row[3], row[4], dup_type, dup_group))
+                dup_group = self._group_label(duplicate_labels, "NAME:{}".format(row[7]))
+            self.all_audit_rows.append(AuditRow(row[0], row[1], row[1], row[2], row[3], row[4], row[5], dup_type, dup_group))
         self._filter_audit_rows()
         self._update_audit_apply_state()
         self._update_audit_purge_ui()
@@ -610,7 +732,7 @@ class FilterManagerProWindow(forms.WPFWindow):
             if not self._audit_row_matches_scope(r):
                 continue
             if term:
-                haystack = " | ".join([r.FilterName or "", r.Categories or "", r.Status or "", r.DuplicateType or "", r.DuplicateGroup or ""]).lower()
+                haystack = " | ".join([r.FilterName or "", r.Categories or "", " ".join(r.CategoryNames), r.Status or "", r.DuplicateType or "", r.DuplicateGroup or ""]).lower()
                 if term not in haystack:
                     continue
             self.audit_rows.Add(r)
@@ -696,10 +818,16 @@ class FilterManagerProWindow(forms.WPFWindow):
         filter_el = doc.GetElement(ElementId(row.FilterId))
         filter_lines = [
             "Name: {}".format(row.FilterName),
-            "Categories: {}".format(row.Categories),
             "Usage: {} Views | {} Templates | {} Total".format(row.ViewCount, row.TemplateCount, row.TotalCount),
-            "Status: {}".format(row.Status)
+            "Status: {}".format(row.Status),
+            "",
+            "CATEGORIES"
         ]
+        if row.CategoryNames:
+            for category_name in row.CategoryNames:
+                filter_lines.append("- {}".format(category_name))
+        else:
+            filter_lines.append("- N/A")
         duplicate_lines = [
             "Type: {}".format(row.DuplicateType),
             "Set: {}".format(row.DuplicateGroup)
