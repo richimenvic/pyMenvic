@@ -32,6 +32,10 @@ import clr
 clr.AddReference("PresentationFramework")
 clr.AddReference("PresentationCore")
 clr.AddReference("WindowsBase")
+try:
+    clr.AddReference("RevitAPIUI")
+except Exception:
+    pass
 
 from System.Collections.ObjectModel import ObservableCollection
 from System.IO import FileStream, FileMode, FileAccess
@@ -40,10 +44,15 @@ from System.Windows import Visibility
 from System.Windows.Controls import DataGridEditingUnit
 
 from Autodesk.Revit.DB import View, ElementId, Transaction, Category, BuiltInParameter, LabelUtils
+try:
+    from Autodesk.Revit.UI import RevitCommandId, PostableCommand
+except Exception:
+    RevitCommandId = None
+    PostableCommand = None
 from pyrevit import forms, revit, script
 
 doc = revit.doc
-XAML_FILE = script.get_bundle_file("filter_manager_pro_v2.xaml")
+XAML_FILE = script.get_bundle_file("filter_manager_pro.xaml")
 LOGO_FILE = get_filters_logo_path()
 
 
@@ -860,6 +869,34 @@ class FilterManagerProWindow(forms.WPFWindow):
 
     def RefreshAuditButton_Click(self, s, a):
         self._load_audit()
+
+    def OpenRevitFiltersButton_Click(self, s, a):
+        try:
+            if RevitCommandId is None or PostableCommand is None:
+                raise Exception("Revit UI command API is not available.")
+            command_name = None
+            for candidate in ("Filters", "ViewFilters"):
+                try:
+                    command_name = getattr(PostableCommand, candidate)
+                    break
+                except Exception:
+                    command_name = None
+            if command_name is None:
+                raise Exception("Revit Filters command is not available in this Revit version.")
+            cmd_id = RevitCommandId.LookupPostableCommandId(command_name)
+            uiapp = revit.uidoc.Application
+            if cmd_id and uiapp.CanPostCommand(cmd_id):
+                uiapp.PostCommand(cmd_id)
+                self._set_audit_status("Opening Revit Filters dialog.")
+                return
+            raise Exception("Revit could not post the Filters command from this context.")
+        except Exception:
+            self._set_audit_status("Could not open Revit Filters dialog. Use Manage > Filters.")
+            forms.alert(
+                "Could not open Revit Filters dialog from this context.\n\nUse Manage > Filters.",
+                title="Open Revit Filters",
+                exitscript=False
+            )
 
     def MainTabControl_SelectionChanged(self, s, a):
         self._refresh_active_tab_summary()
