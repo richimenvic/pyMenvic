@@ -15,7 +15,13 @@
         <SolidColorBrush x:Key="PanelBgBrush" Color="#26303A"/>
         <SolidColorBrush x:Key="PanelAltBrush" Color="#2F4B5E"/>
         <SolidColorBrush x:Key="SurfaceBgBrush" Color="#1F2B35"/>
-        <SolidColorBrush x:Key="ListSurfaceBgBrush" Color="#26303A"/>
+        <SolidColorBrush x:Key="ListSurfaceBgBrush" Color="#F7F9FB"/>
+        <SolidColorBrush x:Key="TableHeaderBgBrush" Color="#E9EEF3"/>
+        <SolidColorBrush x:Key="TableRowBgBrush" Color="#FFFFFF"/>
+        <SolidColorBrush x:Key="TableAltRowBgBrush" Color="#F0F3F6"/>
+        <SolidColorBrush x:Key="TableGridLineBrush" Color="#C8D1D8"/>
+        <SolidColorBrush x:Key="TableTextBrush" Color="#1E252B"/>
+        <SolidColorBrush x:Key="TableSelectionBrush" Color="#0A70B8"/>
         <SolidColorBrush x:Key="InputBgBrush" Color="#1F2B35"/>
         <SolidColorBrush x:Key="BorderBrush" Color="#344B5B"/>
         <SolidColorBrush x:Key="TextPrimaryBrush" Color="#FFFFFF"/>
@@ -27,8 +33,25 @@
 
         <Style TargetType="TextBlock"><Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/></Style>
         <Style TargetType="TextBox"><Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/><Setter Property="Background" Value="{DynamicResource InputBgBrush}"/><Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/><Setter Property="CaretBrush" Value="{DynamicResource TextPrimaryBrush}"/></Style>
-        <Style TargetType="ListBox"><Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/><Setter Property="Background" Value="{DynamicResource SurfaceBgBrush}"/><Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/></Style>
-        <Style TargetType="ListBoxItem"><Setter Property="HorizontalContentAlignment" Value="Stretch"/><Setter Property="Padding" Value="0"/><Setter Property="Margin" Value="4,0,4,3"/><Setter Property="Background" Value="{DynamicResource PanelAltBrush}"/><Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/><Setter Property="BorderThickness" Value="0,0,0,1"/></Style>
+        <Style TargetType="ListBox"><Setter Property="Foreground" Value="{DynamicResource TableTextBrush}"/><Setter Property="Background" Value="{DynamicResource ListSurfaceBgBrush}"/><Setter Property="BorderBrush" Value="{DynamicResource TableGridLineBrush}"/></Style>
+        <Style TargetType="ListBoxItem">
+            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="Margin" Value="0"/>
+            <Setter Property="Background" Value="{DynamicResource TableRowBgBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource TableGridLineBrush}"/>
+            <Setter Property="BorderThickness" Value="0,0,0,1"/>
+            <Style.Triggers>
+                <Trigger Property="ItemsControl.AlternationIndex" Value="1">
+                    <Setter Property="Background" Value="{DynamicResource TableAltRowBgBrush}"/>
+                </Trigger>
+                <Trigger Property="IsSelected" Value="True">
+                    <Setter Property="Background" Value="{DynamicResource TableSelectionBrush}"/>
+                    <Setter Property="Foreground" Value="White"/>
+                    <Setter Property="FontWeight" Value="SemiBold"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
         <Style TargetType="CheckBox"><Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/><Setter Property="VerticalContentAlignment" Value="Center"/><Setter Property="Padding" Value="0"/><Setter Property="Margin" Value="0"/></Style>
         <Style TargetType="RadioButton"><Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/><Setter Property="VerticalContentAlignment" Value="Center"/><Setter Property="Margin" Value="0,0,0,6"/></Style>
         <Style x:Key="SecondaryButtonStyle" TargetType="Button">
@@ -53,8 +76,8 @@
 
         <Grid Grid.Row="2" Margin="16,0,16,4"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><TextBlock x:Name="lblRevisions" Grid.Column="0" Text="Available revisions" FontWeight="SemiBold"/><TextBlock x:Name="lblStatus" Grid.Column="1" FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" Text="Selected: 0 | Visible: 0 | Total: 0"/></Grid>
 
-        <Border Grid.Row="3" Background="{DynamicResource ListSurfaceBgBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="14" Padding="8" Margin="16,0,16,0">
-            <Grid><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="6"/><RowDefinition Height="*"/></Grid.RowDefinitions><Grid Grid.Row="0"><Grid.ColumnDefinitions><ColumnDefinition Width="34"/><ColumnDefinition Width="44"/><ColumnDefinition Width="3*"/><ColumnDefinition Width="120"/><ColumnDefinition Width="1*"/></Grid.ColumnDefinitions><TextBlock Grid.Column="1" Text="No." FontWeight="SemiBold" HorizontalAlignment="Center" TextAlignment="Center" Foreground="{DynamicResource TextSecondaryBrush}"/><TextBlock Grid.Column="2" Text="Description" FontWeight="SemiBold" Margin="1,0,0,0" HorizontalAlignment="Left" Foreground="{DynamicResource TextSecondaryBrush}"/><TextBlock Grid.Column="3" Text="Date" FontWeight="SemiBold" HorizontalAlignment="Center" TextAlignment="Center" Foreground="{DynamicResource TextSecondaryBrush}"/></Grid><ListBox x:Name="lstRevisions" Grid.Row="2" Background="Transparent" BorderThickness="0" ScrollViewer.VerticalScrollBarVisibility="Auto" FontSize="14"/></Grid>
+        <Border Grid.Row="3" Background="{DynamicResource ListSurfaceBgBrush}" BorderBrush="{DynamicResource TableGridLineBrush}" BorderThickness="1" CornerRadius="0" Padding="0" Margin="16,0,16,0">
+            <Grid><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions><Border Grid.Row="0" Background="{DynamicResource TableHeaderBgBrush}" BorderBrush="{DynamicResource TableGridLineBrush}" BorderThickness="0,0,0,1" Padding="8,5"><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="34"/><ColumnDefinition Width="44"/><ColumnDefinition Width="3*"/><ColumnDefinition Width="120"/><ColumnDefinition Width="1*"/></Grid.ColumnDefinitions><TextBlock Grid.Column="1" Text="No." FontWeight="SemiBold" HorizontalAlignment="Center" TextAlignment="Center" Foreground="{DynamicResource TableTextBrush}"/><TextBlock Grid.Column="2" Text="Description" FontWeight="SemiBold" Margin="1,0,0,0" HorizontalAlignment="Left" Foreground="{DynamicResource TableTextBrush}"/><TextBlock Grid.Column="3" Text="Date" FontWeight="SemiBold" HorizontalAlignment="Center" TextAlignment="Center" Foreground="{DynamicResource TableTextBrush}"/></Grid></Border><ListBox x:Name="lstRevisions" Grid.Row="1" Background="{DynamicResource ListSurfaceBgBrush}" BorderThickness="0" ScrollViewer.VerticalScrollBarVisibility="Auto" FontSize="14" AlternationCount="2"><ListBox.Resources><Style TargetType="TextBlock"><Setter Property="Foreground" Value="{DynamicResource TableTextBrush}"/></Style></ListBox.Resources></ListBox></Grid>
         </Border>
 
         <Grid Grid.Row="5" Margin="16,8,16,0"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="10"/><ColumnDefinition Width="*"/><ColumnDefinition Width="10"/><ColumnDefinition Width="*"/><ColumnDefinition Width="0.55*"/><ColumnDefinition Width="6"/><ColumnDefinition Width="*"/><ColumnDefinition Width="10"/><ColumnDefinition Width="1.25*"/></Grid.ColumnDefinitions><Button x:Name="btnSelectVisible" Grid.Column="0" Style="{StaticResource SecondaryButtonStyle}" Content="Select Visible" Height="36" MinWidth="120"/><Button x:Name="btnClearVisible" Grid.Column="2" Style="{StaticResource SecondaryButtonStyle}" Content="Clear Visible" Height="36" MinWidth="120"/><Button x:Name="btnInvertVisible" Grid.Column="4" Style="{StaticResource SecondaryButtonStyle}" Content="Invert Visible" Height="36" MinWidth="120"/><Button x:Name="btnCancel" Grid.Column="7" Style="{StaticResource SecondaryButtonStyle}" Content="Cancel" Height="36" MinWidth="120"/><Button x:Name="btnCreate" Grid.Column="9" Style="{StaticResource PrimaryButtonStyle}" Content="Create Sheet Set" Height="38" MinWidth="170" FontWeight="SemiBold"/></Grid>
