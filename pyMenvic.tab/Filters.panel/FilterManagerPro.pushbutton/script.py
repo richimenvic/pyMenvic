@@ -456,8 +456,8 @@ class FilterManagerProWindow(forms.WPFWindow):
         class_name = self._safe_class_name(element_filter)
         lines = []
         if class_name in ("LogicalAndFilter", "LogicalOrFilter"):
-            logic_label = "AND" if class_name == "LogicalAndFilter" else "OR"
-            lines.append("{}{} group:".format(indent, logic_label))
+            logic_label = "All rules must match:" if class_name == "LogicalAndFilter" else "Any rule can match:"
+            lines.append("{}{}".format(indent, logic_label))
             try:
                 for child_filter in list(element_filter.GetFilters()):
                     lines.extend(self._element_filter_detail_lines(child_filter, indent + "  "))
