@@ -224,7 +224,7 @@ class FilterManagerProWindow(forms.WPFWindow):
                 self._card("DUP. SETS", self._duplicate_group_count(self.all_audit_rows))
             ])
         elif "Rename" in h:
-            ready = len([r for r in self.rename_rows if r.Apply])
+            ready = len([r for r in self.rename_rows if r.Apply and r.Status == "Ready to Rename"])
             self._set_header_cards([self._card("ROWS", len(self.rename_rows)), self._card("READY", ready)])
         elif "Replace" in h:
             self._set_header_cards([self._card("PREVIEW", len(self.replace_rows)), self._card("APPLY", len([r for r in self.replace_rows if r.Apply]))])
@@ -1084,6 +1084,7 @@ class FilterManagerProWindow(forms.WPFWindow):
     def _load_rename_rows(self):
         self.all_rename_rows = [RenameRow(element_id_value(f.ElementId), f.Name, f.Name) for f in self.filters]
         self._filter_rename_rows()
+        self._update_rename_apply_state()
 
     def _filter_rename_rows(self):
         term = (self.RenameSearchTextBox.Text or "").strip().lower()
@@ -1092,7 +1093,12 @@ class FilterManagerProWindow(forms.WPFWindow):
             if term and term not in r.CurrentName.lower() and term not in r.ProposedName.lower():
                 continue
             self.rename_rows.Add(r)
+        self._update_rename_apply_state()
         self._refresh_active_tab_summary()
+
+    def _update_rename_apply_state(self):
+        ready_rows = [r for r in self.all_rename_rows if r.Apply and r.Status == "Ready to Rename"]
+        self.ApplyRenameButton.IsEnabled = len(ready_rows) > 0
 
     def PreviewRenameButton_Click(self, s, a):
         f = (self.FindTextBox.Text or "")
@@ -1100,6 +1106,8 @@ class FilterManagerProWindow(forms.WPFWindow):
         pre = (self.RenamePrefixTextBox.Text or "")
         suf = (self.RenameSuffixTextBox.Text or "")
         up = self.UppercaseCheckBox.IsChecked
+        ready = 0
+        unchanged = 0
         for r in self.all_rename_rows:
             p = r.CurrentName
             if f:
@@ -1109,17 +1117,24 @@ class FilterManagerProWindow(forms.WPFWindow):
                 p = p.upper()
             r.ProposedName = p
             r.Apply = (r.CurrentName != r.ProposedName)
-            r.Status = "Ready" if r.Apply else "No change"
+            if r.Apply:
+                r.Status = "Ready to Rename"
+                ready += 1
+            else:
+                r.Status = "No change"
+                unchanged += 1
         self._filter_rename_rows()
-        self._set_rename_status("Preview ready.")
+        self._update_rename_apply_state()
+        self._set_rename_status("Preview ready: {} ready to rename | {} unchanged.".format(ready, unchanged))
 
     def ResetRenameRowButton_Click(self, s, a):
         r = self.RenameGrid.SelectedItem
         if r:
             r.ProposedName = r.CurrentName
             r.Apply = False
-            r.Status = "Reset"
+            r.Status = "No change"
             self.RenameGrid.Items.Refresh()
+            self._update_rename_apply_state()
             self._refresh_active_tab_summary()
 
     def AuditSearchTextBox_TextChanged(self, s, a):
@@ -1165,21 +1180,34 @@ class FilterManagerProWindow(forms.WPFWindow):
         self._refresh_active_tab_summary()
 
     def ApplyRenameButton_Click(self, s, a):
-        rows = [r for r in self.all_rename_rows if r.Apply]
+        rows = [r for r in self.all_rename_rows if r.Apply and r.Status == "Ready to Rename"]
         if not rows:
-            self._set_rename_status("Nothing selected to rename.")
+            self._set_rename_status("Nothing ready to rename.")
             return
         names = [(r.ProposedName or "").strip() for r in rows]
         if "" in names:
-            self._set_rename_status("Validation failed: empty proposed names.")
+            bad = None
+            for r in rows:
+                if not (r.ProposedName or "").strip():
+                    bad = r
+                    break
+            self._set_rename_status("Validation failed: empty proposed name for: {}".format(bad.CurrentName if bad else "Unknown"))
             return
         if len(set([n.lower() for n in names])) != len(names):
-            self._set_rename_status("Validation failed: duplicate proposed names.")
+            seen = set()
+            dup = None
+            for n in names:
+                key = n.lower()
+                if key in seen:
+                    dup = n
+                    break
+                seen.add(key)
+            self._set_rename_status("Validation failed: duplicate proposed name: {}".format(dup if dup is not None else "Unknown"))
             return
         existing = set([f.Name.lower() for f in self.filters if element_id_value(f.ElementId) not in [r.FilterId for r in rows]])
         for n in names:
             if n.lower() in existing:
-                self._set_rename_status("Validation failed: conflicts with existing filters.")
+                self._set_rename_status("Validation failed: name already exists: {}".format(n))
                 return
         ok = 0
         fail = 0
@@ -1205,6 +1233,7 @@ class FilterManagerProWindow(forms.WPFWindow):
         self.TargetComboBox.ItemsSource = self.filter_names
         self._load_audit()
         self._load_rename_rows()
+        self._update_rename_apply_state()
         self._set_rename_status("Apply Rename complete. Renamed: {} | Failed: {}".format(ok, fail))
 
     def PreviewReplaceButton_Click(self, s, a):
