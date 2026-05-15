@@ -30,13 +30,11 @@ CONFIG_PATH = os.path.join(SCRIPT_DIR, 'config.xml')
 CONFIG_ES_PATH = os.path.join(SCRIPT_DIR, 'config.es.xml')
 XAML_PATH = os.path.join(SCRIPT_DIR, 'RevisionSelector.xaml')
 LOGO_RELATIVE_PATH = os.path.join('_resources', 'logos', 'menvic_logo.png')
+TOOL_VERSION = "MVP 0.3.39"
 
 DEFAULT_CONFIG = {
-    "settings": {
-        "language": "auto",
-    },
+    "settings": {"language": "auto"},
     "ui": {
-        "button_name": "Create Sheet Set",
         "selector_title": "Select Revisions",
         "search_label": "Search revisions",
         "search_placeholder": "Type to filter revisions...",
@@ -44,16 +42,7 @@ DEFAULT_CONFIG = {
         "mode_help": "All selected revisions = only sheets that contain every selected revision. Any selected revision = sheets that contain at least one selected revision.",
         "revisions_label": "Available revisions",
         "selection_status": "Selected: {} | Visible: {} | Total: {}",
-        "pick_option": "Pick an option:",
         "empty_sheets_title": "**Empty sheets detected:**",
-        "report_title": "### pyMenvic | Revision Sheet Set - RUN",
-        "report_sheetset": "# Sheet Set: {}",
-        "report_revision": "## {}",
-        "report_summary": "Status: {} | Mode: {} | Sheets: {} | Empty: {}",
-        "report_note": "**Note:** {}",
-        "report_cancelled": "**Note:** Operation cancelled by user.",
-        "report_revisions_included": "**Revisions included:**",
-        "report_graphic_check": "#### Graphic Check",
     },
     "options": {
         "match_any": "Any selected revision",
@@ -71,18 +60,6 @@ DEFAULT_CONFIG = {
         "create_failed": "Failed to create sheet set: {}",
         "xaml_missing": "Missing XAML file:\n{}",
         "select_revisions_required": "Select at least one revision.",
-        "check_yes": "Yes",
-        "check_no": "No",
-    },
-    "checks": {
-        "revisions_selected": "Revisions selected",
-        "match_option_picked": "Match option picked",
-        "has_matches": "Has matches (pre-check)",
-        "sheetset_created": "Sheet set created",
-        "sheets_in_set": "Sheets in set > 0",
-        "no_empty_sheets": "No empty sheets",
-        "status_ok": "[OK]",
-        "status_fail": "[FAIL]",
     },
     "buttons": {
         "select_visible": "Select Visible",
@@ -117,59 +94,28 @@ DEFAULT_CONFIG = {
     },
 }
 
-# ----------------------------
-# INPUTS
-# ----------------------------
-revisions = None
-
-# ----------------------------
-# PROCESS VARS
-# ----------------------------
-selected_switch = None
-match_any = False
-
-rev_sheetset = None
-rev_sheetset_count = 0
-empty_sheets = []
-
-match_count = 0
-error_reason = None
-sheetset_name = DEFAULT_CONFIG["messages"]["not_created"]
-run_status = "CANCELLED"
 CONFIG = None
 
 
 def _log_debug(message, ex=None):
     try:
-        if ex is None:
-            logger.debug(message)
-        else:
-            logger.debug("{} | {}".format(message, ex))
+        logger.debug(message if ex is None else "{} | {}".format(message, ex))
     except Exception:
         pass
 
 
-def _new_result():
-    return {
-        "selected_switch": None,
-        "match_any": False,
-        "rev_sheetset": None,
-        "rev_sheetset_count": 0,
-        "empty_sheets": [],
-        "match_count": 0,
-        "error_reason": None,
-        "sheetset_name": _cfg("messages.not_created"),
-        "run_status": "CANCELLED",
-    }
+def _safe_str(value):
+    try:
+        return "{}".format(value)
+    except Exception as ex:
+        _log_debug("Failed to stringify value", ex)
+        return "<unprintable>"
 
 
 def _deep_copy_dict(data):
     copied = {}
     for key, value in data.items():
-        if isinstance(value, dict):
-            copied[key] = _deep_copy_dict(value)
-        else:
-            copied[key] = value
+        copied[key] = _deep_copy_dict(value) if isinstance(value, dict) else value
     return copied
 
 
@@ -184,30 +130,16 @@ def _merge_dicts(target, updates):
 def _xml_node_text(parent, tag_name):
     if parent is None:
         return None
-
     child = parent.find(tag_name)
     if child is None or child.text is None:
         return None
-
     value = child.text.strip()
     return value if value else None
-
-
-def _load_config():
-    config = _deep_copy_dict(DEFAULT_CONFIG)
-    _load_config_file(CONFIG_PATH, config)
-
-    language_code = _resolve_language_code(config.get("settings", {}).get("language", "auto"))
-    if language_code == "es":
-        _load_config_file(CONFIG_ES_PATH, config)
-
-    return config
 
 
 def _load_config_file(config_path, config):
     if not os.path.exists(config_path):
         return
-
     try:
         root = ET.parse(config_path).getroot()
     except Exception as ex:
@@ -220,12 +152,10 @@ def _load_config_file(config_path, config):
         section_node = root.find(section_name)
         if section_node is None:
             continue
-
         for key in config[section_name].keys():
             value = _xml_node_text(section_node, key)
             if value is not None:
                 loaded[section_name][key] = value
-
     _merge_dicts(config, loaded)
 
 
@@ -233,15 +163,22 @@ def _resolve_language_code(language_setting):
     language_text = _safe_str(language_setting).strip().lower()
     if language_text in ("en", "es"):
         return language_text
-
     try:
         app_language = _safe_str(__revit__.Application.Language).lower()
         if "spanish" in app_language or "espan" in app_language:
             return "es"
     except Exception as ex:
         _log_debug("Failed to detect Revit language", ex)
-
     return "en"
+
+
+def _load_config():
+    config = _deep_copy_dict(DEFAULT_CONFIG)
+    _load_config_file(CONFIG_PATH, config)
+    language_code = _resolve_language_code(config.get("settings", {}).get("language", "auto"))
+    if language_code == "es":
+        _load_config_file(CONFIG_ES_PATH, config)
+    return config
 
 
 def _cfg(path):
@@ -263,49 +200,31 @@ def _is_revit_dark_theme():
                 return "dark" in _safe_str(current_theme).lower()
     except Exception as ex:
         _log_debug("UIThemeManager theme detection unavailable", ex)
-
     try:
         app_theme = getattr(__revit__.Application, "Theme", None)
         if app_theme is not None:
             return "dark" in _safe_str(app_theme).lower()
     except Exception as ex:
         _log_debug("Application theme detection unavailable", ex)
-
     return True
 
 
 def _get_theme_palette(is_dark):
-    if is_dark:
-        return {
-            "WindowBgBrush": _cfg("theme.dark_window_bg"),
-            "PanelBgBrush": _cfg("theme.dark_primary"),
-            "PanelAltBrush": _cfg("theme.dark_secondary"),
-            "SurfaceBgBrush": _cfg("theme.dark_surface"),
-            "ListSurfaceBgBrush": _cfg("theme.dark_list_surface"),
-            "InputBgBrush": _cfg("theme.dark_input_bg"),
-            "BorderBrush": _cfg("theme.dark_border"),
-            "TextPrimaryBrush": _cfg("theme.dark_text"),
-            "TextSecondaryBrush": _cfg("theme.dark_text_muted"),
-            "ButtonBgBrush": _cfg("theme.dark_secondary"),
-            "ButtonHoverBrush": _cfg("theme.dark_primary"),
-            "PrimaryButtonBgBrush": _cfg("theme.dark_primary_button"),
-            "PrimaryButtonBorderBrush": _cfg("theme.dark_primary_button_border"),
-        }
-
+    prefix = "dark" if is_dark else "light"
     return {
-        "WindowBgBrush": _cfg("theme.light_window_bg"),
-        "PanelBgBrush": _cfg("theme.light_primary"),
-        "PanelAltBrush": _cfg("theme.light_secondary"),
-        "SurfaceBgBrush": _cfg("theme.light_surface"),
-        "ListSurfaceBgBrush": _cfg("theme.light_list_surface"),
-        "InputBgBrush": _cfg("theme.light_input_bg"),
-        "BorderBrush": _cfg("theme.light_border"),
-        "TextPrimaryBrush": _cfg("theme.light_text"),
-        "TextSecondaryBrush": _cfg("theme.light_text_muted"),
-        "ButtonBgBrush": _cfg("theme.light_secondary"),
-        "ButtonHoverBrush": _cfg("theme.light_primary"),
-        "PrimaryButtonBgBrush": _cfg("theme.light_primary_button"),
-        "PrimaryButtonBorderBrush": _cfg("theme.light_primary_button_border"),
+        "WindowBgBrush": _cfg("theme.{}_window_bg".format(prefix)),
+        "PanelBgBrush": _cfg("theme.{}_primary".format(prefix)),
+        "PanelAltBrush": _cfg("theme.{}_secondary".format(prefix)),
+        "SurfaceBgBrush": _cfg("theme.{}_surface".format(prefix)),
+        "ListSurfaceBgBrush": _cfg("theme.{}_list_surface".format(prefix)),
+        "InputBgBrush": _cfg("theme.{}_input_bg".format(prefix)),
+        "BorderBrush": _cfg("theme.{}_border".format(prefix)),
+        "TextPrimaryBrush": _cfg("theme.{}_text".format(prefix)),
+        "TextSecondaryBrush": _cfg("theme.{}_text_muted".format(prefix)),
+        "ButtonBgBrush": _cfg("theme.{}_secondary".format(prefix)),
+        "ButtonHoverBrush": _cfg("theme.{}_primary".format(prefix)),
+        "PrimaryButtonBgBrush": _cfg("theme.{}_primary_button".format(prefix)),
+        "PrimaryButtonBorderBrush": _cfg("theme.{}_primary_button_border".format(prefix)),
     }
 
 
@@ -314,12 +233,10 @@ def _find_extension_root():
     while True:
         if os.path.basename(current_dir).lower() == "pymenvic.extension":
             return current_dir
-
         parent_dir = os.path.dirname(current_dir)
         if parent_dir == current_dir:
             break
         current_dir = parent_dir
-
     return os.path.dirname(os.path.dirname(os.path.dirname(SCRIPT_DIR)))
 
 
@@ -330,7 +247,6 @@ def _get_header_logo_path():
 def _load_image_into_control(image_control, image_path):
     if image_control is None or not image_path or not os.path.exists(image_path):
         return
-
     stream = None
     try:
         stream = FileStream(image_path, FileMode.Open, FileAccess.Read)
@@ -356,12 +272,50 @@ def _element_id_value(element_id):
         return element_id.Value
     except Exception:
         pass
-
     try:
         return element_id.IntegerValue
     except Exception as ex:
         _log_debug("Failed to read ElementId value", ex)
         return None
+
+
+def _get_revision_parts(rev):
+    seq = desc = rev_date = ""
+    try:
+        seq = _safe_str(rev.SequenceNumber)
+    except Exception as ex:
+        _log_debug("Failed to read revision sequence number", ex)
+    try:
+        desc = _safe_str(rev.Description)
+    except Exception as ex:
+        _log_debug("Failed to read revision description", ex)
+    try:
+        rev_date = _safe_str(rev.RevisionDate)
+    except Exception as ex:
+        _log_debug("Failed to read revision date", ex)
+    return seq, desc, rev_date
+
+
+def _get_revision_label(rev):
+    seq, desc, rev_date = _get_revision_parts(rev)
+    parts = []
+    if seq:
+        parts.append(seq)
+    if desc:
+        parts.append(desc)
+    if rev_date:
+        parts.append(rev_date)
+    if parts:
+        return " | ".join(parts)
+    return _cfg("messages.revision_id_prefix").format(_element_id_value(rev.Id))
+
+
+def _sort_key_for_seq(seq):
+    text = _safe_str(seq).strip()
+    try:
+        return (0, int(text))
+    except Exception:
+        return (1, text.lower())
 
 
 class RevisionOption(object):
@@ -371,8 +325,23 @@ class RevisionOption(object):
         self.desc = desc
         self.rev_date = rev_date
         self.label = label
-        self.id_value = _safe_revision_id_value(revision)
+        self.id_value = _element_id_value(revision.Id)
         self.sort_seq = _sort_key_for_seq(seq)
+
+
+def _make_table_cell(content, column_index, margin, horizontal_alignment=None):
+    cell = Border()
+    cell.BorderThickness = Thickness(0)
+    cell.Padding = Thickness(6, 4, 6, 4)
+    cell.Margin = margin
+    if horizontal_alignment is not None:
+        try:
+            content.HorizontalAlignment = horizontal_alignment
+        except Exception:
+            pass
+    cell.Child = content
+    Grid.SetColumn(cell, column_index)
+    return cell
 
 
 class RevisionSelectorWindow(forms.WPFWindow):
@@ -384,7 +353,6 @@ class RevisionSelectorWindow(forms.WPFWindow):
         self.selected_revisions = []
         self.match_any = False
         self.is_confirmed = False
-
         self._apply_theme()
         self._load_header_logo()
         self._configure_ui()
@@ -423,6 +391,10 @@ class RevisionSelectorWindow(forms.WPFWindow):
         self.rbMatchAll.Content = _cfg("options.match_all")
         self.rbMatchAny.Content = _cfg("options.match_any")
         self.rbMatchAll.IsChecked = True
+        try:
+            self.FooterVersionTextBlock.Text = "pyMENVIC Revision Sheet Set | {}".format(TOOL_VERSION)
+        except Exception:
+            pass
 
     def _bind_events(self):
         self.txtSearch.TextChanged += self.on_search_changed
@@ -458,16 +430,16 @@ class RevisionSelectorWindow(forms.WPFWindow):
             seq_text.VerticalAlignment = VerticalAlignment.Center
             seq_text.HorizontalAlignment = HorizontalAlignment.Center
 
+            desc_text = TextBlock()
+            desc_text.Text = option.desc
+            desc_text.VerticalAlignment = VerticalAlignment.Center
+            desc_text.TextTrimming = TextTrimming.CharacterEllipsis
+
             date_text = TextBlock()
             date_text.Text = option.rev_date
             date_text.VerticalAlignment = VerticalAlignment.Center
             date_text.HorizontalAlignment = HorizontalAlignment.Center
             date_text.TextAlignment = TextAlignment.Center
-
-            desc_text = TextBlock()
-            desc_text.Text = option.desc
-            desc_text.VerticalAlignment = VerticalAlignment.Center
-            desc_text.TextTrimming = TextTrimming.CharacterEllipsis
 
             row_grid.Children.Add(_make_table_cell(checkbox, 0, Thickness(0), HorizontalAlignment.Center))
             row_grid.Children.Add(_make_table_cell(seq_text, 1, Thickness(8, 0, 8, 0)))
@@ -476,11 +448,7 @@ class RevisionSelectorWindow(forms.WPFWindow):
             self.lstRevisions.Items.Add(row_grid)
 
     def _update_status(self):
-        self.lblStatus.Text = _cfg("ui.selection_status").format(
-            len(self.selected_ids),
-            len(self.filtered_options),
-            len(self.all_options)
-        )
+        self.lblStatus.Text = _cfg("ui.selection_status").format(len(self.selected_ids), len(self.filtered_options), len(self.all_options))
 
     def _update_search_placeholder(self):
         try:
@@ -494,13 +462,7 @@ class RevisionSelectorWindow(forms.WPFWindow):
         if not search_text:
             self.filtered_options = list(self.all_options)
         else:
-            self.filtered_options = [
-                option for option in self.all_options
-                if search_text in option.label.lower()
-                or search_text in option.seq.lower()
-                or search_text in option.desc.lower()
-                or search_text in option.rev_date.lower()
-            ]
+            self.filtered_options = [option for option in self.all_options if search_text in option.label.lower() or search_text in option.seq.lower() or search_text in option.desc.lower() or search_text in option.rev_date.lower()]
         self._refresh_list()
         self._update_status()
 
@@ -551,122 +513,21 @@ class RevisionSelectorWindow(forms.WPFWindow):
         if not selected:
             forms.alert(_cfg("messages.select_revisions_required"), title=_cfg("ui.selector_title"))
             return
-
         self.selected_revisions = selected
         self.match_any = bool(self.rbMatchAny.IsChecked)
         self.is_confirmed = True
         self.Close()
 
-# ----------------------------
-# HELPERS
-# ----------------------------
-def _safe_str(x):
-    try:
-        return "{}".format(x)
-    except Exception as ex:
-        _log_debug("Failed to stringify value", ex)
-        return "<unprintable>"
-
-
-def _safe_revision_id_value(revision):
-    try:
-        return _element_id_value(revision.Id)
-    except Exception as ex:
-        _log_debug("Failed to read revision id value", ex)
-        return None
-
-
-def _get_revision_label(rev):
-    seq, desc, rev_date = _get_revision_parts(rev)
-
-    parts = []
-    if seq:
-        parts.append(seq)
-    if desc:
-        parts.append(desc)
-    if rev_date:
-        parts.append(rev_date)
-
-    if parts:
-        return " | ".join(parts)
-
-    try:
-        return _cfg("messages.revision_id_prefix").format(_element_id_value(rev.Id))
-    except Exception as ex:
-        _log_debug("Failed to read revision id", ex)
-        return _cfg("messages.revision_fallback")
-
-
-def _get_revision_parts(rev):
-    seq = ""
-    desc = ""
-    rev_date = ""
-
-    try:
-        seq = _safe_str(rev.SequenceNumber)
-    except Exception as ex:
-        _log_debug("Failed to read revision sequence number", ex)
-
-    try:
-        desc = _safe_str(rev.Description)
-    except Exception as ex:
-        _log_debug("Failed to read revision description", ex)
-
-    try:
-        rev_date = _safe_str(rev.RevisionDate)
-    except Exception as ex:
-        _log_debug("Failed to read revision date", ex)
-
-    return seq, desc, rev_date
-
-
-def _sort_key_for_seq(seq):
-    text = _safe_str(seq).strip()
-    try:
-        return (0, int(text))
-    except Exception:
-        return (1, text.lower())
-
-
-def _make_table_cell(content, column_index, margin, horizontal_alignment=None):
-    cell = Border()
-    cell.BorderThickness = Thickness(0)
-    cell.Padding = Thickness(6, 4, 6, 4)
-    cell.Margin = margin
-
-    if horizontal_alignment is not None:
-        try:
-            content.HorizontalAlignment = horizontal_alignment
-        except Exception:
-            pass
-
-    cell.Child = content
-    Grid.SetColumn(cell, column_index)
-    return cell
-
 
 def _collect_revisions():
     revisions = []
-
-    collector = DB.FilteredElementCollector(doc) \
-                  .OfClass(DB.Revision) \
-                  .WhereElementIsNotElementType()
-
+    collector = DB.FilteredElementCollector(doc).OfClass(DB.Revision).WhereElementIsNotElementType()
     for revision in collector:
         try:
             seq, desc, rev_date = _get_revision_parts(revision)
-            revisions.append(
-                RevisionOption(
-                    revision,
-                    seq or "-",
-                    desc or _cfg("messages.revision_fallback"),
-                    rev_date or "-",
-                    _get_revision_label(revision)
-                )
-            )
+            revisions.append(RevisionOption(revision, seq or "-", desc or _cfg("messages.revision_fallback"), rev_date or "-", _get_revision_label(revision)))
         except Exception as ex:
             _log_debug("Failed to collect revision option", ex)
-
     return sorted(revisions, key=lambda option: (option.sort_seq, option.desc.lower(), option.rev_date.lower()))
 
 
@@ -674,130 +535,93 @@ def _select_revisions_with_xaml():
     if not os.path.exists(XAML_PATH):
         forms.alert(_cfg("messages.xaml_missing").format("RevisionSelector.xaml"), title=__title__)
         return None, False
-
     options = _collect_revisions()
     window = RevisionSelectorWindow(XAML_PATH, options)
     window.ShowDialog()
-
     if not window.is_confirmed:
         return None, False
-
     return window.selected_revisions, window.match_any
-
-
-def _count_matching_sheets(selected_revision_ids, match_any_flag):
-    """Counts ViewSheets that match selected revisions (ANY or ALL)."""
-    count = 0
-
-    sheets = DB.FilteredElementCollector(doc) \
-               .OfClass(DB.ViewSheet) \
-               .WhereElementIsNotElementType()
-
-    for sh in sheets:
-        try:
-            sh_rev_ids = sh.GetAllRevisionIds()
-        except Exception as ex:
-            _log_debug("Failed to get revisions for sheet {}".format(_safe_str(sh.Id)), ex)
-            continue
-
-        if not sh_rev_ids:
-            continue
-
-        if match_any_flag:
-            found = False
-            for rid in selected_revision_ids:
-                if sh_rev_ids.Contains(rid):
-                    found = True
-                    break
-            if found:
-                count += 1
-        else:
-            all_found = True
-            for rid in selected_revision_ids:
-                if not sh_rev_ids.Contains(rid):
-                    all_found = False
-                    break
-            if all_found:
-                count += 1
-
-    return count
-
-
-def _try_get_current_sheetset_name():
-    """Best-effort: reads current ViewSheetSet name from PrintManager."""
-    try:
-        pm = doc.PrintManager
-        vss = pm.ViewSheetSetting
-        try:
-            css = vss.CurrentViewSheetSet
-            if css and css.Name:
-                return css.Name
-        except Exception as ex:
-            _log_debug("Failed to read CurrentViewSheetSet", ex)
-            pass
-
-        try:
-            ins = vss.InSession
-            if ins and ins.Name:
-                return ins.Name
-        except Exception as ex:
-            _log_debug("Failed to read InSession sheet set", ex)
-            pass
-    except Exception as ex:
-        _log_debug("Failed to access PrintManager ViewSheetSetting", ex)
-        pass
-
-    return None
 
 
 def _collect_revision_ids(revisions):
     revision_ids = []
-
     for rev in revisions:
         try:
             revision_ids.append(rev.Id)
         except Exception as ex:
             _log_debug("Failed to collect selected revision id", ex)
-
     return revision_ids
+
+
+def _count_matching_sheets(selected_revision_ids, match_any_flag):
+    count = 0
+    sheets = DB.FilteredElementCollector(doc).OfClass(DB.ViewSheet).WhereElementIsNotElementType()
+    for sheet in sheets:
+        try:
+            sheet_revision_ids = sheet.GetAllRevisionIds()
+        except Exception as ex:
+            _log_debug("Failed to get revisions for sheet {}".format(_safe_str(sheet.Id)), ex)
+            continue
+        if not sheet_revision_ids:
+            continue
+        if match_any_flag:
+            if any(sheet_revision_ids.Contains(rid) for rid in selected_revision_ids):
+                count += 1
+        else:
+            if all(sheet_revision_ids.Contains(rid) for rid in selected_revision_ids):
+                count += 1
+    return count
+
+
+def _try_get_current_sheetset_name():
+    try:
+        view_sheet_setting = doc.PrintManager.ViewSheetSetting
+        try:
+            current_set = view_sheet_setting.CurrentViewSheetSet
+            if current_set and current_set.Name:
+                return current_set.Name
+        except Exception as ex:
+            _log_debug("Failed to read CurrentViewSheetSet", ex)
+        try:
+            in_session = view_sheet_setting.InSession
+            if in_session and in_session.Name:
+                return in_session.Name
+        except Exception as ex:
+            _log_debug("Failed to read InSession sheet set", ex)
+    except Exception as ex:
+        _log_debug("Failed to access PrintManager ViewSheetSetting", ex)
+    return None
 
 
 def _collect_empty_sheets(rev_sheetset):
     empty = []
-
     if not rev_sheetset:
         return empty
-
     for sheet in rev_sheetset:
         try:
             if revit.query.is_sheet_empty(sheet):
                 empty.append(sheet)
         except Exception as ex:
             _log_debug("Failed to evaluate whether sheet is empty", ex)
-
     return empty
 
 
 def _count_sheetset_items(rev_sheetset):
     count = 0
-
     if not rev_sheetset:
         return count
-
     for _sheet in rev_sheetset:
         count += 1
-
     return count
 
 
 def _report_empty_sheets(empty_sheets):
     if not empty_sheets:
         return
-
     output.print_md(_cfg("ui.empty_sheets_title"))
-    for esheet in empty_sheets:
+    for empty_sheet in empty_sheets:
         try:
-            revit.report.print_sheet(esheet)
+            revit.report.print_sheet(empty_sheet)
         except Exception as ex:
             _log_debug("Failed to print empty sheet report", ex)
 
@@ -806,10 +630,7 @@ def _create_revision_sheetset(revisions, match_any):
     transaction = DB.Transaction(doc, 'Create Revision Sheet Set')
     try:
         transaction.Start()
-        rev_sheetset = revit.create.create_revision_sheetset(
-            revisions,
-            match_any=match_any
-        )
+        rev_sheetset = revit.create.create_revision_sheetset(revisions, match_any=match_any)
         transaction.Commit()
         return rev_sheetset
     except Exception as ex:
@@ -822,20 +643,30 @@ def _create_revision_sheetset(revisions, match_any):
         raise
 
 
+def _new_result():
+    return {
+        "selected_switch": None,
+        "match_any": False,
+        "rev_sheetset": None,
+        "rev_sheetset_count": 0,
+        "empty_sheets": [],
+        "match_count": 0,
+        "error_reason": None,
+        "sheetset_name": _cfg("messages.not_created"),
+        "run_status": "CANCELLED",
+    }
+
+
 def _process_revision_selection(revisions, match_any):
     result = _new_result()
-
     if not revisions:
         return result
 
-    result["run_status"] = "INPUT_SELECTED"
     result["match_any"] = match_any if len(revisions) > 1 else False
     result["selected_switch"] = _cfg("options.match_any") if result["match_any"] else _cfg("options.match_all")
-    result["run_status"] = "MODE_SELECTED"
 
-    sel_rev_ids = _collect_revision_ids(revisions)
-    result["match_count"] = _count_matching_sheets(sel_rev_ids, result["match_any"])
-
+    selected_revision_ids = _collect_revision_ids(revisions)
+    result["match_count"] = _count_matching_sheets(selected_revision_ids, result["match_any"])
     if result["match_count"] == 0:
         result["error_reason"] = _cfg("messages.no_matches")
         result["run_status"] = "NO_MATCHES"
@@ -849,96 +680,67 @@ def _process_revision_selection(revisions, match_any):
         return result
 
     result["run_status"] = "OK"
-
-    name_now = _try_get_current_sheetset_name()
-    if name_now:
-        result["sheetset_name"] = name_now
-    else:
-        result["sheetset_name"] = _cfg("messages.created_name_unknown")
-
+    result["sheetset_name"] = _try_get_current_sheetset_name() or _cfg("messages.created_name_unknown")
     result["empty_sheets"] = _collect_empty_sheets(result["rev_sheetset"])
     result["rev_sheetset_count"] = _count_sheetset_items(result["rev_sheetset"])
     _report_empty_sheets(result["empty_sheets"])
-
     return result
+
+
+def _revision_labels(revisions):
+    labels = []
+    if revisions:
+        for revision in revisions:
+            labels.append(_get_revision_label(revision))
+    return labels
+
+
+def _print_revision_list(labels):
+    if not labels:
+        return
+    output.print_md("**Selected revisions:**")
+    for label in labels:
+        output.print_md("- {}".format(label))
+
+
+def _print_final_report(result, revisions):
+    labels = _revision_labels(revisions)
+    mode_text = result["selected_switch"] or _cfg("messages.mode_none")
+
+    output.print_md("### pyMENVIC | Revision Sheet Set")
+
+    if result["run_status"] == "CANCELLED":
+        output.print_md("## Operation cancelled")
+        output.print_md("No sheet set was created.")
+        return
+
+    if result["run_status"] == "NO_MATCHES":
+        output.print_md("## No sheet set created")
+        output.print_md(result["error_reason"] or _cfg("messages.no_matches"))
+        _print_revision_list(labels)
+        output.print_md("**Mode:** {}".format(mode_text))
+        output.print_md("**Matching sheets:** {}".format(result["match_count"]))
+        return
+
+    if result["run_status"] == "ERROR":
+        output.print_md("## Sheet set was not created")
+        output.print_md("**Reason:** {}".format(result["error_reason"] or "Unknown error."))
+        _print_revision_list(labels)
+        output.print_md("**Mode:** {}".format(mode_text))
+        return
+
+    output.print_md("## Sheet set created successfully")
+    output.print_md("**Sheet Set:** {}".format(result["sheetset_name"]))
+    output.print_md("**Mode:** {}".format(mode_text))
+    output.print_md("**Sheets included:** {}".format(result["rev_sheetset_count"]))
+    output.print_md("**Empty sheets:** {}".format(len(result["empty_sheets"])))
+    _print_revision_list(labels)
 
 
 # ----------------------------
 # MAIN
 # ----------------------------
 CONFIG = _load_config()
-revisions, match_any = _select_revisions_with_xaml()
-result = _process_revision_selection(revisions, match_any)
-
-selected_switch = result["selected_switch"]
-match_any = result["match_any"]
-rev_sheetset = result["rev_sheetset"]
-rev_sheetset_count = result["rev_sheetset_count"]
-empty_sheets = result["empty_sheets"]
-match_count = result["match_count"]
-error_reason = result["error_reason"]
-sheetset_name = result["sheetset_name"]
-run_status = result["run_status"]
-
-# ----------------------------
-# FINAL REPORT
-# ----------------------------
-rev_labels = []
-if revisions:
-    for r in revisions:
-        rev_labels.append(_get_revision_label(r))
-
-if len(rev_labels) == 1:
-    rev_one = rev_labels[0]
-elif len(rev_labels) > 1:
-    rev_one = _cfg("messages.multiple_revisions").format(len(rev_labels))
-else:
-    rev_one = _cfg("messages.no_revision")
-
-mode_txt = selected_switch if selected_switch else _cfg("messages.mode_none")
-
-ok_selected = bool(revisions)
-ok_mode = bool(selected_switch)
-ok_created = (rev_sheetset is not None)
-ok_sheets = (rev_sheetset_count > 0)
-ok_empty = (len(empty_sheets) == 0)
-
-status_txt = run_status
-
-output.print_md(_cfg("ui.report_title"))
-output.print_md(_cfg("ui.report_sheetset").format(sheetset_name))
-output.print_md(_cfg("ui.report_revision").format(rev_one))
-output.print_md(_cfg("ui.report_summary").format(
-    status_txt,
-    mode_txt,
-    rev_sheetset_count,
-    len(empty_sheets)
-))
-
-if error_reason:
-    output.print_md(_cfg("ui.report_note").format(error_reason))
-elif run_status == "CANCELLED":
-    output.print_md(_cfg("ui.report_cancelled"))
-
-if len(rev_labels) > 1:
-    output.print_md(_cfg("ui.report_revisions_included"))
-    for rl in rev_labels:
-        output.print_md("- {}".format(rl))
-
-checks = []
-
-def add_check(label, ok, detail):
-    checks.append([label, _cfg("checks.status_ok") if ok else _cfg("checks.status_fail"), detail])
-
-add_check(_cfg("checks.revisions_selected"), ok_selected, "{}".format(len(revisions) if revisions else 0))
-add_check(_cfg("checks.match_option_picked"), ok_mode, "{}".format(mode_txt))
-add_check(_cfg("checks.has_matches"), (match_count > 0), "{}".format(match_count))
-add_check(_cfg("checks.sheetset_created"), ok_created, _cfg("messages.check_yes") if ok_created else _cfg("messages.check_no"))
-add_check(_cfg("checks.sheets_in_set"), ok_sheets, "{}".format(rev_sheetset_count))
-add_check(_cfg("checks.no_empty_sheets"), ok_empty, "{}".format(len(empty_sheets)))
-
-output.print_md(_cfg("ui.report_graphic_check"))
-output.print_table(
-    table_data=checks,
-    columns=["Check", "Status", "Detail"]
-)
+selected_revisions, selected_match_any = _select_revisions_with_xaml()
+process_result = _process_revision_selection(selected_revisions, selected_match_any)
+_print_final_report(process_result, selected_revisions)
