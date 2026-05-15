@@ -46,6 +46,10 @@ from System import Int64
 
 from Autodesk.Revit.DB import View, ElementId, Transaction, Category, BuiltInParameter, LabelUtils
 try:
+    from Autodesk.Revit.DB import WorksetId
+except Exception:
+    WorksetId = None
+try:
     from Autodesk.Revit.UI import RevitCommandId, PostableCommand
 except Exception:
     RevitCommandId = None
@@ -364,6 +368,40 @@ class FilterManagerProWindow(forms.WPFWindow):
         except Exception:
             return str(value)
 
+    def _display_workset_value(self, value):
+        try:
+            if isinstance(value, str):
+                return value
+        except Exception:
+            pass
+        try:
+            raw_value = element_id_value(value)
+        except Exception:
+            raw_value = None
+        try:
+            if raw_value is None:
+                return str(value)
+            workset_table = doc.GetWorksetTable()
+            if workset_table is None:
+                return str(raw_value)
+            workset_id = None
+            try:
+                if WorksetId is not None:
+                    workset_id = WorksetId(Int64(raw_value))
+            except Exception:
+                workset_id = None
+            if workset_id is None:
+                return str(raw_value)
+            workset = workset_table.GetWorkset(workset_id)
+            if workset and getattr(workset, "Name", None):
+                return workset.Name
+            return str(raw_value)
+        except Exception:
+            try:
+                return str(raw_value)
+            except Exception:
+                return str(value)
+
     def _inner_rule(self, rule):
         if self._safe_class_name(rule) != "FilterInverseRule":
             return None
@@ -497,10 +535,16 @@ class FilterManagerProWindow(forms.WPFWindow):
         return "{}|{}|{}|{}|{}".format(self._safe_class_name(self._rule_for_value_access(rule)), parameter_value, value, evaluator_name, inverse)
 
     def _rule_detail_text(self, rule):
+        raw_value = self._extract_rule_value(rule)
         parameter_name = self._param_name(self._extract_rule_parameter_id(rule))
         operator_name = self._extract_rule_operator(rule)
-        value = self._display_value(self._extract_rule_value(rule))
+        if (parameter_name or "").lower() == "workset":
+            value = self._display_workset_value(raw_value)
+        else:
+            value = self._display_value(raw_value)
         if value == "<value not readable>":
+            if (parameter_name or "").lower() == "category":
+                return "Category: category not readable"
             return "{}: value not readable".format(parameter_name)
         return "{} {} {}".format(parameter_name, operator_name, value)
 
@@ -599,6 +643,8 @@ class FilterManagerProWindow(forms.WPFWindow):
                 if category_names and rule_texts:
                     for category_name in category_names:
                         for rule_text in rule_texts:
+                            if rule_text in ("Category: value not readable", "Category: category not readable"):
+                                continue
                             lines.append("{}- {} | {}".format(indent, category_name, rule_text))
                     return lines
             logic_label = "All rules must be true:" if class_name == "LogicalAndFilter" else "Any rule may be true:"
