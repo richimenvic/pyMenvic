@@ -61,27 +61,27 @@
     <create>Create</create>
   </buttons>
   <theme>
-    <dark_primary>#2C3440</dark_primary>
-    <dark_secondary>#3B4352</dark_secondary>
-    <dark_window_bg>#252B34</dark_window_bg>
-    <dark_surface>#313947</dark_surface>
-    <dark_list_surface>#3A4353</dark_list_surface>
-    <dark_input_bg>#232933</dark_input_bg>
-    <dark_text>#F4F7FA</dark_text>
-    <dark_text_muted>#BFC7D1</dark_text_muted>
-    <dark_border>#4B5565</dark_border>
-    <dark_primary_button>#D89C34</dark_primary_button>
-    <dark_primary_button_border>#B57E22</dark_primary_button_border>
+    <dark_primary>#26303A</dark_primary>
+    <dark_secondary>#2F4B5E</dark_secondary>
+    <dark_window_bg>#1E252B</dark_window_bg>
+    <dark_surface>#1F2B35</dark_surface>
+    <dark_list_surface>#26303A</dark_list_surface>
+    <dark_input_bg>#1F2B35</dark_input_bg>
+    <dark_text>#FFFFFF</dark_text>
+    <dark_text_muted>#8FA7BA</dark_text_muted>
+    <dark_border>#344B5B</dark_border>
+    <dark_primary_button>#2D9D55</dark_primary_button>
+    <dark_primary_button_border>#49B571</dark_primary_button_border>
     <light_primary>#F4F6F8</light_primary>
-    <light_secondary>#E7EBF0</light_secondary>
-    <light_window_bg>#F7F7F8</light_window_bg>
+    <light_secondary>#E9EEF3</light_secondary>
+    <light_window_bg>#F4F6F8</light_window_bg>
     <light_surface>#FFFFFF</light_surface>
     <light_list_surface>#FFFFFF</light_list_surface>
-    <light_input_bg>#FFFFFF</light_input_bg>
-    <light_text>#1F2933</light_text>
+    <light_input_bg>#F7F9FB</light_input_bg>
+    <light_text>#1E252B</light_text>
     <light_text_muted>#5B6672</light_text_muted>
-    <light_border>#C7CDD4</light_border>
-    <light_primary_button>#D89C34</light_primary_button>
-    <light_primary_button_border>#B57E22</light_primary_button_border>
+    <light_border>#B8C6D1</light_border>
+    <light_primary_button>#2D9D55</light_primary_button>
+    <light_primary_button_border>#49B571</light_primary_button_border>
   </theme>
 </config>
