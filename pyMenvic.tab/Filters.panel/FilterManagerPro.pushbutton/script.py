@@ -655,6 +655,27 @@ class FilterManagerProWindow(forms.WPFWindow):
             pass
         return ["Category-only filter. No parameter rules."]
 
+    def _number_repeated_rule_sets(self, lines):
+        target_labels = ("Any rule may be true:", "All rules must be true:")
+        totals = {}
+        for line in lines:
+            clean = line.strip()
+            if clean in target_labels:
+                totals[clean] = totals.get(clean, 0) + 1
+        if all(count <= 1 for count in totals.values()):
+            return lines
+        indexes = {}
+        out = []
+        for line in lines:
+            clean = line.strip()
+            prefix = line[:len(line) - len(line.lstrip())]
+            if clean in target_labels and totals.get(clean, 0) > 1:
+                indexes[clean] = indexes.get(clean, 0) + 1
+                out.append("{}Rule Set {} - {}".format(prefix, indexes[clean], clean))
+            else:
+                out.append(line)
+        return out
+
     def _filter_content_signature(self, filter_el):
         if filter_el is None:
             return ""
@@ -868,7 +889,7 @@ class FilterManagerProWindow(forms.WPFWindow):
             duplicate_lines.append("Same Duplicate Set:")
             for name in sorted(same_set):
                 duplicate_lines.append("- {}".format(name))
-        rule_lines = self._filter_rule_lines(filter_el)
+        rule_lines = self._number_repeated_rule_sets(self._filter_rule_lines(filter_el))
         if not rule_lines:
             rule_lines = ["Category-only filter. No parameter rules."]
         self._set_audit_details_columns("\n".join(filter_lines), "\n".join(duplicate_lines), "\n".join(rule_lines))
