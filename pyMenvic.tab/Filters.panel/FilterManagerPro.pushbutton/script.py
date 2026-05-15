@@ -39,7 +39,7 @@ from System.Windows.Media.Imaging import BitmapImage, BitmapCacheOption
 from System.Windows import Visibility
 from System.Windows.Controls import DataGridEditingUnit
 
-from Autodesk.Revit.DB import View, ElementId, Transaction, Category
+from Autodesk.Revit.DB import View, ElementId, Transaction, Category, BuiltInParameter, LabelUtils
 from pyrevit import forms, revit, script
 
 doc = revit.doc
@@ -229,13 +229,20 @@ class FilterManagerProWindow(forms.WPFWindow):
         except Exception:
             pass
         try:
-            return "ParameterId {}".format(element_id_value(parameter_id))
+            param_value = element_id_value(parameter_id)
+            try:
+                label = LabelUtils.GetLabelFor(BuiltInParameter(param_value))
+                if label:
+                    return label
+            except Exception:
+                pass
+            return "Built-in parameter {}".format(param_value)
         except Exception:
             return str(parameter_id)
 
     def _display_value(self, value):
         if value is None:
-            return "<none>"
+            return "value not readable"
         try:
             el = doc.GetElement(value)
             if el:
@@ -248,26 +255,75 @@ class FilterManagerProWindow(forms.WPFWindow):
             return str(value)
 
     def _extract_rule_parameter_id(self, rule):
-        for method_name in ("GetRuleParameter",):
+        for method_name in ("GetRuleParameter", "GetParameterId", "GetParameter"):
             try: return getattr(rule, method_name)()
             except Exception: pass
-        for property_name in ("RuleParameter", "ParameterId"):
+        for property_name in ("RuleParameter", "ParameterId", "Parameter"):
             try: return getattr(rule, property_name)
             except Exception: pass
         return None
 
     def _extract_rule_value(self, rule):
-        for method_name in ("GetStringValue", "GetValue", "GetIntegerValue", "GetDoubleValue", "GetElementIdValue"):
-            try: return getattr(rule, method_name)()
-            except Exception: pass
+        for method_name in ("GetRuleString", "GetRuleValue", "GetStringValue", "GetValue", "GetIntegerValue", "GetDoubleValue", "GetElementIdValue"):
+            try:
+                value = getattr(rule, method_name)()
+                if value is not None:
+                    return value
+            except Exception:
+                pass
+        for property_name in ("RuleString", "RuleValue", "StringValue", "Value", "IntegerValue", "DoubleValue", "ElementIdValue"):
+            try:
+                value = getattr(rule, property_name)
+                if value is not None:
+                    return value
+            except Exception:
+                pass
         return None
 
+    def _extract_rule_evaluator_name(self, rule):
+        for method_name in ("GetEvaluator",):
+            try:
+                evaluator = getattr(rule, method_name)()
+                if evaluator:
+                    return self._safe_class_name(evaluator)
+            except Exception:
+                pass
+        for property_name in ("Evaluator",):
+            try:
+                evaluator = getattr(rule, property_name)
+                if evaluator:
+                    return self._safe_class_name(evaluator)
+            except Exception:
+                pass
+        return ""
+
+    def _friendly_operator_name(self, evaluator_name, rule_name):
+        raw = evaluator_name or rule_name or ""
+        lookup = {
+            "FilterStringEquals": "equals",
+            "FilterStringContains": "contains",
+            "FilterStringBeginsWith": "begins with",
+            "FilterStringEndsWith": "ends with",
+            "FilterNumericEquals": "equals",
+            "FilterNumericGreater": "greater than",
+            "FilterNumericGreaterOrEqual": "greater than or equal",
+            "FilterNumericLess": "less than",
+            "FilterNumericLessOrEqual": "less than or equal",
+            "FilterElementIdEquals": "equals",
+            "FilterElementIdNotEquals": "does not equal",
+            "FilterStringRule": "string rule",
+            "FilterIntegerRule": "integer rule",
+            "FilterDoubleRule": "number rule",
+            "FilterElementIdRule": "element id rule",
+            "FilterInverseRule": "not"
+        }
+        if raw in lookup:
+            return lookup[raw]
+        cleaned = raw.replace("Filter", "").replace("Evaluator", "").replace("Rule", " rule")
+        return cleaned.strip() or "operator not readable"
+
     def _extract_rule_operator(self, rule):
-        try:
-            evaluator = rule.Evaluator
-            return self._safe_class_name(evaluator).replace("Filter", "").replace("Rule", "")
-        except Exception:
-            return self._safe_class_name(rule)
+        return self._friendly_operator_name(self._extract_rule_evaluator_name(rule), self._safe_class_name(rule))
 
     def _rule_signature(self, rule):
         parameter_id = self._extract_rule_parameter_id(rule)
@@ -276,16 +332,15 @@ class FilterManagerProWindow(forms.WPFWindow):
         value = self._extract_rule_value(rule)
         try: value = element_id_value(value)
         except Exception: pass
-        evaluator_name = ""
-        try: evaluator_name = self._safe_class_name(rule.Evaluator)
-        except Exception: pass
+        evaluator_name = self._extract_rule_evaluator_name(rule)
         return "{}|{}|{}|{}".format(self._safe_class_name(rule), parameter_value, value, evaluator_name)
 
     def _rule_detail_line(self, rule):
         parameter_name = self._param_name(self._extract_rule_parameter_id(rule))
         operator_name = self._extract_rule_operator(rule)
         value = self._display_value(self._extract_rule_value(rule))
-        return "- {} | {} | {}".format(parameter_name, operator_name, value)
+        rule_type = self._safe_class_name(rule)
+        return "- Parameter: {} | Operator: {} | Value: {} | Type: {}".format(parameter_name, operator_name, value, rule_type)
 
     def _element_filter_signature(self, element_filter):
         if element_filter is None: return ""
@@ -487,16 +542,22 @@ class FilterManagerProWindow(forms.WPFWindow):
             return
         filter_el = doc.GetElement(ElementId(row.FilterId))
         lines = []
+        lines.append("FILTER")
         lines.append("Name: {}".format(row.FilterName))
         lines.append("Categories: {}".format(row.Categories))
-        lines.append("Usage: {} view(s), {} template(s), {} total".format(row.ViewCount, row.TemplateCount, row.TotalCount))
+        lines.append("Usage: {} Views | {} Templates | {} Total".format(row.ViewCount, row.TemplateCount, row.TotalCount))
         lines.append("Status: {}".format(row.Status))
-        lines.append("Duplicate: {} | {}".format(row.DuplicateType, row.DuplicateGroup))
+        lines.append("")
+        lines.append("DUPLICATE")
+        lines.append("Type: {}".format(row.DuplicateType))
+        lines.append("Set: {}".format(row.DuplicateGroup))
         same_set = [r.FilterName for r in self.all_audit_rows if r.DuplicateGroup == row.DuplicateGroup and r.DuplicateGroup != "-" and r.FilterId != row.FilterId]
         if same_set:
-            lines.append("Same set: {}".format(", ".join(sorted(same_set))))
+            lines.append("Same Duplicate Set:")
+            for name in sorted(same_set):
+                lines.append("- {}".format(name))
         lines.append("")
-        lines.append("Rules:")
+        lines.append("RULES")
         lines.extend(self._filter_rule_lines(filter_el))
         self._set_audit_details("\n".join(lines))
 
