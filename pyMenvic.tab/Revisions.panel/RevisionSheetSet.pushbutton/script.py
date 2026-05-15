@@ -1,17 +1,25 @@
 # -*- coding: utf-8 -*-
 __title__ = "Revision Sheet Set"
+__author__ = "Ricardo J. Mendieta | pyMENVIC"
 
 # pylint: disable=E0401,C0103,C0111
 
 import os
 import xml.etree.ElementTree as ET
 
+import clr
+clr.AddReference("PresentationFramework")
+clr.AddReference("PresentationCore")
+clr.AddReference("WindowsBase")
+
 import Autodesk.Revit.DB as DB
 from pyrevit import revit, forms, script
+from System.IO import FileStream, FileMode, FileAccess
 from System.Windows import Thickness, Visibility, GridLength, GridUnitType, VerticalAlignment, HorizontalAlignment, TextAlignment, TextTrimming
 from System.Windows.Controls import CheckBox, Grid, ColumnDefinition, TextBlock
 from System.Windows.Controls import Border
 from System.Windows.Media import ColorConverter
+from System.Windows.Media.Imaging import BitmapImage, BitmapCacheOption
 
 
 doc = revit.doc
@@ -21,6 +29,7 @@ SCRIPT_DIR = os.path.dirname(__file__)
 CONFIG_PATH = os.path.join(SCRIPT_DIR, 'config.xml')
 CONFIG_ES_PATH = os.path.join(SCRIPT_DIR, 'config.es.xml')
 XAML_PATH = os.path.join(SCRIPT_DIR, 'RevisionSelector.xaml')
+LOGO_RELATIVE_PATH = os.path.join('_resources', 'logos', 'menvic_logo.png')
 
 DEFAULT_CONFIG = {
     "settings": {
@@ -83,28 +92,28 @@ DEFAULT_CONFIG = {
         "create": "Create",
     },
     "theme": {
-        "dark_primary": "#2C3440",
-        "dark_secondary": "#3B4352",
-        "dark_window_bg": "#252B34",
-        "dark_surface": "#313947",
-        "dark_list_surface": "#3A4353",
-        "dark_input_bg": "#232933",
-        "dark_text": "#F4F7FA",
-        "dark_text_muted": "#BFC7D1",
-        "dark_border": "#4B5565",
-        "dark_primary_button": "#D89C34",
-        "dark_primary_button_border": "#B57E22",
+        "dark_primary": "#26303A",
+        "dark_secondary": "#2F4B5E",
+        "dark_window_bg": "#1E252B",
+        "dark_surface": "#1F2B35",
+        "dark_list_surface": "#26303A",
+        "dark_input_bg": "#1F2B35",
+        "dark_text": "#FFFFFF",
+        "dark_text_muted": "#8FA7BA",
+        "dark_border": "#344B5B",
+        "dark_primary_button": "#2D9D55",
+        "dark_primary_button_border": "#49B571",
         "light_primary": "#F4F6F8",
-        "light_secondary": "#E7EBF0",
-        "light_window_bg": "#F7F7F8",
+        "light_secondary": "#E9EEF3",
+        "light_window_bg": "#F4F6F8",
         "light_surface": "#FFFFFF",
         "light_list_surface": "#FFFFFF",
-        "light_input_bg": "#FFFFFF",
-        "light_text": "#1F2933",
+        "light_input_bg": "#F7F9FB",
+        "light_text": "#1E252B",
         "light_text_muted": "#5B6672",
-        "light_border": "#C7CDD4",
-        "light_primary_button": "#D89C34",
-        "light_primary_button_border": "#B57E22",
+        "light_border": "#B8C6D1",
+        "light_primary_button": "#2D9D55",
+        "light_primary_button_border": "#49B571",
     },
 }
 
@@ -300,6 +309,61 @@ def _get_theme_palette(is_dark):
     }
 
 
+def _find_extension_root():
+    current_dir = os.path.abspath(SCRIPT_DIR)
+    while True:
+        if os.path.basename(current_dir).lower() == "pymenvic.extension":
+            return current_dir
+
+        parent_dir = os.path.dirname(current_dir)
+        if parent_dir == current_dir:
+            break
+        current_dir = parent_dir
+
+    return os.path.dirname(os.path.dirname(os.path.dirname(SCRIPT_DIR)))
+
+
+def _get_header_logo_path():
+    return os.path.join(_find_extension_root(), LOGO_RELATIVE_PATH)
+
+
+def _load_image_into_control(image_control, image_path):
+    if image_control is None or not image_path or not os.path.exists(image_path):
+        return
+
+    stream = None
+    try:
+        stream = FileStream(image_path, FileMode.Open, FileAccess.Read)
+        bitmap = BitmapImage()
+        bitmap.BeginInit()
+        bitmap.StreamSource = stream
+        bitmap.CacheOption = BitmapCacheOption.OnLoad
+        bitmap.EndInit()
+        bitmap.Freeze()
+        image_control.Source = bitmap
+    except Exception as ex:
+        _log_debug("Failed to load header logo", ex)
+    finally:
+        if stream:
+            try:
+                stream.Close()
+            except Exception:
+                pass
+
+
+def _element_id_value(element_id):
+    try:
+        return element_id.Value
+    except Exception:
+        pass
+
+    try:
+        return element_id.IntegerValue
+    except Exception as ex:
+        _log_debug("Failed to read ElementId value", ex)
+        return None
+
+
 class RevisionOption(object):
     def __init__(self, revision, seq, desc, rev_date, label):
         self.revision = revision
@@ -322,6 +386,7 @@ class RevisionSelectorWindow(forms.WPFWindow):
         self.is_confirmed = False
 
         self._apply_theme()
+        self._load_header_logo()
         self._configure_ui()
         self._bind_events()
         self._update_search_placeholder()
@@ -335,6 +400,12 @@ class RevisionSelectorWindow(forms.WPFWindow):
                 self.Resources[key].Color = ColorConverter.ConvertFromString(value)
             except Exception as ex:
                 _log_debug("Failed to apply theme resource {}".format(key), ex)
+
+    def _load_header_logo(self):
+        try:
+            _load_image_into_control(self.HeaderLogoImage, _get_header_logo_path())
+        except Exception as ex:
+            _log_debug("HeaderLogoImage control unavailable", ex)
 
     def _configure_ui(self):
         self.Title = _cfg("ui.selector_title")
@@ -499,10 +570,11 @@ def _safe_str(x):
 
 def _safe_revision_id_value(revision):
     try:
-        return revision.Id.IntegerValue
+        return _element_id_value(revision.Id)
     except Exception as ex:
-        _log_debug("Failed to read revision integer id", ex)
+        _log_debug("Failed to read revision id value", ex)
         return None
+
 
 def _get_revision_label(rev):
     seq, desc, rev_date = _get_revision_parts(rev)
@@ -519,7 +591,7 @@ def _get_revision_label(rev):
         return " | ".join(parts)
 
     try:
-        return _cfg("messages.revision_id_prefix").format(rev.Id.IntegerValue)
+        return _cfg("messages.revision_id_prefix").format(_element_id_value(rev.Id))
     except Exception as ex:
         _log_debug("Failed to read revision id", ex)
         return _cfg("messages.revision_fallback")
@@ -612,6 +684,7 @@ def _select_revisions_with_xaml():
 
     return window.selected_revisions, window.match_any
 
+
 def _count_matching_sheets(selected_revision_ids, match_any_flag):
     """Counts ViewSheets that match selected revisions (ANY or ALL)."""
     count = 0
@@ -622,7 +695,7 @@ def _count_matching_sheets(selected_revision_ids, match_any_flag):
 
     for sh in sheets:
         try:
-            sh_rev_ids = sh.GetAllRevisionIds()   # ICollection[ElementId]
+            sh_rev_ids = sh.GetAllRevisionIds()
         except Exception as ex:
             _log_debug("Failed to get revisions for sheet {}".format(_safe_str(sh.Id)), ex)
             continue
@@ -649,12 +722,12 @@ def _count_matching_sheets(selected_revision_ids, match_any_flag):
 
     return count
 
+
 def _try_get_current_sheetset_name():
     """Best-effort: reads current ViewSheetSet name from PrintManager."""
     try:
         pm = doc.PrintManager
         vss = pm.ViewSheetSetting
-        # CurrentViewSheetSet is usually what create_revision_sheetset sets
         try:
             css = vss.CurrentViewSheetSet
             if css and css.Name:
@@ -663,7 +736,6 @@ def _try_get_current_sheetset_name():
             _log_debug("Failed to read CurrentViewSheetSet", ex)
             pass
 
-        # Fallback: sometimes InSession has the set info
         try:
             ins = vss.InSession
             if ins and ins.Name:
@@ -731,14 +803,22 @@ def _report_empty_sheets(empty_sheets):
 
 
 def _create_revision_sheetset(revisions, match_any):
+    transaction = DB.Transaction(doc, 'Create Revision Sheet Set')
     try:
-        with revit.Transaction('Create Revision Sheet Set'):
-            return revit.create.create_revision_sheetset(
-                revisions,
-                match_any=match_any
-            )
+        transaction.Start()
+        rev_sheetset = revit.create.create_revision_sheetset(
+            revisions,
+            match_any=match_any
+        )
+        transaction.Commit()
+        return rev_sheetset
     except Exception as ex:
         _log_debug("Sheet set creation failed", ex)
+        try:
+            if transaction.HasStarted() and not transaction.HasEnded():
+                transaction.RollBack()
+        except Exception:
+            pass
         raise
 
 
@@ -803,7 +883,6 @@ run_status = result["run_status"]
 # ----------------------------
 # FINAL REPORT
 # ----------------------------
-# Revision label
 rev_labels = []
 if revisions:
     for r in revisions:
@@ -826,16 +905,9 @@ ok_empty = (len(empty_sheets) == 0)
 
 status_txt = run_status
 
-# PRINT
 output.print_md(_cfg("ui.report_title"))
-
-# Sheet Set grande
 output.print_md(_cfg("ui.report_sheetset").format(sheetset_name))
-
-# Revision grande (subtitulo)
 output.print_md(_cfg("ui.report_revision").format(rev_one))
-
-# Resumen
 output.print_md(_cfg("ui.report_summary").format(
     status_txt,
     mode_txt,
@@ -848,13 +920,11 @@ if error_reason:
 elif run_status == "CANCELLED":
     output.print_md(_cfg("ui.report_cancelled"))
 
-# If multiple revisions, list them
 if len(rev_labels) > 1:
     output.print_md(_cfg("ui.report_revisions_included"))
     for rl in rev_labels:
         output.print_md("- {}".format(rl))
 
-# GRAPHIC CHECK (single)
 checks = []
 
 def add_check(label, ok, detail):
