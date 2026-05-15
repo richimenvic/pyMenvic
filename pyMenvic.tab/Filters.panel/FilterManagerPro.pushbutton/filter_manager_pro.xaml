@@ -237,7 +237,7 @@
     </TabControl>
 
     <Border Grid.Row="3" Background="#1E252B" BorderThickness="0" Padding="3,4,3,1" Margin="0,2,0,0">
-      <TextBlock x:Name="FooterVersionTextBlock" Text="pyMENVIC Filter Manager Pro | MVP 0.3.39" Foreground="#A9BAC8" FontSize="12" HorizontalAlignment="Left" VerticalAlignment="Center"/>
+      <TextBlock x:Name="FooterVersionTextBlock" Text="" Foreground="#A9BAC8" FontSize="12" HorizontalAlignment="Left" VerticalAlignment="Center"/>
     </Border>
   </Grid>
 </Window>
