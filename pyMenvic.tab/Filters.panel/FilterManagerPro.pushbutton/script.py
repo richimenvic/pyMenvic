@@ -298,6 +298,8 @@ class FilterManagerProWindow(forms.WPFWindow):
             pass
         try:
             param_value = element_id_value(parameter_id)
+            if param_value == -1:
+                return "Category"
             try:
                 label = LabelUtils.GetLabelFor(BuiltInParameter(param_value))
                 if label:
@@ -310,7 +312,7 @@ class FilterManagerProWindow(forms.WPFWindow):
 
     def _display_value(self, value):
         if value is None:
-            return "value not readable"
+            return "<value not readable>"
         try:
             el = doc.GetElement(value)
             if el:
@@ -318,7 +320,10 @@ class FilterManagerProWindow(forms.WPFWindow):
         except Exception:
             pass
         try:
-            return str(element_id_value(value))
+            raw_value = element_id_value(value)
+            if raw_value == -1:
+                return "<value not readable>"
+            return str(raw_value)
         except Exception:
             return str(value)
 
@@ -415,6 +420,12 @@ class FilterManagerProWindow(forms.WPFWindow):
         parameter_name = self._param_name(self._extract_rule_parameter_id(rule))
         operator_name = self._extract_rule_operator(rule)
         value = self._display_value(self._extract_rule_value(rule))
+        if value == "<value not readable>":
+            if parameter_name == "Category":
+                return "- Category is not readable"
+            if operator_name == "not":
+                return "- {} is not readable".format(parameter_name)
+            return "- {} value is not readable".format(parameter_name)
         return "- {} {} {}".format(parameter_name, operator_name, value)
 
     def _element_filter_signature(self, element_filter):
