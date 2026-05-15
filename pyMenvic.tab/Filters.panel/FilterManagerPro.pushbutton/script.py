@@ -37,6 +37,7 @@ from System.Collections.ObjectModel import ObservableCollection
 from System.IO import FileStream, FileMode, FileAccess
 from System.Windows.Media.Imaging import BitmapImage, BitmapCacheOption
 from System.Windows import Visibility
+from System.Windows.Controls import DataGridEditingUnit
 
 from Autodesk.Revit.DB import View, ElementId, Transaction, Category
 from pyrevit import forms, revit, script
@@ -277,10 +278,72 @@ class FilterManagerProWindow(forms.WPFWindow):
         for row in rows:
             dup = "Exact" if row[5] and len(sig_groups.get(row[5], [])) > 1 else "-"
             self.audit_rows.Add(AuditRow(row[0], row[1], row[1], row[2], row[3], row[4], dup))
+        self._update_audit_apply_state()
         self._refresh_active_tab_summary()
 
+    def _commit_audit_edits(self):
+        try: self.AuditGrid.CommitEdit(DataGridEditingUnit.Cell, True)
+        except Exception: pass
+        try: self.AuditGrid.CommitEdit(DataGridEditingUnit.Row, True)
+        except Exception: pass
+
+    def _get_changed_audit_rows(self):
+        changed = []
+        for r in self.audit_rows:
+            if (r.FilterName or "").strip() != (r.OriginalName or "").strip(): changed.append(r)
+        return changed
+
+    def _update_audit_apply_state(self):
+        try: self.ApplyAuditChangesButton.IsEnabled = len(self._get_changed_audit_rows()) > 0
+        except Exception: pass
+
+    def AuditGrid_CellEditEnding(self, sender, args):
+        try:
+            if str(args.Column.Header) != "Filter": return
+            row = args.Row.Item
+            row.FilterName = args.EditingElement.Text
+        except Exception: pass
+        self._update_audit_apply_state()
+
     def ApplyAuditChangesButton_Click(self, s, a):
-        forms.alert("Audit is read-only. Use Rename / Standardize to rename filters.", title="Filter Manager Pro", exitscript=False)
+        self._commit_audit_edits()
+        changed = self._get_changed_audit_rows()
+        if not changed:
+            self._set_reports_status("Audit Apply: no filter name changes to apply.")
+            self._update_audit_apply_state()
+            return
+        names = [(r.FilterName or "").strip() for r in changed]
+        if "" in names:
+            self._set_reports_status("Audit Apply failed: filter names cannot be empty.")
+            self._update_audit_apply_state()
+            return
+        lowered = [n.lower() for n in names]
+        if len(set(lowered)) != len(lowered):
+            self._set_reports_status("Audit Apply failed: duplicate edited filter names.")
+            self._update_audit_apply_state()
+            return
+        changed_ids = set([r.FilterId for r in changed])
+        existing = set([f.Name.lower() for f in self.filters if element_id_value(f.ElementId) not in changed_ids])
+        for n in names:
+            if n.lower() in existing:
+                self._set_reports_status("Audit Apply failed: name already exists: {}".format(n))
+                self._update_audit_apply_state()
+                return
+        ok = 0; fail = 0
+        tx = Transaction(doc, "Filter Manager Pro - Apply Audit Names")
+        tx.Start()
+        try:
+            for r in changed:
+                try:
+                    doc.GetElement(ElementId(r.FilterId)).Name = (r.FilterName or "").strip(); ok += 1
+                except Exception: fail += 1
+            tx.Commit()
+        except Exception:
+            try: tx.RollBack()
+            except Exception: pass
+            fail = len(changed)
+        self.filters = self._collect_filters(); self._rebuild_maps(); self.SourceComboBox.ItemsSource = self.filter_names; self.TargetComboBox.ItemsSource = self.filter_names
+        self._load_audit(); self._load_rename_rows(); self._set_reports_status("Audit Apply complete. Renamed: {} | Failed: {}".format(ok, fail))
 
     def _load_rename_rows(self):
         self.all_rename_rows = [RenameRow(element_id_value(f.ElementId), f.Name, f.Name) for f in self.filters]
