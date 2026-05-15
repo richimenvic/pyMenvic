@@ -289,9 +289,9 @@ class FilterManagerProWindow(forms.WPFWindow):
         names = list(category_names or [])
         if not names:
             return "N/A"
-        if len(names) <= 4:
+        if len(names) <= 3:
             return ", ".join(names)
-        return "{}, +{}".format(", ".join(names[:4]), len(names) - 4)
+        return "{}, +{}".format(", ".join(names[:3]), len(names) - 3)
 
     def _get_categories(self, filter_el):
         return self._format_category_summary(self._get_category_names(filter_el))
@@ -622,7 +622,7 @@ class FilterManagerProWindow(forms.WPFWindow):
                 return [self._rule_detail_line(rule) for rule in rules]
         except Exception:
             pass
-        return ["<No readable rules / category-only filter>"]
+        return ["Category-only filter. No parameter rules."]
 
     def _filter_content_signature(self, filter_el):
         if filter_el is None:
@@ -839,7 +839,7 @@ class FilterManagerProWindow(forms.WPFWindow):
                 duplicate_lines.append("- {}".format(name))
         rule_lines = self._filter_rule_lines(filter_el)
         if not rule_lines:
-            rule_lines = ["<No readable rules / category-only filter>"]
+            rule_lines = ["Category-only filter. No parameter rules."]
         self._set_audit_details_columns("\n".join(filter_lines), "\n".join(duplicate_lines), "\n".join(rule_lines))
 
     def ApplyAuditChangesButton_Click(self, s, a):
