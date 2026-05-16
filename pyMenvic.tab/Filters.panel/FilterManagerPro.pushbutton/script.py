@@ -1384,12 +1384,15 @@ class FilterManagerProWindow(forms.WPFWindow):
 
     def ExportUnusedCsvButton_Click(self, s, a):
         rows = [r for r in self.all_audit_rows if r.TotalCount == 0]
-        self._export_csv("unused_filters.csv", ["Filter", "Categories"], rows, lambda r: [r.FilterName, r.Categories])
+        self._export_csv("unused_filters.csv", ["Filter", "Categories", "Views", "Templates", "Total", "Status"], rows, lambda r: [r.FilterName, r.Categories, r.ViewCount, r.TemplateCount, r.TotalCount, r.Status])
 
     def ExportReplaceCsvButton_Click(self, s, a):
-        self._export_csv("replace_preview.csv", ["View", "Type", "Template", "Source", "Target", "Apply"], self.all_replace_rows, lambda r: [r.ViewName, r.ViewKind, r.IsTemplate, r.HasSource, r.HasTarget, r.Apply])
+        self._export_csv("replace_preview.csv", ["View", "Type", "Template", "Has Source", "Has Target", "Source Enabled", "Source Visible", "Target Enabled", "Target Visible", "Apply", "Status"], self.all_replace_rows, lambda r: [r.ViewName, r.ViewKind, r.IsTemplate, r.HasSource, r.HasTarget, r.SourceEnabled, r.SourceVisible, r.TargetEnabled, r.TargetVisible, r.Apply, r.Status])
 
     def _export_csv(self, filename, header, rows, rowf):
+        if not rows:
+            self._set_reports_status("Export skipped: no rows to export for {}.".format(filename))
+            return
         path = forms.save_file(file_ext='csv', default_name=filename)
         if not path:
             return
@@ -1400,7 +1403,7 @@ class FilterManagerProWindow(forms.WPFWindow):
                 w.writerow(header)
                 for r in rows:
                     w.writerow([str(x) for x in rowf(r)])
-            self._set_reports_status("Exported: {}".format(path))
+            self._set_reports_status("Exported {} row(s): {}".format(len(rows), path))
         except Exception as ex:
             self._set_reports_status("Export failed: {}".format(ex))
 
