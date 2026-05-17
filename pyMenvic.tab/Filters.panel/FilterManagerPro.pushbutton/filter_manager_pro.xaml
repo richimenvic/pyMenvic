@@ -230,7 +230,101 @@
       </TabItem>
 
       <TabItem Header="Replace / Consolidate">
-        <Grid Margin="2" Background="#F4F6F8"><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions><Border Padding="6"><WrapPanel><TextBlock Text="Source Filter" Style="{StaticResource SectionLabelStyle}"/><ComboBox x:Name="SourceComboBox" Width="250"/><TextBlock Text="Target Filter" Style="{StaticResource SectionLabelStyle}" Margin="12,0,6,0"/><ComboBox x:Name="TargetComboBox" Width="250"/><CheckBox x:Name="IncludeViewsCheckBox" Content="Include Views" IsChecked="True" Margin="12,0,0,0"/><CheckBox x:Name="IncludeTemplatesCheckBox" Content="Include Templates" IsChecked="True"/><CheckBox x:Name="MergeExistingCheckBox" Content="Merge if Target Exists" IsChecked="True"/><CheckBox x:Name="CopyVisibilityCheckBox" Content="Copy Visibility" IsChecked="True"/><CheckBox x:Name="CopyEnabledCheckBox" Content="Copy Enabled/Active" IsChecked="True"/><TextBlock Text="Search" Style="{StaticResource SectionLabelStyle}" Margin="12,0,6,0"/><TextBox x:Name="ReplaceSearchTextBox" Width="160" Style="{StaticResource ValueBoxStyle}" TextChanged="ReplaceSearchTextBox_TextChanged"/><Button x:Name="PreviewReplaceButton" Content="Preview" Style="{StaticResource ToolButtonStyle}" Click="PreviewReplaceButton_Click"/></WrapPanel></Border><TextBlock x:Name="ReplaceStatusTextBlock" Grid.Row="1" Foreground="#0A70B8" Margin="2,4"/><DataGrid x:Name="ReplaceGrid" Grid.Row="2" AutoGenerateColumns="False"><DataGrid.Columns><DataGridCheckBoxColumn Header="Apply" Binding="{Binding Apply}"/><DataGridTextColumn Header="View / Template" Binding="{Binding ViewName}" Width="*"/><DataGridTextColumn Header="Type" Binding="{Binding ViewKind}"/><DataGridCheckBoxColumn Header="Template" Binding="{Binding IsTemplate}" IsReadOnly="True"/><DataGridCheckBoxColumn Header="Has Source" Binding="{Binding HasSource}" IsReadOnly="True"/><DataGridCheckBoxColumn Header="Has Target" Binding="{Binding HasTarget}" IsReadOnly="True"/><DataGridTextColumn Header="Status" Binding="{Binding Status}" IsReadOnly="True"/></DataGrid.Columns></DataGrid><Button Grid.Row="3" x:Name="ApplyReplaceButton" HorizontalAlignment="Right" Content="Apply Replace" Style="{StaticResource ApplyButtonStyle}" Click="ApplyReplaceButton_Click"/></Grid>
+        <Grid Margin="2" Background="#F4F6F8">
+          <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+          </Grid.RowDefinitions>
+          <Border Padding="8" Background="#F4F6F8">
+            <Grid>
+              <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+              </Grid.RowDefinitions>
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="10"/>
+                <ColumnDefinition Width="*"/>
+              </Grid.ColumnDefinitions>
+              <Border Grid.Row="0" Grid.Column="0" Background="#FFFFFF" BorderBrush="#B8C6D1" BorderThickness="1" Padding="8" Margin="0,0,0,6">
+                <Grid>
+                  <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                  </Grid.ColumnDefinitions>
+                  <TextBlock Text="Source Filter" Style="{StaticResource SectionLabelStyle}"/>
+                  <ComboBox x:Name="SourceComboBox" Grid.Column="1" MinWidth="260"/>
+                </Grid>
+              </Border>
+              <Border Grid.Row="0" Grid.Column="2" Background="#FFFFFF" BorderBrush="#B8C6D1" BorderThickness="1" Padding="8" Margin="0,0,0,6">
+                <Grid>
+                  <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                  </Grid.ColumnDefinitions>
+                  <TextBlock Text="Target Filter" Style="{StaticResource SectionLabelStyle}"/>
+                  <ComboBox x:Name="TargetComboBox" Grid.Column="1" MinWidth="260"/>
+                </Grid>
+              </Border>
+              <Border Grid.Row="1" Grid.Column="0" Background="#E6EDF3" BorderBrush="#B8C6D1" BorderThickness="1" Padding="8" Margin="0,0,0,6">
+                <StackPanel>
+                  <TextBlock Text="SCOPE" Foreground="#1E252B" FontWeight="Bold" FontSize="11" Margin="0,0,0,5"/>
+                  <WrapPanel>
+                    <CheckBox x:Name="IncludeViewsCheckBox" Content="Include Views" IsChecked="True" Foreground="#1E252B" Margin="0,0,18,0"/>
+                    <CheckBox x:Name="IncludeTemplatesCheckBox" Content="Include Templates" IsChecked="True" Foreground="#1E252B" Margin="0,0,18,0"/>
+                  </WrapPanel>
+                </StackPanel>
+              </Border>
+              <Border Grid.Row="1" Grid.Column="2" Background="#E6EDF3" BorderBrush="#B8C6D1" BorderThickness="1" Padding="8" Margin="0,0,0,6">
+                <StackPanel>
+                  <TextBlock Text="OPTIONS" Foreground="#1E252B" FontWeight="Bold" FontSize="11" Margin="0,0,0,5"/>
+                  <WrapPanel>
+                    <CheckBox x:Name="MergeExistingCheckBox" Content="Merge if Target Exists" IsChecked="True" Foreground="#1E252B" Margin="0,0,18,0"/>
+                    <CheckBox x:Name="CopyVisibilityCheckBox" Content="Copy Visibility" IsChecked="True" Foreground="#1E252B" Margin="0,0,18,0"/>
+                    <CheckBox x:Name="CopyEnabledCheckBox" Content="Copy Enabled/Active" IsChecked="True" Foreground="#1E252B" Margin="0,0,18,0"/>
+                  </WrapPanel>
+                </StackPanel>
+              </Border>
+              <Border Grid.Row="2" Grid.ColumnSpan="3" Background="#FFFFFF" BorderBrush="#B8C6D1" BorderThickness="1" Padding="8">
+                <Grid>
+                  <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="260"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                  </Grid.ColumnDefinitions>
+                  <TextBlock Text="Search" Style="{StaticResource SectionLabelStyle}"/>
+                  <TextBox x:Name="ReplaceSearchTextBox" Grid.Column="1" Style="{StaticResource ValueBoxStyle}" TextChanged="ReplaceSearchTextBox_TextChanged"/>
+                  <Button x:Name="PreviewReplaceButton" Grid.Column="2" Content="Preview" Style="{StaticResource ToolButtonStyle}" Click="PreviewReplaceButton_Click" Margin="10,0,0,0"/>
+                  <TextBlock Grid.Column="3" Text="Preview reads view/template usage only. Apply remains disabled until rows are ready." Foreground="#6C7A86" VerticalAlignment="Center" Margin="8,0,0,0"/>
+                </Grid>
+              </Border>
+            </Grid>
+          </Border>
+          <Border Grid.Row="1" Background="#E6EDF3" BorderBrush="#AAB8C4" BorderThickness="1" Padding="8,5" Margin="8,0,8,6">
+            <TextBlock x:Name="ReplaceStatusTextBlock" Foreground="#0A70B8" FontWeight="SemiBold"/>
+          </Border>
+          <DataGrid x:Name="ReplaceGrid" Grid.Row="2" AutoGenerateColumns="False" Margin="8,0,8,6">
+            <DataGrid.Columns>
+              <DataGridCheckBoxColumn Header="Apply" Binding="{Binding Apply}" Width="62"/>
+              <DataGridTextColumn Header="View / Template" Binding="{Binding ViewName}" Width="2.2*"/>
+              <DataGridTextColumn Header="Type" Binding="{Binding ViewKind}" Width="1.1*"/>
+              <DataGridCheckBoxColumn Header="Template" Binding="{Binding IsTemplate}" IsReadOnly="True" Width="90"/>
+              <DataGridCheckBoxColumn Header="Has Source" Binding="{Binding HasSource}" IsReadOnly="True" Width="95"/>
+              <DataGridCheckBoxColumn Header="Has Target" Binding="{Binding HasTarget}" IsReadOnly="True" Width="95"/>
+              <DataGridTextColumn Header="Status" Binding="{Binding Status}" IsReadOnly="True" Width="1.25*"/>
+            </DataGrid.Columns>
+          </DataGrid>
+          <Border Grid.Row="3" Background="#F4F6F8" Padding="8,2,8,6">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+              <TextBlock Text="Review preview rows before applying." Foreground="#6C7A86" VerticalAlignment="Center" Margin="0,0,10,0"/>
+              <Button x:Name="ApplyReplaceButton" Content="Apply Replace" Style="{StaticResource ApplyButtonStyle}" Width="150" Height="32" IsEnabled="False" Click="ApplyReplaceButton_Click"/>
+            </StackPanel>
+          </Border>
+        </Grid>
       </TabItem>
 
       <TabItem Header="Reports"><StackPanel Margin="6" Background="#F4F6F8"><TextBlock Text="Export current audit, unused filter, and replace preview data to CSV reports."/><TextBlock x:Name="ReportsStatusTextBlock" Foreground="#0A70B8"/><Button x:Name="ExportAuditCsvButton" Content="Export Audit Summary CSV" Click="ExportAuditCsvButton_Click" Style="{StaticResource ToolButtonStyle}" Width="260"/><Button x:Name="ExportUnusedCsvButton" Content="Export Unused Filters CSV" Click="ExportUnusedCsvButton_Click" Style="{StaticResource ToolButtonStyle}" Width="260"/><Button x:Name="ExportReplaceCsvButton" Content="Export Replace Preview CSV" Click="ExportReplaceCsvButton_Click" Style="{StaticResource ToolButtonStyle}" Width="260"/></StackPanel></TabItem>
