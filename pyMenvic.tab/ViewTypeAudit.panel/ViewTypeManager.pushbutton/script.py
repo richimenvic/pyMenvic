@@ -220,6 +220,19 @@ def refresh_grid(grid):
             pass
 
 
+def clear_datagrid_sort(grid):
+    try:
+        grid.Items.SortDescriptions.Clear()
+    except:
+        pass
+
+    try:
+        for column in grid.Columns:
+            column.SortDirection = None
+    except:
+        pass
+
+
 def load_logo_if_available(window):
     try:
         logo_path = LOGO_FILE
@@ -1374,6 +1387,9 @@ class ViewTypeStandardizerWindow(forms.WPFWindow):
         self._apply_project_filters()
 
     def on_pymenvic_order(self, sender, args):
+        clear_datagrid_sort(self.StandardGrid)
+        clear_datagrid_sort(self.ProjectGrid)
+
         self.standard_rows_master = sorted(
             self.standard_rows_master,
             key=lambda x: (x.ViewFamilySortOrder, normalize_key(x.NewTypeName), normalize_key(x.OldTypeName))
