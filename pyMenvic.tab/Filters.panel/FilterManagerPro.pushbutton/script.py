@@ -120,7 +120,12 @@ class ReplaceRow(object):
         self.TargetEnabled = te
         self.TargetVisible = tv
         self.Apply = hs
-        self.Status = "Ready" if hs else "No source"
+        if hs:
+            self.Status = "Ready to Replace"
+        elif (not hs) and ht:
+            self.Status = "Already Has Target"
+        else:
+            self.Status = "No Source"
 
 
 class FilterManagerProWindow(forms.WPFWindow):
@@ -227,7 +232,7 @@ class FilterManagerProWindow(forms.WPFWindow):
             ready = len([r for r in self.rename_rows if r.Apply and r.Status == "Ready to Rename"])
             self._set_header_cards([self._card("ROWS", len(self.rename_rows)), self._card("READY", ready)])
         elif "Replace" in h:
-            self._set_header_cards([self._card("PREVIEW", len(self.replace_rows)), self._card("APPLY", len([r for r in self.replace_rows if r.Apply]))])
+            self._set_header_cards([self._card("PREVIEW", len(self.replace_rows)), self._card("APPLY", len([r for r in self.replace_rows if r.Apply and r.Status == "Ready to Replace"]))])
         else:
             self._set_header_cards([self._card("REPORTS", "CSV")])
 
@@ -1243,6 +1248,7 @@ class FilterManagerProWindow(forms.WPFWindow):
         tgt = self.filter_name_to_option.get(self.TargetComboBox.SelectedItem)
         if not src or not tgt or element_id_value(src.ElementId) == element_id_value(tgt.ElementId):
             self._set_replace_status("Select different source and target filters.")
+            self._update_replace_apply_state()
             return
         svid = element_id_value(src.ElementId)
         tvid = element_id_value(tgt.ElementId)
@@ -1285,7 +1291,11 @@ class FilterManagerProWindow(forms.WPFWindow):
             row = ReplaceRow(element_id_value(v.Id), element_name(v), str(v.ViewType), v.IsTemplate, hs, ht, se, sv, te, tv)
             self.all_replace_rows.append(row)
         self._filter_replace_rows()
-        self._set_replace_status("Preview ready: {} rows.".format(len(self.all_replace_rows)))
+        ready = len([r for r in self.all_replace_rows if r.Status == "Ready to Replace"])
+        has_target = len([r for r in self.all_replace_rows if r.Status == "Already Has Target"])
+        no_source = len([r for r in self.all_replace_rows if r.Status == "No Source"])
+        self._set_replace_status("Preview ready: {} ready to replace | {} already has target | {} no source.".format(ready, has_target, no_source))
+        self._update_replace_apply_state()
 
     def _filter_replace_rows(self):
         term = (self.ReplaceSearchTextBox.Text or "").strip().lower()
@@ -1294,7 +1304,19 @@ class FilterManagerProWindow(forms.WPFWindow):
             if term and term not in r.ViewName.lower() and term not in r.ViewKind.lower():
                 continue
             self.replace_rows.Add(r)
+        self._update_replace_apply_state()
         self._refresh_active_tab_summary()
+
+    def _update_replace_apply_state(self):
+        can_apply = False
+        for r in self.all_replace_rows:
+            if r.Apply and r.Status == "Ready to Replace":
+                can_apply = True
+                break
+        try:
+            self.ApplyReplaceButton.IsEnabled = can_apply
+        except Exception:
+            pass
 
     def ApplyReplaceButton_Click(self, s, a):
         src = self.filter_name_to_option.get(self.SourceComboBox.SelectedItem)
@@ -1302,9 +1324,9 @@ class FilterManagerProWindow(forms.WPFWindow):
         if not src or not tgt:
             self._set_replace_status("Missing source/target.")
             return
-        rows = [r for r in self.all_replace_rows if r.Apply]
+        rows = [r for r in self.all_replace_rows if r.Apply and r.Status == "Ready to Replace"]
         if not rows:
-            self._set_replace_status("No rows selected.")
+            self._set_replace_status("Nothing ready to replace.")
             return
         merge = self.MergeExistingCheckBox.IsChecked
         copyv = self.CopyVisibilityCheckBox.IsChecked
@@ -1358,6 +1380,7 @@ class FilterManagerProWindow(forms.WPFWindow):
             fl += 1
         self._load_audit()
         self.PreviewReplaceButton_Click(None, None)
+        self._update_replace_apply_state()
         self._set_replace_status("Apply Replace complete. Updated: {} | Skipped: {} | Failed: {}".format(ok, sk, fl))
 
     def ExportAuditCsvButton_Click(self, s, a):
