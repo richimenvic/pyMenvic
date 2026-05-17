@@ -292,14 +292,22 @@
                 <Grid>
                   <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="260"/>
+                    <ColumnDefinition Width="250"/>
                     <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="135"/>
                     <ColumnDefinition Width="*"/>
                   </Grid.ColumnDefinitions>
                   <TextBlock Text="Search" Style="{StaticResource SectionLabelStyle}"/>
                   <TextBox x:Name="ReplaceSearchTextBox" Grid.Column="1" Style="{StaticResource ValueBoxStyle}" TextChanged="ReplaceSearchTextBox_TextChanged"/>
                   <Button x:Name="PreviewReplaceButton" Grid.Column="2" Content="Preview" Style="{StaticResource ToolButtonStyle}" Click="PreviewReplaceButton_Click" Margin="10,0,0,0"/>
-                  <TextBlock Grid.Column="3" Text="Preview reads view/template usage only. Apply remains disabled until rows are ready." Foreground="#6C7A86" VerticalAlignment="Center" Margin="8,0,0,0"/>
+                  <TextBlock Grid.Column="3" Text="Show" Style="{StaticResource SectionLabelStyle}" Margin="10,0,6,0"/>
+                  <ComboBox x:Name="ReplaceShowComboBox" Grid.Column="4" SelectedIndex="0">
+                    <ComboBoxItem Content="All"/>
+                    <ComboBoxItem Content="Ready"/>
+                    <ComboBoxItem Content="Already Target"/>
+                  </ComboBox>
+                  <TextBlock Grid.Column="5" Text="Preview reads view/template usage only. Apply remains disabled until rows are ready." Foreground="#6C7A86" VerticalAlignment="Center" Margin="8,0,0,0"/>
                 </Grid>
               </Border>
             </Grid>
@@ -308,6 +316,46 @@
             <TextBlock x:Name="ReplaceStatusTextBlock" Foreground="#0A70B8" FontWeight="SemiBold"/>
           </Border>
           <DataGrid x:Name="ReplaceGrid" Grid.Row="2" AutoGenerateColumns="False" Margin="8,0,8,6">
+            <DataGrid.RowStyle>
+              <Style TargetType="DataGridRow">
+                <Setter Property="Foreground" Value="#1E252B"/>
+                <Style.Triggers>
+                  <Trigger Property="IsSelected" Value="True">
+                    <Setter Property="Background" Value="#0A70B8"/>
+                    <Setter Property="Foreground" Value="White"/>
+                    <Setter Property="FontWeight" Value="SemiBold"/>
+                  </Trigger>
+                  <MultiDataTrigger>
+                    <MultiDataTrigger.Conditions>
+                      <Condition Binding="{Binding SelectedIndex, ElementName=ReplaceShowComboBox}" Value="1"/>
+                      <Condition Binding="{Binding Status}" Value="Already Has Target"/>
+                    </MultiDataTrigger.Conditions>
+                    <Setter Property="Visibility" Value="Collapsed"/>
+                  </MultiDataTrigger>
+                  <MultiDataTrigger>
+                    <MultiDataTrigger.Conditions>
+                      <Condition Binding="{Binding SelectedIndex, ElementName=ReplaceShowComboBox}" Value="1"/>
+                      <Condition Binding="{Binding Status}" Value="No Source"/>
+                    </MultiDataTrigger.Conditions>
+                    <Setter Property="Visibility" Value="Collapsed"/>
+                  </MultiDataTrigger>
+                  <MultiDataTrigger>
+                    <MultiDataTrigger.Conditions>
+                      <Condition Binding="{Binding SelectedIndex, ElementName=ReplaceShowComboBox}" Value="2"/>
+                      <Condition Binding="{Binding Status}" Value="Ready to Replace"/>
+                    </MultiDataTrigger.Conditions>
+                    <Setter Property="Visibility" Value="Collapsed"/>
+                  </MultiDataTrigger>
+                  <MultiDataTrigger>
+                    <MultiDataTrigger.Conditions>
+                      <Condition Binding="{Binding SelectedIndex, ElementName=ReplaceShowComboBox}" Value="2"/>
+                      <Condition Binding="{Binding Status}" Value="No Source"/>
+                    </MultiDataTrigger.Conditions>
+                    <Setter Property="Visibility" Value="Collapsed"/>
+                  </MultiDataTrigger>
+                </Style.Triggers>
+              </Style>
+            </DataGrid.RowStyle>
             <DataGrid.Columns>
               <DataGridCheckBoxColumn Header="Apply" Binding="{Binding Apply}" Width="56"/>
               <DataGridTextColumn Header="View / Template" Binding="{Binding ViewName}" Width="2.15*"/>
