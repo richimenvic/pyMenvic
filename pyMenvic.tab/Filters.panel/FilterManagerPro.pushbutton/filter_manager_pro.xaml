@@ -309,9 +309,9 @@
           </Border>
           <DataGrid x:Name="ReplaceGrid" Grid.Row="2" AutoGenerateColumns="False" Margin="8,0,8,6">
             <DataGrid.Columns>
-              <DataGridCheckBoxColumn Header="Apply" Binding="{Binding Apply}" Width="62"/>
-              <DataGridTextColumn Header="View / Template" Binding="{Binding ViewName}" Width="2.2*"/>
-              <DataGridTemplateColumn Header="Type" Width="1.1*">
+              <DataGridCheckBoxColumn Header="Apply" Binding="{Binding Apply}" Width="58"/>
+              <DataGridTextColumn Header="View / Template" Binding="{Binding ViewName}" Width="2.0*"/>
+              <DataGridTemplateColumn Header="Type" Width="1.0*">
                 <DataGridTemplateColumn.CellTemplate>
                   <DataTemplate>
                     <Grid>
@@ -334,10 +334,14 @@
                   </DataTemplate>
                 </DataGridTemplateColumn.CellTemplate>
               </DataGridTemplateColumn>
-              <DataGridCheckBoxColumn Header="Template" Binding="{Binding IsTemplate}" IsReadOnly="True" Width="90"/>
-              <DataGridCheckBoxColumn Header="Has Source" Binding="{Binding HasSource}" IsReadOnly="True" Width="95"/>
-              <DataGridCheckBoxColumn Header="Has Target" Binding="{Binding HasTarget}" IsReadOnly="True" Width="95"/>
-              <DataGridTextColumn Header="Status" Binding="{Binding Status}" IsReadOnly="True" Width="1.25*"/>
+              <DataGridCheckBoxColumn Header="Template" Binding="{Binding IsTemplate}" IsReadOnly="True" Width="76"/>
+              <DataGridCheckBoxColumn Header="Source" Binding="{Binding HasSource}" IsReadOnly="True" Width="68"/>
+              <DataGridCheckBoxColumn Header="Target" Binding="{Binding HasTarget}" IsReadOnly="True" Width="68"/>
+              <DataGridCheckBoxColumn Header="Src Active" Binding="{Binding SourceEnabled}" IsReadOnly="True" Width="78"/>
+              <DataGridCheckBoxColumn Header="Src Visible" Binding="{Binding SourceVisible}" IsReadOnly="True" Width="80"/>
+              <DataGridCheckBoxColumn Header="Tgt Active" Binding="{Binding TargetEnabled}" IsReadOnly="True" Width="78"/>
+              <DataGridCheckBoxColumn Header="Tgt Visible" Binding="{Binding TargetVisible}" IsReadOnly="True" Width="80"/>
+              <DataGridTextColumn Header="Status" Binding="{Binding Status}" IsReadOnly="True" Width="1.15*"/>
             </DataGrid.Columns>
           </DataGrid>
           <Border Grid.Row="3" Background="#F4F6F8" Padding="8,2,8,6">
