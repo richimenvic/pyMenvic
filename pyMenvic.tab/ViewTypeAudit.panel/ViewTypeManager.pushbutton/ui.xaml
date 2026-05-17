@@ -408,7 +408,7 @@
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="10"/>
             <RowDefinition Height="245"/>
-            <RowDefinition Height="10"/>
+            <RowDefinition Height="8"/>
             <RowDefinition Height="*"/>
             <RowDefinition Height="10"/>
             <RowDefinition Height="Auto"/>
@@ -580,6 +580,16 @@
             </Grid>
         </Border>
 
+        <GridSplitter Grid.Row="5"
+                      Height="8"
+                      Margin="16,0"
+                      HorizontalAlignment="Stretch"
+                      VerticalAlignment="Center"
+                      Background="{StaticResource BorderDark}"
+                      ResizeDirection="Rows"
+                      ResizeBehavior="PreviousAndNext"
+                      ShowsPreview="True"/>
+
         <Border Grid.Row="6" Background="{StaticResource BgContent}" BorderBrush="{StaticResource BorderSubtle}" BorderThickness="1" CornerRadius="4" Margin="16,0" Padding="10">
             <Grid>
                 <Grid.RowDefinitions>
@@ -681,7 +691,7 @@
                            VerticalAlignment="Center"
                            FontSize="12"
                            Foreground="{StaticResource TextFooter}"
-                           Text="pyMENVIC View Type Standardizer | Workflow: LOAD standard → ANALYZE PROJECT → review suggestions → ADD RULE / USE → APPLY"/>
+                           Text="pyMENVIC View Type Standardizer | Drag divider to adjust panels."/>
 
                 <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
                     <Button x:Name="AddCheckedToRulesButton" Content="ADD TO RULES" Style="{StaticResource TealButtonStyle}" Width="130"/>
