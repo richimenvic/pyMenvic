@@ -3,7 +3,7 @@
 import os
 import sys
 
-from pyrevit.revit import tabs
+from pyrevit.revit import events, tabs
 from pyrevit.userconfig import user_config
 
 try:
@@ -21,9 +21,6 @@ except ImportError:
             break
         current_dir = parent_dir
     from core.tab_sorter import sort_tabs_by_document
-
-
-PENDING_ENVVAR = "PYMENVIC_TABS_SORT_PENDING"
 
 
 def _safe_bool(value):
@@ -47,9 +44,15 @@ def _should_sort_tabs():
     return False
 
 
+def _sort_if_enabled():
+    try:
+        if _should_sort_tabs():
+            sort_tabs_by_document()
+    except:
+        pass
+
+
 try:
-    if _should_sort_tabs():
-        os.environ[PENDING_ENVVAR] = "1"
-        sort_tabs_by_document()
+    events.execute_in_revit_context(_sort_if_enabled)
 except:
-    pass
+    _sort_if_enabled()
