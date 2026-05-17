@@ -38,6 +38,7 @@ except Exception:
     pass
 
 from System.Collections.ObjectModel import ObservableCollection
+from System.Windows import Visibility
 from System.Windows.Controls import DataGridEditingUnit
 from System import Int64
 
@@ -1328,59 +1329,6 @@ class FilterManagerProWindow(FilterManagerUIHelpers, forms.WPFWindow):
             self._set_reports_status("Exported {} row(s): {}".format(len(rows), path))
         except Exception as ex:
             self._set_reports_status("Export failed: {}".format(ex))
-
-    def _set_audit_status(self, t):
-        try:
-            self.AuditStatusTextBlock.Text = t
-        except Exception:
-            pass
-
-    def _set_audit_details_columns(self, filter_text, duplicate_text, rules_text):
-        wrote_new = False
-        try:
-            self.AuditDetailsFilterTextBlock.Text = filter_text
-            wrote_new = True
-        except Exception:
-            pass
-        try:
-            self.AuditDetailsDuplicateTextBlock.Text = duplicate_text
-            wrote_new = True
-        except Exception:
-            pass
-        try:
-            self.AuditDetailsRulesTextBlock.Text = rules_text
-            wrote_new = True
-        except Exception:
-            pass
-        for viewer_name in ("AuditDetailsFilterScrollViewer", "AuditDetailsDuplicateScrollViewer", "AuditDetailsRulesScrollViewer"):
-            try:
-                getattr(self, viewer_name).ScrollToTop()
-            except Exception:
-                pass
-        if not wrote_new:
-            self._set_audit_details("FILTER\n{}\n\nDUPLICATE\n{}\n\nRULES\n{}".format(filter_text, duplicate_text, rules_text))
-
-    def _set_audit_details(self, t):
-        try:
-            self.AuditDetailsTextBlock.Text = t
-            return
-        except Exception:
-            pass
-        try:
-            self.AuditDetailsFilterTextBlock.Text = t
-            self.AuditDetailsDuplicateTextBlock.Text = ""
-            self.AuditDetailsRulesTextBlock.Text = ""
-        except Exception:
-            pass
-
-    def _set_rename_status(self, t):
-        self.RenameStatusTextBlock.Text = t
-
-    def _set_replace_status(self, t):
-        self.ReplaceStatusTextBlock.Text = t
-
-    def _set_reports_status(self, t):
-        self.ReportsStatusTextBlock.Text = t
 
 
 FilterManagerProWindow().ShowDialog()
