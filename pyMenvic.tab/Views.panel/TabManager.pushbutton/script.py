@@ -6,7 +6,7 @@ __author__ = "Ricardo J. Mendieta"
 import os
 import sys
 
-from pyrevit import script
+from pyrevit import EXEC_PARAMS, script
 from pyrevit.revit import tabs
 from pyrevit.userconfig import user_config
 
@@ -25,13 +25,6 @@ except ImportError:
             break
         current_dir = parent_dir
     from core.tab_sorter import sort_tabs_by_document
-
-
-def _safe_bool(value):
-    try:
-        return bool(value)
-    except:
-        return False
 
 
 def _get_theme():
@@ -55,13 +48,6 @@ def _set_icon(state):
         pass
 
 
-def _is_active():
-    try:
-        return _safe_bool(tabs.get_doc_colorizer_state())
-    except:
-        return _safe_bool(getattr(user_config, "colorize_docs", False))
-
-
 def _enable_and_sort_tabs():
     theme = _get_theme()
     if theme and hasattr(theme, "SortDocTabs"):
@@ -82,6 +68,13 @@ def _disable_tab_coloring():
     _set_icon(False)
 
 
+def _is_config_mode():
+    try:
+        return bool(EXEC_PARAMS.config_mode)
+    except:
+        return False
+
+
 def _print_error(ex):
     output = script.get_output()
     output.print_md("## MENVIC | TABS BY DOCUMENT")
@@ -90,7 +83,7 @@ def _print_error(ex):
 
 def main():
     try:
-        if _is_active():
+        if _is_config_mode():
             _disable_tab_coloring()
         else:
             _enable_and_sort_tabs()
