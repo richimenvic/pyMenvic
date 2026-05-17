@@ -156,15 +156,6 @@ def main():
     output.print_md("Read-only runtime probe. No model changes.")
 
     output.print_md("")
-    output.print_md("### Runtime members")
-    for name in sorted(dir(obj)):
-        if "Tab" in name or "Doc" in name or "Pane" in name or "Group" in name or "Dock" in name:
-            try:
-                output.print_md("- `{0}` | `{1}`".format(name, type(getattr(obj, name))))
-            except:
-                output.print_md("- `{0}`".format(name))
-
-    output.print_md("")
     output.print_md("### Base objects")
 
     main_window = None
@@ -182,10 +173,10 @@ def main():
     output.print_md("### Visual tree search")
 
     roots = []
-    if main_window is not None:
-        roots.append(("main_window", main_window))
     if docking_manager is not None:
         roots.append(("docking_manager", docking_manager))
+    if main_window is not None:
+        roots.append(("main_window", main_window))
 
     all_found = []
     for label, root in roots:
@@ -196,15 +187,20 @@ def main():
         _print_found(output, "Matches under {0}".format(label), found)
 
     output.print_md("")
-    output.print_md("### Method chain from matches")
+    output.print_md("### Method chain from pane_group")
 
-    panes = None
     pane_group = None
     for candidate, depth in all_found:
         if "LayoutDocumentPaneGroupControl" in _type_name(candidate):
             pane_group = candidate
             break
 
+    if pane_group is None:
+        output.print_md("- `pane_group` not found.")
+    else:
+        output.print_md("- `pane_group` found: `{0}`".format(_describe(pane_group)))
+
+    panes = None
     if pane_group is not None and hasattr(obj, "GetDocumentPanes"):
         panes = _try(output, "GetDocumentPanes(pane_group)", obj.GetDocumentPanes, [pane_group])
 
@@ -212,11 +208,8 @@ def main():
     _sample(output, "Document panes", pane_items)
 
     tabs_pane = None
-    if hasattr(obj, "GetDocumentTabsPane"):
-        for index, pane in enumerate(pane_items):
-            result = _try(output, "GetDocumentTabsPane(pane {0})".format(index), obj.GetDocumentTabsPane, [pane])
-            if result is not None and tabs_pane is None:
-                tabs_pane = result
+    if pane_group is not None and hasattr(obj, "GetDocumentTabsPane"):
+        tabs_pane = _try(output, "GetDocumentTabsPane(pane_group)", obj.GetDocumentTabsPane, [pane_group])
 
     doc_tabs = None
     if tabs_pane is not None and hasattr(obj, "GetDocumentTabs"):
