@@ -3,8 +3,13 @@
 import os
 import sys
 
-from pyrevit.revit import tabs
+from pyrevit.revit import tabs, ui
 from pyrevit.userconfig import user_config
+
+try:
+    from System.Windows.Threading import DispatcherPriority
+except:
+    DispatcherPriority = None
 
 try:
     from lib.core.tab_sorter import sort_tabs_by_document
@@ -44,8 +49,25 @@ def _should_sort_tabs():
     return False
 
 
-try:
-    if _should_sort_tabs():
-        sort_tabs_by_document()
-except:
-    pass
+def _sort_if_enabled():
+    try:
+        if _should_sort_tabs():
+            sort_tabs_by_document()
+    except:
+        pass
+
+
+def _queue_sort_if_possible():
+    try:
+        main_window = ui.get_mainwindow()
+        dispatcher = main_window.Dispatcher
+        if dispatcher and DispatcherPriority:
+            dispatcher.BeginInvoke(DispatcherPriority.ApplicationIdle, _sort_if_enabled)
+            return
+    except:
+        pass
+
+    _sort_if_enabled()
+
+
+_queue_sort_if_possible()
