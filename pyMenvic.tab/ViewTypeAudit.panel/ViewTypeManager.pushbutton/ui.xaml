@@ -105,6 +105,13 @@
             <Setter Property="Margin"     Value="0,0,0,5"/>
         </Style>
 
+        <Style x:Key="SectionTitleStyle" TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}">
+            <Setter Property="FontSize"   Value="12"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Foreground" Value="{StaticResource TextDark}"/>
+            <Setter Property="Margin"     Value="0,0,0,0"/>
+        </Style>
+
         <Style x:Key="CardLabelStyle" TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}">
             <Setter Property="FontSize"   Value="11"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
@@ -525,9 +532,11 @@
             </Border>
         </Grid>
 
-        <GroupBox Grid.Row="4" Header="STANDARD RULES" Margin="16,0">
+        <Border Grid.Row="4" Background="{StaticResource BgContent}" BorderBrush="{StaticResource BorderSubtle}" BorderThickness="1" CornerRadius="4" Margin="16,0" Padding="10">
             <Grid>
                 <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="8"/>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="6"/>
                     <RowDefinition Height="Auto"/>
@@ -535,16 +544,18 @@
                     <RowDefinition Height="*"/>
                 </Grid.RowDefinitions>
 
-                <DockPanel Grid.Row="0" LastChildFill="False">
+                <TextBlock Grid.Row="0" Text="STANDARD RULES" Style="{StaticResource SectionTitleStyle}"/>
+
+                <DockPanel Grid.Row="2" LastChildFill="False">
                     <Button x:Name="AddRuleButton"    Content="ADD RULE"       Style="{StaticResource TealButtonStyle}" Width="100"/>
                     <Button x:Name="RemoveRuleButton" Content="REMOVE RULE"    Style="{StaticResource DangerButtonStyle}" Width="110" Margin="6,0,0,0"/>
                     <Button x:Name="MatchRulesButton" Content="ANALYZE PROJECT" Width="140" Margin="16,0,0,0"/>
                 </DockPanel>
 
-                <TextBlock x:Name="StandardRulesCountText" Grid.Row="2" Text="Showing 0 rules" FontSize="11" Foreground="{StaticResource TextLow}"/>
+                <TextBlock x:Name="StandardRulesCountText" Grid.Row="4" Text="Showing 0 rules" FontSize="11" Foreground="{StaticResource TextLow}"/>
 
                 <DataGrid x:Name="StandardGrid"
-                          Grid.Row="4"
+                          Grid.Row="6"
                           AutoGenerateColumns="False"
                           CanUserAddRows="False"
                           CanUserDeleteRows="False"
@@ -567,11 +578,13 @@
                     </DataGrid.Columns>
                 </DataGrid>
             </Grid>
-        </GroupBox>
+        </Border>
 
-        <GroupBox Grid.Row="6" Header="PROJECT TYPES TO REVIEW" Margin="16,0">
+        <Border Grid.Row="6" Background="{StaticResource BgContent}" BorderBrush="{StaticResource BorderSubtle}" BorderThickness="1" CornerRadius="4" Margin="16,0" Padding="10">
             <Grid>
                 <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="8"/>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="8"/>
                     <RowDefinition Height="Auto"/>
@@ -579,7 +592,9 @@
                     <RowDefinition Height="*"/>
                 </Grid.RowDefinitions>
 
-                <Grid Grid.Row="0">
+                <TextBlock Grid.Row="0" Text="PROJECT TYPES TO REVIEW" Style="{StaticResource SectionTitleStyle}"/>
+
+                <Grid Grid.Row="2">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="220"/>
                         <ColumnDefinition Width="12"/>
@@ -607,14 +622,14 @@
                     <TextBlock x:Name="ProjectTypesCountText" Grid.Column="5" Margin="16,0,0,0" VerticalAlignment="Bottom" FontSize="11" Foreground="{StaticResource TextLow}" Text="Showing 0 of 0 project types"/>
                 </Grid>
 
-                <StackPanel Grid.Row="2" Orientation="Horizontal">
+                <StackPanel Grid.Row="4" Orientation="Horizontal">
                     <Button x:Name="CheckVisibleAddRuleButton" Content="CHECK VISIBLE — ADD RULE" Style="{StaticResource TealButtonStyle}" Width="190"/>
                     <Button x:Name="CheckVisibleUseButton" Content="CHECK VISIBLE — USE" Style="{StaticResource SecondaryButtonStyle}" Width="160" Margin="6,0,0,0"/>
                     <Button x:Name="UncheckVisibleButton" Content="UNCHECK VISIBLE" Style="{StaticResource DangerButtonStyle}" Width="140" Margin="6,0,0,0"/>
                 </StackPanel>
 
                 <DataGrid x:Name="ProjectGrid"
-                          Grid.Row="4"
+                          Grid.Row="6"
                           AutoGenerateColumns="False"
                           CanUserAddRows="False"
                           CanUserDeleteRows="False"
@@ -655,7 +670,7 @@
                     </DataGrid.Columns>
                 </DataGrid>
             </Grid>
-        </GroupBox>
+        </Border>
 
         <Border Grid.Row="8"
                 Background="{StaticResource BgApp}"
