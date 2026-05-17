@@ -98,6 +98,16 @@ def get_view_family_name(vft):
         return "Unknown"
 
 
+def get_element_id_value(element_id):
+    try:
+        return element_id.Value
+    except:
+        try:
+            return element_id.IntegerValue
+        except:
+            return -1
+
+
 def is_protected_name(name):
     name = normalize_text(name)
     if not name:
@@ -291,7 +301,7 @@ class StandardRuleRow(object):
 class ProjectTypeRow(object):
     def __init__(self, element, family_name, current_name):
         self.Element = element
-        self.ElementId = element.Id.IntegerValue
+        self.ElementId = get_element_id_value(element.Id)
         self.ViewFamilyName = normalize_text(family_name)
         self.CurrentTypeName = normalize_text(current_name)
         self.NewTypeName = ""
