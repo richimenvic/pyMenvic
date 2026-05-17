@@ -6,16 +6,38 @@ __author__ = "Ricardo J. Mendieta"
 from pyrevit import HOST_APP, script
 from pyrevit.runtime import types
 from pyrevit.revit import ui
+from pyrevit.framework import Media
+
+
+TARGET_NAMES = [
+    "LayoutDocumentPaneGroupControl",
+    "LayoutDocumentPaneControl",
+    "LayoutDocumentPane",
+    "DocumentPane",
+    "DocumentPaneTabPanel",
+    "LayoutDocumentTabItem",
+    "TabPanel",
+    "TabItem"
+]
 
 
 def _short_error(ex):
     return str(ex).split("\n")[0]
 
 
+def _type_name(value):
+    if value is None:
+        return "None"
+    try:
+        return value.GetType().FullName
+    except:
+        return str(type(value))
+
+
 def _describe(value):
     if value is None:
         return "None"
-    text = str(type(value))
+    text = _type_name(value)
     try:
         text = text + " | Count: {0}".format(value.Count)
     except:
@@ -23,6 +45,10 @@ def _describe(value):
             text = text + " | len: {0}".format(len(value))
         except:
             pass
+    try:
+        text = text + " | Name: {0}".format(value.Name)
+    except:
+        pass
     return text
 
 
@@ -48,6 +74,66 @@ def _items(value):
     return result
 
 
+def _child_count(value):
+    try:
+        return Media.VisualTreeHelper.GetChildrenCount(value)
+    except:
+        return 0
+
+
+def _child_at(value, index):
+    try:
+        return Media.VisualTreeHelper.GetChild(value, index)
+    except:
+        return None
+
+
+def _matches_target(value):
+    name = _type_name(value)
+    for target in TARGET_NAMES:
+        if target in name:
+            return True
+    return False
+
+
+def _walk_visual_tree(root, max_nodes):
+    found = []
+    queue = [(root, 0)]
+    visited = 0
+
+    while queue and visited < max_nodes:
+        item, depth = queue.pop(0)
+        visited += 1
+
+        if _matches_target(item):
+            found.append((item, depth))
+
+        count = _child_count(item)
+        index = 0
+        while index < count:
+            child = _child_at(item, index)
+            if child is not None:
+                queue.append((child, depth + 1))
+            index += 1
+
+    return found, visited
+
+
+def _print_found(output, title, found):
+    output.print_md("")
+    output.print_md("### {0}".format(title))
+    if not found:
+        output.print_md("- None")
+        return
+
+    index = 0
+    for item, depth in found:
+        if index >= 25:
+            break
+        output.print_md("- `{0}` depth `{1}` | `{2}`".format(index, depth, _describe(item)))
+        index += 1
+
+
 def _sample(output, title, values):
     output.print_md("")
     output.print_md("### {0}".format(title))
@@ -70,13 +156,16 @@ def main():
     output.print_md("Read-only runtime probe. No model changes.")
 
     output.print_md("")
-    output.print_md("### Visible members")
+    output.print_md("### Runtime members")
     for name in sorted(dir(obj)):
         if "Tab" in name or "Doc" in name or "Pane" in name or "Group" in name or "Dock" in name:
-            output.print_md("- `{0}` | `{1}`".format(name, type(getattr(obj, name))))
+            try:
+                output.print_md("- `{0}` | `{1}`".format(name, type(getattr(obj, name))))
+            except:
+                output.print_md("- `{0}`".format(name))
 
     output.print_md("")
-    output.print_md("### Argument chain tests")
+    output.print_md("### Base objects")
 
     main_window = None
     try:
@@ -87,14 +176,37 @@ def main():
 
     docking_manager = None
     if hasattr(obj, "GetDockingManager"):
-        if main_window is not None:
-            docking_manager = _try(output, "GetDockingManager(main_window)", obj.GetDockingManager, [main_window])
-        if docking_manager is None:
-            docking_manager = _try(output, "GetDockingManager(uiapp)", obj.GetDockingManager, [HOST_APP.uiapp])
+        docking_manager = _try(output, "GetDockingManager(uiapp)", obj.GetDockingManager, [HOST_APP.uiapp])
+
+    output.print_md("")
+    output.print_md("### Visual tree search")
+
+    roots = []
+    if main_window is not None:
+        roots.append(("main_window", main_window))
+    if docking_manager is not None:
+        roots.append(("docking_manager", docking_manager))
+
+    all_found = []
+    for label, root in roots:
+        found, visited = _walk_visual_tree(root, 2500)
+        output.print_md("- `{0}` visited nodes: `{1}` | matches: `{2}`".format(label, visited, len(found)))
+        for entry in found:
+            all_found.append(entry)
+        _print_found(output, "Matches under {0}".format(label), found)
+
+    output.print_md("")
+    output.print_md("### Method chain from matches")
 
     panes = None
-    if docking_manager is not None and hasattr(obj, "GetDocumentPanes"):
-        panes = _try(output, "GetDocumentPanes(docking_manager)", obj.GetDocumentPanes, [docking_manager])
+    pane_group = None
+    for candidate, depth in all_found:
+        if "LayoutDocumentPaneGroupControl" in _type_name(candidate):
+            pane_group = candidate
+            break
+
+    if pane_group is not None and hasattr(obj, "GetDocumentPanes"):
+        panes = _try(output, "GetDocumentPanes(pane_group)", obj.GetDocumentPanes, [pane_group])
 
     pane_items = _items(panes)
     _sample(output, "Document panes", pane_items)
