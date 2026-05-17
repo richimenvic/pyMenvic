@@ -1,5 +1,8 @@
 # -*- coding: utf-8 -*-
 
+__title__ = "Tab Manager"
+__author__ = "Ricardo J. Mendieta"
+
 from pyrevit import forms, script
 from pyrevit.revit import tabs
 from pyrevit.userconfig import user_config
@@ -141,3 +144,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+

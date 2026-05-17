@@ -570,7 +570,7 @@
                     <DataGrid.Columns>
                         <DataGridTextColumn x:Name="StandardFamilyColumn"
                                             Header="VIEW FAMILY"
-                                            Binding="{Binding ViewFamilyLabel, UpdateSourceTrigger=PropertyChanged}"
+                                            Binding="{Binding ViewFamilyName, UpdateSourceTrigger=PropertyChanged}"
                                             Width="210">
                             <DataGridTextColumn.ElementStyle>
                                 <Style TargetType="TextBlock" BasedOn="{StaticResource SelectedCellTextStyle}"/>
@@ -715,3 +715,4 @@
 
     </Grid>
 </Window>
+
