@@ -96,14 +96,43 @@ def get_type_name(elem):
 def get_view_family_display_name(family_name):
     family_name = normalize_text(family_name)
     display_map = {
-        "ThreeDimensional": "3D View",
-        "FloorPlan": "Floor Plan",
-        "CeilingPlan": "Ceiling Plan",
-        "StructuralPlan": "Structural Plan",
-        "AreaPlan": "Area Plan",
-        "Drafting": "Drafting View",
+        "FloorPlan": "Floor Plans",
+        "CeilingPlan": "Ceiling Plans",
+        "ThreeDimensional": "3D Views",
+        "Elevation": "Elevations",
+        "Section": "Sections",
+        "Drafting": "Drafting Views",
+        "StructuralPlan": "Structural Plans",
+        "AreaPlan": "Area Plans",
+        "Legend": "Legends",
+        "Schedule": "Schedules",
+        "ImageView": "Renderings",
+        "CostReport": "Cost Reports",
+        "Walkthrough": "Walkthroughs",
+        "GraphicalColumnSchedule": "Graphical Column Schedules",
     }
-    return display_map.get(family_name, family_name)
+    return display_map.get(family_name, family_name or "Other / Unknown")
+
+
+def get_view_family_sort_order(family_name):
+    family_name = normalize_text(family_name)
+    order_map = {
+        "FloorPlan": 10,
+        "CeilingPlan": 20,
+        "ThreeDimensional": 30,
+        "Elevation": 40,
+        "Section": 50,
+        "Drafting": 60,
+        "StructuralPlan": 70,
+        "AreaPlan": 80,
+        "Legend": 90,
+        "Schedule": 100,
+        "ImageView": 110,
+        "CostReport": 120,
+        "Walkthrough": 130,
+        "GraphicalColumnSchedule": 140,
+    }
+    return order_map.get(family_name, 999)
 def get_view_family_name(vft):
     try:
         return safe_str(vft.ViewFamily)
@@ -308,6 +337,7 @@ class StandardRuleRow(object):
         self.Discipline = normalize_text(discipline)
         self.ViewFamilyName = normalize_text(family_name)
         self.ViewFamilyLabel = get_view_family_display_name(self.ViewFamilyName)
+        self.ViewFamilySortOrder = get_view_family_sort_order(self.ViewFamilyName)
         self.OldTypeName = normalize_text(old_name)
         self.NewTypeName = normalize_text(new_name)
 
@@ -318,6 +348,7 @@ class ProjectTypeRow(object):
         self.ElementId = get_element_id_value(element.Id)
         self.ViewFamilyName = normalize_text(family_name)
         self.ViewFamilyLabel = get_view_family_display_name(self.ViewFamilyName)
+        self.ViewFamilySortOrder = get_view_family_sort_order(self.ViewFamilyName)
         self.CurrentTypeName = normalize_text(current_name)
         self.NewTypeName = ""
         self.AddRule = False
@@ -385,7 +416,7 @@ def read_txt_standards():
     for key in discipline_map.keys():
         discipline_map[key] = sorted(
             discipline_map[key],
-            key=lambda x: (normalize_key(x.ViewFamilyName), normalize_key(x.OldTypeName))
+            key=lambda x: (x.ViewFamilySortOrder, normalize_key(x.NewTypeName), normalize_key(x.OldTypeName))
         )
 
     return discipline_map, errors
@@ -398,7 +429,7 @@ def write_txt_standards(discipline_map):
     first_block = True
     for discipline in disciplines:
         rows = discipline_map.get(discipline, [])
-        rows = sorted(rows, key=lambda x: (normalize_key(x.ViewFamilyName), normalize_key(x.OldTypeName)))
+        rows = sorted(rows, key=lambda x: (x.ViewFamilySortOrder, normalize_key(x.NewTypeName), normalize_key(x.OldTypeName)))
 
         if not first_block:
             lines.append("")
@@ -441,7 +472,7 @@ def collect_project_view_types():
                 "reason": first_line_error(ex)
             })
 
-    rows = sorted(rows, key=lambda x: (normalize_key(x.ViewFamilyName), normalize_key(x.CurrentTypeName)))
+    rows = sorted(rows, key=lambda x: (x.ViewFamilySortOrder, normalize_key(x.CurrentTypeName)))
     return rows, failures
 
 
@@ -945,6 +976,7 @@ class ViewTypeStandardizerWindow(forms.WPFWindow):
         self.CheckVisibleAddRuleButton.Click += self.on_check_visible_add_rule
         self.CheckVisibleUseButton.Click += self.on_check_visible_use
         self.UncheckVisibleButton.Click += self.on_uncheck_visible
+        self.PyMenvicOrderButton.Click += self.on_pymenvic_order
 
     def _actual_to_display_discipline(self, name):
         return normalize_text(name).upper()
@@ -1028,12 +1060,10 @@ class ViewTypeStandardizerWindow(forms.WPFWindow):
         set_combo_items(self.StandardFamilyColumn, self.project_family_names)
 
     def _sort_standard_rows_master(self):
-        def standard_sort_key(row):
-            num, category, subcat = parse_numbered_standard_name(row.NewTypeName)
-            order_num = num if num is not None else 999
-            return (normalize_key(row.ViewFamilyName), order_num, normalize_key(row.NewTypeName), normalize_key(row.OldTypeName))
-
-        self.standard_rows_master = sorted(self.standard_rows_master, key=standard_sort_key)
+        self.standard_rows_master = sorted(
+            self.standard_rows_master,
+            key=lambda x: (x.ViewFamilySortOrder, normalize_key(x.NewTypeName), normalize_key(x.OldTypeName))
+        )
 
     def _apply_standard_filters(self):
         family_filter = get_combobox_text(self.ProjectFamilyFilter)
@@ -1326,6 +1356,20 @@ class ViewTypeStandardizerWindow(forms.WPFWindow):
 
     def on_filter_changed(self, sender, args):
         self._apply_project_filters()
+
+    def on_pymenvic_order(self, sender, args):
+        self.standard_rows_master = sorted(
+            self.standard_rows_master,
+            key=lambda x: (x.ViewFamilySortOrder, normalize_key(x.NewTypeName), normalize_key(x.OldTypeName))
+        )
+        self.project_rows_master = sorted(
+            self.project_rows_master,
+            key=lambda x: (x.ViewFamilySortOrder, normalize_key(x.CurrentTypeName))
+        )
+        self._apply_project_filters()
+        refresh_grid(self.StandardGrid)
+        refresh_grid(self.ProjectGrid)
+        self._refresh_summary()
 
     def on_check_visible_add_rule(self, sender, args):
         for row in self.project_rows_view:
