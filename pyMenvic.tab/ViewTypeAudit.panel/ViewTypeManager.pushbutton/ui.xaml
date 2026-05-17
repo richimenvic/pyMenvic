@@ -570,7 +570,7 @@
                     <DataGrid.Columns>
                         <DataGridTextColumn x:Name="StandardFamilyColumn"
                                             Header="VIEW FAMILY"
-                                            Binding="{Binding ViewFamilyName, UpdateSourceTrigger=PropertyChanged}"
+                                            Binding="{Binding ViewFamilyLabel, UpdateSourceTrigger=PropertyChanged}"
                                             Width="210">
                             <DataGridTextColumn.ElementStyle>
                                 <Style TargetType="TextBlock" BasedOn="{StaticResource SelectedCellTextStyle}"/>
@@ -654,7 +654,7 @@
                           CanUserDeleteRows="False"
                           ColumnHeaderStyle="{StaticResource ProjectHeaderStyle}">
                     <DataGrid.Columns>
-                        <DataGridTextColumn Header="VIEW FAMILY" Binding="{Binding ViewFamilyName}" Width="160" IsReadOnly="True">
+                        <DataGridTextColumn Header="VIEW FAMILY" Binding="{Binding ViewFamilyLabel}" Width="160" IsReadOnly="True">
                             <DataGridTextColumn.ElementStyle>
                                 <Style TargetType="TextBlock" BasedOn="{StaticResource SelectedCellTextStyle}"/>
                             </DataGridTextColumn.ElementStyle>

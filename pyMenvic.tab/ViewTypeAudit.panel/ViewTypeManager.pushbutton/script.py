@@ -91,6 +91,19 @@ def get_type_name(elem):
             return "<Unnamed>"
 
 
+
+
+def get_view_family_display_name(family_name):
+    family_name = normalize_text(family_name)
+    display_map = {
+        "ThreeDimensional": "3D View",
+        "FloorPlan": "Floor Plan",
+        "CeilingPlan": "Ceiling Plan",
+        "StructuralPlan": "Structural Plan",
+        "AreaPlan": "Area Plan",
+        "Drafting": "Drafting View",
+    }
+    return display_map.get(family_name, family_name)
 def get_view_family_name(vft):
     try:
         return safe_str(vft.ViewFamily)
@@ -294,6 +307,7 @@ class StandardRuleRow(object):
     def __init__(self, discipline, family_name, old_name, new_name):
         self.Discipline = normalize_text(discipline)
         self.ViewFamilyName = normalize_text(family_name)
+        self.ViewFamilyLabel = get_view_family_display_name(self.ViewFamilyName)
         self.OldTypeName = normalize_text(old_name)
         self.NewTypeName = normalize_text(new_name)
 
@@ -303,6 +317,7 @@ class ProjectTypeRow(object):
         self.Element = element
         self.ElementId = get_element_id_value(element.Id)
         self.ViewFamilyName = normalize_text(family_name)
+        self.ViewFamilyLabel = get_view_family_display_name(self.ViewFamilyName)
         self.CurrentTypeName = normalize_text(current_name)
         self.NewTypeName = ""
         self.AddRule = False
