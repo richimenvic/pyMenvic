@@ -103,11 +103,13 @@ def main():
             theme.SortDocTabs = True
             tabs.set_tabcoloring_theme(user_config, theme)
         user_config.colorize_docs = True
+        user_config.save_changes()
         tabs.init_doc_colorizer(user_config)
         details.append('- Action: Enabled document tab coloring and sorting.')
 
     elif selected == 'Disable Tab Coloring':
         user_config.colorize_docs = False
+        user_config.save_changes()
         tabs.init_doc_colorizer(user_config)
         details.append('- Action: Disabled document tab coloring.')
 
