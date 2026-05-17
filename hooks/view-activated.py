@@ -3,8 +3,15 @@
 import os
 import sys
 
-from pyrevit.revit import events, tabs
+from pyrevit.revit import tabs, ui
 from pyrevit.userconfig import user_config
+
+try:
+    from System import TimeSpan
+    from System.Windows.Threading import DispatcherTimer
+except:
+    TimeSpan = None
+    DispatcherTimer = None
 
 try:
     from lib.core.tab_sorter import sort_tabs_by_document
@@ -21,6 +28,11 @@ except ImportError:
             break
         current_dir = parent_dir
     from core.tab_sorter import sort_tabs_by_document
+
+
+_DELAY_MS = 450
+_MAX_TICKS = 4
+_TIMER_REF = None
 
 
 def _safe_bool(value):
@@ -52,7 +64,36 @@ def _sort_if_enabled():
         pass
 
 
-try:
-    events.execute_in_revit_context(_sort_if_enabled)
-except:
-    _sort_if_enabled()
+def _start_delayed_sort():
+    global _TIMER_REF
+
+    if TimeSpan is None or DispatcherTimer is None:
+        _sort_if_enabled()
+        return
+
+    try:
+        dispatcher = ui.get_mainwindow().Dispatcher
+        timer = DispatcherTimer(dispatcher)
+        timer.Interval = TimeSpan.FromMilliseconds(_DELAY_MS)
+        state = {"ticks": 0}
+
+        def _on_tick(sender, args):
+            try:
+                state["ticks"] += 1
+                _sort_if_enabled()
+                if state["ticks"] >= _MAX_TICKS:
+                    sender.Stop()
+            except:
+                try:
+                    sender.Stop()
+                except:
+                    pass
+
+        timer.Tick += _on_tick
+        timer.Start()
+        _TIMER_REF = timer
+    except:
+        _sort_if_enabled()
+
+
+_start_delayed_sort()
