@@ -476,8 +476,6 @@
                             <ColumnDefinition Width="Auto"/>
                             <ColumnDefinition Width="8"/>
                             <ColumnDefinition Width="Auto"/>
-                            <ColumnDefinition Width="8"/>
-                            <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
 
                         <StackPanel Grid.Column="0">
@@ -488,10 +486,9 @@
                                       FontWeight="SemiBold"/>
                         </StackPanel>
 
-                        <Button x:Name="LoadDisciplineButton" Grid.Column="2" Content="LOAD" Width="82" VerticalAlignment="Bottom"/>
-                        <Button x:Name="ReloadTxtButton" Grid.Column="4" Content="RELOAD TXT" Width="98" Style="{StaticResource SecondaryButtonStyle}" VerticalAlignment="Bottom"/>
-                        <Button x:Name="SaveTxtButton" Grid.Column="6" Content="SAVE TXT" Width="90" VerticalAlignment="Bottom"/>
-                        <Button x:Name="RefreshProjectButton" Grid.Column="8" Content="REFRESH" Width="82" Style="{StaticResource SecondaryButtonStyle}" VerticalAlignment="Bottom"/>
+                        <Button x:Name="ReloadTxtButton" Grid.Column="2" Content="RELOAD TXT" Width="98" Style="{StaticResource SecondaryButtonStyle}" VerticalAlignment="Bottom"/>
+                        <Button x:Name="SaveTxtButton" Grid.Column="4" Content="SAVE TXT" Width="90" VerticalAlignment="Bottom"/>
+                        <Button x:Name="RefreshProjectButton" Grid.Column="6" Content="REFRESH" Width="82" Style="{StaticResource SecondaryButtonStyle}" VerticalAlignment="Bottom"/>
                     </Grid>
                 </Border>
             </Grid>

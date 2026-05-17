@@ -908,13 +908,12 @@ class ViewTypeStandardizerWindow(forms.WPFWindow):
         self._load_project_rows()
         self._reload_txt_and_combo()
         self._load_default_discipline()
-        self._load_filter_values(status_default="UNMATCHED")
+        self._load_filter_values(status_default="ALL")
         self._set_standard_family_column_items()
         self._apply_project_filters()
         self._refresh_summary()
 
     def _wire_events(self):
-        self.LoadDisciplineButton.Click += self.on_load_discipline
         self.DisciplineCombo.SelectionChanged += self.on_discipline_changed
         self.ReloadTxtButton.Click += self.on_reload_txt
         self.SaveTxtButton.Click += self.on_save_txt
@@ -1140,7 +1139,7 @@ class ViewTypeStandardizerWindow(forms.WPFWindow):
     def match_rules_to_project(self, show_alert=True):
         rules = [row for row in self.standard_rows_master]
         matched, normalized, numbered, unmatched = apply_rules_to_project(rules, self.project_rows_master)
-        self._load_filter_values(status_default="UNMATCHED")
+        self._load_filter_values(status_default="ALL")
         self._apply_project_filters()
         self._refresh_summary()
 
