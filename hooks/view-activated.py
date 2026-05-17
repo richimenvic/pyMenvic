@@ -3,13 +3,8 @@
 import os
 import sys
 
-from pyrevit.revit import tabs, ui
+from pyrevit.revit import tabs
 from pyrevit.userconfig import user_config
-
-try:
-    from System.Windows.Threading import DispatcherPriority
-except:
-    DispatcherPriority = None
 
 try:
     from lib.core.tab_sorter import sort_tabs_by_document
@@ -26,6 +21,9 @@ except ImportError:
             break
         current_dir = parent_dir
     from core.tab_sorter import sort_tabs_by_document
+
+
+PENDING_ENVVAR = "PYMENVIC_TABS_SORT_PENDING"
 
 
 def _safe_bool(value):
@@ -49,25 +47,9 @@ def _should_sort_tabs():
     return False
 
 
-def _sort_if_enabled():
-    try:
-        if _should_sort_tabs():
-            sort_tabs_by_document()
-    except:
-        pass
-
-
-def _queue_sort_if_possible():
-    try:
-        main_window = ui.get_mainwindow()
-        dispatcher = main_window.Dispatcher
-        if dispatcher and DispatcherPriority:
-            dispatcher.BeginInvoke(DispatcherPriority.ApplicationIdle, _sort_if_enabled)
-            return
-    except:
-        pass
-
-    _sort_if_enabled()
-
-
-_queue_sort_if_possible()
+try:
+    if _should_sort_tabs():
+        os.environ[PENDING_ENVVAR] = "1"
+        sort_tabs_by_document()
+except:
+    pass
