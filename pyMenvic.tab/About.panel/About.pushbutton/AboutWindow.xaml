@@ -5,116 +5,136 @@
         Width="600"
         WindowStartupLocation="CenterScreen"
         ResizeMode="NoResize"
-        Background="White"
+        Background="#1E252B"
         FontFamily="Segoe UI">
 
-    <Grid Margin="10">
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="200"/>
-            <ColumnDefinition Width="*"/>
-        </Grid.ColumnDefinitions>
+    <Window.Resources>
+        <Style x:Key="ToolButtonStyle" TargetType="Button">
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Background" Value="#2F4B5E"/>
+            <Setter Property="BorderBrush" Value="#4C6B82"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Height" Value="30"/>
+            <Setter Property="Padding" Value="12,4"/>
+            <Setter Property="Margin" Value="0,0,6,0"/>
+        </Style>
+    </Window.Resources>
 
-        <!-- LOGO -->
-        <Border Grid.Column="0"
-                Width="180"
-                Height="180"
-                CornerRadius="14"
-                Background="#F3F3F3"
-                VerticalAlignment="Top"
-                Margin="0,20,0,0"
-                HorizontalAlignment="Center">
-            <Image x:Name="logo" 
-                    Stretch="UniformToFill" 
-                    Margin="16"/>
+    <Grid Background="#1E252B">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <Border Grid.Row="0" Background="#26303A" Padding="12,10">
+            <TextBlock Text="About pyMenvic" Foreground="White" FontSize="18" FontWeight="Bold"/>
         </Border>
 
-        <!-- TEXT -->
-        <StackPanel Grid.Column="1" Margin="12,0,0,0">
+        <Border Grid.Row="1" Background="#F4F6F8" Margin="10,10,10,6" CornerRadius="6" Padding="12">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="200"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
 
-            <!-- TITLE -->
-            <TextBlock x:Name="titleText"
-                       FontSize="20"
-                       FontWeight="Bold"
-                       Foreground="#1F4E79"
-                       Text="pyMenvic — Version 1.0.0"/>
+                <Border Grid.Column="0"
+                        Width="180"
+                        Height="180"
+                        CornerRadius="14"
+                        Background="#F7F9FB"
+                        VerticalAlignment="Top"
+                        Margin="0,8,0,0"
+                        HorizontalAlignment="Center"
+                        BorderBrush="#D7E0E7"
+                        BorderThickness="1">
+                    <Image x:Name="logo"
+                            Stretch="UniformToFill"
+                            Margin="16"/>
+                </Border>
 
-            <!-- DESCRIPTION -->
-            <TextBlock x:Name="descText"
-                       Margin="0,12,0,8"
-                       FontSize="13"
-                       TextWrapping="Wrap"
-                       Text="Tools and utilities to improve productivity in Revit."/>
+                <StackPanel Grid.Column="1" Margin="12,0,0,0">
+                    <TextBlock x:Name="titleText"
+                               FontSize="20"
+                               FontWeight="Bold"
+                               Foreground="#1E252B"
+                               Text="pyMenvic — Version 1.0.0"/>
 
-            <TextBlock x:Name="envText"
-                       Margin="0,0,0,14"
+                    <TextBlock x:Name="descText"
+                               Margin="0,12,0,8"
+                               FontSize="13"
+                               Foreground="#1E252B"
+                               TextWrapping="Wrap"
+                               Text="Tools and utilities to improve productivity in Revit."/>
+
+                    <TextBlock x:Name="envText"
+                               Margin="0,0,0,14"
+                               FontSize="12"
+                               Foreground="#1E252B"
+                               Opacity="0.85"
+                               TextWrapping="Wrap"
+                               Text=""/>
+
+                    <Separator Margin="0,6,0,10"/>
+
+                    <TextBlock FontWeight="SemiBold"
+                               FontSize="13"
+                               Foreground="#1E252B"
+                               Text="MENVIC ARQ"/>
+
+                    <TextBlock Opacity="0.85"
+                               Margin="0,2,0,6"
+                               Foreground="#1E252B"
+                               Text="Developed by Ricardo J. Mendieta"/>
+
+                    <TextBlock Text="Contact"
+                               Foreground="#1E252B"
+                               FontWeight="Bold"
+                               Margin="0,8,0,3"/>
+
+                    <TextBlock x:Name="emailText"
+                               Foreground="#1E252B"
+                               Text="contact@menvic.com"/>
+
+                    <TextBlock x:Name="yearText"
+                               Margin="0,12,0,0"
+                               Foreground="#1E252B"
+                               Text="© 2026"/>
+
+                    <StackPanel Orientation="Vertical" Margin="0,22,0,12">
+                        <StackPanel Orientation="Horizontal">
+                            <Button x:Name="webBtn"
+                                    Style="{StaticResource ToolButtonStyle}"
+                                    Content="Website"
+                                    Width="100"
+                                    Height="32"/>
+
+                            <Button x:Name="copyEmailBtn"
+                                    Style="{StaticResource ToolButtonStyle}"
+                                    Content="Copy Email"
+                                    Width="120"
+                                    Height="32"
+                                    Margin="10,0,0,0"/>
+                        </StackPanel>
+
+                        <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+                            <Button x:Name="checkUpdatesBtn"
+                                    Style="{StaticResource ToolButtonStyle}"
+                                    Content="Check for Updates"
+                                    Width="230"
+                                    Height="32"
+                                    Margin="0"/>
+                        </StackPanel>
+                    </StackPanel>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <Border Grid.Row="2" Background="#1E252B" Padding="10,3,10,4">
+            <TextBlock Text="pyMenvic"
+                       Foreground="#A9BAC8"
                        FontSize="12"
-                       Opacity="0.85"
-                       TextWrapping="Wrap"
-                       Text=""/>
-
-            <!-- SEPARATOR -->
-            <Separator Margin="0,6,0,10"/>
-
-            <!-- ORGANIZATION -->
-            <TextBlock FontWeight="SemiBold"
-                       FontSize="13"
-                       Text="MENVIC ARQ"/>
-
-            <TextBlock Opacity="0.85"
-                       Margin="0,2,0,6"
-                       Text="Developed by Ricardo J. Mendieta"/>
-
-            <!-- CONTACT -->
-            <TextBlock Text="Contact"
-                       FontWeight="Bold"
-                       Margin="0,8,0,3"/>
-
-            <TextBlock x:Name="emailText"
-                       Text="contact@menvic.com"/>
-
-            <!-- COPYRIGHT -->
-            <TextBlock x:Name="yearText"
-                       Margin="0,12,0,0"
-                       Text="© 2026"/>
-
-            <!-- BUTTONS -->
-            <StackPanel Orientation="Vertical" Margin="0,22,0,12">
-
-                <StackPanel Orientation="Horizontal">
-
-                    <Button x:Name="webBtn"
-                            Content="Website"
-                            Width="100"
-                            Height="32"
-                            BorderBrush="#707070"
-                            BorderThickness="1"
-                            Background="#F5F5F5"/>
-
-                    <Button x:Name="copyEmailBtn"
-                            Content="Copy Email"
-                            Width="120"
-                            Height="32"
-                            Margin="10,0,0,0"
-                            BorderBrush="#707070"
-                            BorderThickness="1"
-                            Background="#F5F5F5"/>
-
-                </StackPanel>
-
-                <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
-
-                    <Button x:Name="checkUpdatesBtn"
-                            Content="Check for Updates"
-                            Width="230"
-                            Height="32"
-                            BorderBrush="#707070"
-                            BorderThickness="1"
-                            Background="#F5F5F5"/>
-
-                </StackPanel>
-
-            </StackPanel>
-
-        </StackPanel>
+                       HorizontalAlignment="Left"/>
+        </Border>
     </Grid>
 </Window>
