@@ -5,161 +5,121 @@ __author__ = "Ricardo J. Mendieta"
 
 from pyrevit import HOST_APP, script
 from pyrevit.runtime import types
-
-
-KEYWORDS = [
-    "Tab",
-    "Group",
-    "Doc",
-    "Pane",
-    "Sort"
-]
-
-
-def _matches(name):
-    for keyword in KEYWORDS:
-        if keyword in name:
-            return True
-    return False
+from pyrevit.revit import ui
 
 
 def _short_error(ex):
     return str(ex).split("\n")[0]
 
 
-def _describe_value(value):
+def _describe(value):
     if value is None:
         return "None"
-
-    value_type = str(type(value))
-
+    text = str(type(value))
     try:
-        count = len(value)
-        return "{0} | len: {1}".format(value_type, count)
+        text = text + " | Count: {0}".format(value.Count)
     except:
-        pass
-
-    try:
-        count_prop = getattr(value, "Count")
-        return "{0} | Count: {1}".format(value_type, count_prop)
-    except:
-        pass
-
-    return value_type
+        try:
+            text = text + " | len: {0}".format(len(value))
+        except:
+            pass
+    return text
 
 
-def _print_member(output, obj, name):
-    try:
-        value = getattr(obj, name)
-        output.print_md("- `{0}` | `{1}`".format(name, type(value)))
-    except Exception as ex:
-        output.print_md("- `{0}` | error: `{1}`".format(name, _short_error(ex)))
-
-
-def _try_call(output, label, func, args):
+def _try(output, label, func, args):
     try:
         result = func(*args)
-        output.print_md("- `{0}` OK: `{1}`".format(label, _describe_value(result)))
+        output.print_md("- `{0}` OK: `{1}`".format(label, _describe(result)))
         return result
     except Exception as ex:
         output.print_md("- `{0}` FAILED: `{1}`".format(label, _short_error(ex)))
         return None
 
 
-def _print_tab_sample(output, tabs_list):
-    if tabs_list is None:
-        return
-
-    output.print_md("")
-    output.print_md("### Tab sample")
-
-    index = 0
+def _items(value):
+    result = []
+    if value is None:
+        return result
     try:
-        for tab in tabs_list:
-            if index >= 10:
-                break
-            title = getattr(tab, "Title", None)
-            if title is None:
-                title = getattr(tab, "Header", None)
-            doc_id = getattr(tab, "DocumentId", None)
-            view_id = getattr(tab, "ViewId", None)
-            output.print_md("- `{0}` | Title: `{1}` | DocumentId: `{2}` | ViewId: `{3}`".format(index, title, doc_id, view_id))
-            index += 1
-    except Exception as ex:
-        output.print_md("- Could not enumerate tabs: `{0}`".format(_short_error(ex)))
+        for item in value:
+            result.append(item)
+    except:
+        pass
+    return result
+
+
+def _sample(output, title, values):
+    output.print_md("")
+    output.print_md("### {0}".format(title))
+    if not values:
+        output.print_md("- None")
+        return
+    index = 0
+    for value in values:
+        if index >= 10:
+            break
+        output.print_md("- `{0}` | `{1}`".format(index, _describe(value)))
+        index += 1
 
 
 def main():
     output = script.get_output()
-    output.print_md("## MENVIC | TAB MANAGER PROBE")
-    output.print_md("Read-only runtime probe. No model changes.")
-    output.print_md("")
-
     obj = types.DocumentTabEventUtils
 
+    output.print_md("## MENVIC | TAB MANAGER PROBE")
+    output.print_md("Read-only runtime probe. No model changes.")
+
+    output.print_md("")
     output.print_md("### Visible members")
-    names = []
+    for name in sorted(dir(obj)):
+        if "Tab" in name or "Doc" in name or "Pane" in name or "Group" in name or "Dock" in name:
+            output.print_md("- `{0}` | `{1}`".format(name, type(getattr(obj, name))))
+
+    output.print_md("")
+    output.print_md("### Argument chain tests")
+
+    main_window = None
     try:
-        for name in dir(obj):
-            if _matches(name):
-                names.append(name)
+        main_window = ui.get_mainwindow()
+        output.print_md("- `ui.get_mainwindow()` OK: `{0}`".format(_describe(main_window)))
     except Exception as ex:
-        output.print_md("- Failed reading members: `{0}`".format(_short_error(ex)))
-        return
+        output.print_md("- `ui.get_mainwindow()` FAILED: `{0}`".format(_short_error(ex)))
 
-    if not names:
-        output.print_md("- No matching members found.")
-        return
+    docking_manager = None
+    if hasattr(obj, "GetDockingManager"):
+        if main_window is not None:
+            docking_manager = _try(output, "GetDockingManager(main_window)", obj.GetDockingManager, [main_window])
+        if docking_manager is None:
+            docking_manager = _try(output, "GetDockingManager(uiapp)", obj.GetDockingManager, [HOST_APP.uiapp])
 
-    for name in sorted(names):
-        _print_member(output, obj, name)
+    panes = None
+    if docking_manager is not None and hasattr(obj, "GetDocumentPanes"):
+        panes = _try(output, "GetDocumentPanes(docking_manager)", obj.GetDocumentPanes, [docking_manager])
 
-    output.print_md("")
-    output.print_md("### Direct checks")
-    for name in [
-        "UpdateDocumentTabGroups",
-        "ClearDocumentTabGroups",
-        "GetDocumentTabs",
-        "GetDocumentTabsPane",
-        "GetDocumentTabGroup",
-        "StartGroupingDocumentTabs",
-        "StopGroupingDocumentTabs",
-        "ResetGroupingDocumentTabs",
-        "IsUpdatingDocumentTabs",
-        "TabColoringTheme"
-    ]:
-        output.print_md("- `{0}` exists: `{1}`".format(name, hasattr(obj, name)))
-
-    output.print_md("")
-    output.print_md("### Safe call tests")
+    pane_items = _items(panes)
+    _sample(output, "Document panes", pane_items)
 
     tabs_pane = None
-    doc_tabs = None
-
     if hasattr(obj, "GetDocumentTabsPane"):
-        tabs_pane = _try_call(output, "GetDocumentTabsPane()", obj.GetDocumentTabsPane, [])
+        for index, pane in enumerate(pane_items):
+            result = _try(output, "GetDocumentTabsPane(pane {0})".format(index), obj.GetDocumentTabsPane, [pane])
+            if result is not None and tabs_pane is None:
+                tabs_pane = result
 
-    if hasattr(obj, "GetDocumentTabs"):
-        doc_tabs = _try_call(output, "GetDocumentTabs()", obj.GetDocumentTabs, [])
-        if doc_tabs is None and tabs_pane is not None:
-            doc_tabs = _try_call(output, "GetDocumentTabs(tabs_pane)", obj.GetDocumentTabs, [tabs_pane])
+    doc_tabs = None
+    if tabs_pane is not None and hasattr(obj, "GetDocumentTabs"):
+        doc_tabs = _try(output, "GetDocumentTabs(tabs_pane)", obj.GetDocumentTabs, [tabs_pane])
+
+    tab_items = _items(doc_tabs)
+    _sample(output, "Document tabs", tab_items)
 
     if hasattr(obj, "GetDocumentTabGroup"):
-        _try_call(output, "GetDocumentTabGroup()", obj.GetDocumentTabGroup, [])
         if tabs_pane is not None:
-            _try_call(output, "GetDocumentTabGroup(tabs_pane)", obj.GetDocumentTabGroup, [tabs_pane])
-        if doc_tabs is not None:
-            try:
-                first_tab = None
-                for tab in doc_tabs:
-                    first_tab = tab
-                    break
-                if first_tab is not None:
-                    _try_call(output, "GetDocumentTabGroup(first_tab)", obj.GetDocumentTabGroup, [first_tab])
-            except Exception as ex:
-                output.print_md("- `GetDocumentTabGroup(first_tab)` prep FAILED: `{0}`".format(_short_error(ex)))
-
-    _print_tab_sample(output, doc_tabs)
+            _try(output, "GetDocumentTabGroup(tabs_pane)", obj.GetDocumentTabGroup, [tabs_pane])
+        for index, tab in enumerate(tab_items):
+            if index >= 5:
+                break
+            _try(output, "GetDocumentTabGroup(tab {0})".format(index), obj.GetDocumentTabGroup, [tab])
 
     output.print_md("")
     output.print_md("### Context")
