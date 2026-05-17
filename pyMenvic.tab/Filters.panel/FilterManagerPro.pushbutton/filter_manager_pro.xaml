@@ -311,7 +311,29 @@
             <DataGrid.Columns>
               <DataGridCheckBoxColumn Header="Apply" Binding="{Binding Apply}" Width="62"/>
               <DataGridTextColumn Header="View / Template" Binding="{Binding ViewName}" Width="2.2*"/>
-              <DataGridTextColumn Header="Type" Binding="{Binding ViewKind}" Width="1.1*"/>
+              <DataGridTemplateColumn Header="Type" Width="1.1*">
+                <DataGridTemplateColumn.CellTemplate>
+                  <DataTemplate>
+                    <Grid>
+                      <TextBlock x:Name="RawTypeText" Text="{Binding ViewKind}" Padding="4,0" VerticalAlignment="Center"/>
+                      <TextBlock x:Name="TypeText" Text="3D View" Padding="4,0" VerticalAlignment="Center" Visibility="Collapsed"/>
+                    </Grid>
+                    <DataTemplate.Triggers>
+                      <DataTrigger Binding="{Binding ViewKind}" Value="ThreeD">
+                        <Setter TargetName="RawTypeText" Property="Visibility" Value="Collapsed"/>
+                        <Setter TargetName="TypeText" Property="Visibility" Value="Visible"/>
+                      </DataTrigger>
+                      <MultiDataTrigger>
+                        <MultiDataTrigger.Conditions>
+                          <Condition Binding="{Binding ViewKind}" Value="ThreeD"/>
+                          <Condition Binding="{Binding IsTemplate}" Value="True"/>
+                        </MultiDataTrigger.Conditions>
+                        <Setter TargetName="TypeText" Property="Text" Value="3D View Template"/>
+                      </MultiDataTrigger>
+                    </DataTemplate.Triggers>
+                  </DataTemplate>
+                </DataGridTemplateColumn.CellTemplate>
+              </DataGridTemplateColumn>
               <DataGridCheckBoxColumn Header="Template" Binding="{Binding IsTemplate}" IsReadOnly="True" Width="90"/>
               <DataGridCheckBoxColumn Header="Has Source" Binding="{Binding HasSource}" IsReadOnly="True" Width="95"/>
               <DataGridCheckBoxColumn Header="Has Target" Binding="{Binding HasTarget}" IsReadOnly="True" Width="95"/>
