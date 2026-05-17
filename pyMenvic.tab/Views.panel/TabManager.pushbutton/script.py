@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-__title__ = "Tab Manager"
+__title__ = "Tabs by Document"
 __author__ = "Ricardo J. Mendieta"
 
 from pyrevit import HOST_APP, script
@@ -220,7 +220,7 @@ def _stop_tabs():
 
 def _print_error(ex):
     output = script.get_output()
-    output.print_md("## MENVIC | TAB MANAGER")
+    output.print_md("## MENVIC | TABS BY DOCUMENT")
     output.print_md("- Failed: {0}".format(str(ex).split("\n")[0]))
 
 
