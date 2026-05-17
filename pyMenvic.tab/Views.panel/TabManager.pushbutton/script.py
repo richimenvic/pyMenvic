@@ -22,12 +22,6 @@ def _get_theme():
         return None
 
 
-def _get_sort_state(theme):
-    if theme and hasattr(theme, "SortDocTabs"):
-        return _safe_bool(theme.SortDocTabs)
-    return False
-
-
 def _save_config():
     try:
         user_config.save_changes()
@@ -42,14 +36,6 @@ def _set_icon(state):
         pass
 
 
-def _slots_count():
-    try:
-        slots = tabs.get_styled_slots() or []
-        return len(slots)
-    except:
-        return 0
-
-
 def _enable_tabs():
     theme = _get_theme()
     if theme and hasattr(theme, "SortDocTabs"):
@@ -60,7 +46,6 @@ def _enable_tabs():
     _save_config()
     tabs.init_doc_colorizer(user_config)
     _set_icon(True)
-    return "Enabled color and sort."
 
 
 def _stop_tabs():
@@ -68,25 +53,22 @@ def _stop_tabs():
     _save_config()
     tabs.init_doc_colorizer(user_config)
     _set_icon(False)
-    return "Disabled tab coloring."
 
 
-def _report(message):
+def _print_error(ex):
     output = script.get_output()
-    theme = _get_theme()
     output.print_md("## MENVIC | TAB MANAGER")
-    output.print_md("- Action: {0}".format(message))
-    output.print_md("- Active: {0}".format(_safe_bool(tabs.get_doc_colorizer_state())))
-    output.print_md("- Sort Document Tabs: {0}".format(_get_sort_state(theme)))
-    output.print_md("- Styled documents count: {0}".format(_slots_count()))
+    output.print_md("- Failed: {0}".format(str(ex).split("\n")[0]))
 
 
 def main():
-    if _safe_bool(tabs.get_doc_colorizer_state()):
-        message = _stop_tabs()
-    else:
-        message = _enable_tabs()
-    _report(message)
+    try:
+        if _safe_bool(tabs.get_doc_colorizer_state()):
+            _stop_tabs()
+        else:
+            _enable_tabs()
+    except Exception as ex:
+        _print_error(ex)
 
 
 if __name__ == "__main__":
