@@ -14,10 +14,11 @@
             <Setter Property="Background" Value="#2F4B5E"/>
             <Setter Property="BorderBrush" Value="#4C6B82"/>
             <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="Height" Value="30"/>
-            <Setter Property="Padding" Value="8,3"/>
+            <Setter Property="Height" Value="27"/>
+            <Setter Property="Padding" Value="8,2"/>
             <Setter Property="Margin" Value="0"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="FontSize" Value="12"/>
             <Setter Property="HorizontalContentAlignment" Value="Center"/>
             <Setter Property="VerticalContentAlignment" Value="Center"/>
             <Setter Property="Template">
@@ -52,35 +53,35 @@
                 </Grid.ColumnDefinitions>
 
                 <StackPanel Grid.Column="0" HorizontalAlignment="Center" VerticalAlignment="Top">
-                    <Border Width="180"
-                            Height="180"
+                    <Border Width="165"
+                            Height="165"
                             CornerRadius="14"
                             Background="#F7F9FB"
-                            Margin="0,8,0,0"
+                            Margin="0,6,0,0"
                             BorderBrush="#D7E0E7"
                             BorderThickness="1">
                         <Image x:Name="logo"
                                 Stretch="UniformToFill"
-                                Margin="16"/>
+                                Margin="14"/>
                     </Border>
 
-                    <StackPanel Margin="0,18,0,0" Width="180">
+                    <StackPanel Margin="0,12,0,0" Width="165">
                         <Button x:Name="webBtn"
                                 Style="{StaticResource ToolButtonStyle}"
                                 Content="Website"
-                                Width="180"/>
+                                Width="165"/>
 
                         <Button x:Name="copyEmailBtn"
                                 Style="{StaticResource ToolButtonStyle}"
                                 Content="Copy Email"
-                                Width="180"
-                                Margin="0,8,0,0"/>
+                                Width="165"
+                                Margin="0,6,0,0"/>
 
                         <Button x:Name="checkUpdatesBtn"
                                 Style="{StaticResource ToolButtonStyle}"
                                 Content="Check for Updates"
-                                Width="180"
-                                Margin="0,8,0,0"/>
+                                Width="165"
+                                Margin="0,6,0,0"/>
                     </StackPanel>
                 </StackPanel>
 
