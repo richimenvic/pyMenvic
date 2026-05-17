@@ -22,22 +22,10 @@ def _tn(value):
         return str(type(value))
 
 
-def _desc(value):
-    if value is None:
-        return "None"
-    text = _tn(value)
-    for prop in ["Count", "Name", "Title"]:
-        try:
-            text = text + " | {0}: {1}".format(prop, getattr(value, prop))
-        except:
-            pass
-    return text
-
-
 def _call(output, label, func, args):
     try:
         result = func(*args)
-        output.print_md("- `{0}` OK: `{1}`".format(label, _desc(result)))
+        output.print_md("- `{0}` OK".format(label))
         return result
     except Exception as ex:
         output.print_md("- `{0}` FAILED: `{1}`".format(label, _err(ex)))
@@ -61,7 +49,7 @@ def _children(root, limit):
                     queue.append(child)
         except:
             pass
-    return found, visited
+    return found
 
 
 def _list_items(value):
@@ -79,123 +67,127 @@ def _list_items(value):
 def _get(obj, prop):
     try:
         return getattr(obj, prop)
-    except Exception as ex:
-        return "<error: {0}>".format(_err(ex))
-
-
-def _try_index(collection, index):
-    try:
-        return collection[index]
     except:
-        try:
-            return collection.Item[index]
-        except:
-            try:
-                return collection.Item(index)
-            except:
-                return None
+        return None
 
 
-def _print_collection(output, label, collection):
-    output.print_md("- `{0}`: `{1}`".format(label, _desc(collection)))
-    if collection is None:
-        return
-    count = 0
+def _doc_key(layout_doc):
+    tooltip = _get(layout_doc, "ToolTip")
+    if tooltip is None:
+        tooltip = ""
+    tooltip = str(tooltip)
+    if " - " in tooltip:
+        return tooltip.split(" - ", 1)[0]
+    title = _get(layout_doc, "Title")
+    if title is None:
+        return ""
+    return str(title)
+
+
+def _title(layout_doc):
+    title = _get(layout_doc, "Title")
+    if title is None:
+        return ""
+    return str(title)
+
+
+def _index_of(collection, item):
+    try:
+        return collection.IndexOf(item)
+    except:
+        pass
     try:
         count = collection.Count
     except:
-        try:
-            count = len(collection)
-        except:
-            count = 0
-    output.print_md("  - count: `{0}`".format(count))
+        return -1
     i = 0
-    while i < count and i < 12:
-        item = _try_index(collection, i)
-        output.print_md("  - item `{0}`: `{1}`".format(i, _desc(item)))
+    while i < count:
+        try:
+            if collection[i] == item:
+                return i
+        except:
+            pass
         i += 1
+    return -1
 
 
-def _print_layout_brief(output, label, obj):
-    output.print_md("- `{0}`: `{1}`".format(label, _desc(obj)))
-    for prop in ["Title", "ToolTip", "IsSelected", "IsActive"]:
-        output.print_md("  - `{0}`: `{1}`".format(prop, _get(obj, prop)))
+def _print_order(output, label, items):
+    output.print_md("")
+    output.print_md("### {0}".format(label))
+    for i, item in enumerate(items):
+        output.print_md("- `{0}` | `{1}` | `{2}`".format(i, _doc_key(item), _title(item)))
 
 
-def _print_parent_info(output, layout_doc):
-    parent = _get(layout_doc, "Parent")
-    root = _get(layout_doc, "Root")
-    output.print_md("- `Parent`: `{0}`".format(_desc(parent)))
-    output.print_md("- `Root`: `{0}`".format(_desc(root)))
+def _sort_children_by_document(output, children):
+    original = _list_items(children)
+    _print_order(output, "Before", original)
 
-    for prop in ["Children", "Items", "Descendents", "FloatingWindows"]:
-        value = _get(parent, prop)
-        if not str(value).startswith("<error"):
-            _print_collection(output, "Parent.{0}".format(prop), value)
+    doc_order = {}
+    for item in original:
+        key = _doc_key(item)
+        if key not in doc_order:
+            doc_order[key] = len(doc_order)
 
-    for prop in ["Children", "Items", "Descendents", "RootPanel"]:
-        value = _get(root, prop)
-        if not str(value).startswith("<error"):
-            _print_collection(output, "Root.{0}".format(prop), value)
+    desired = sorted(original, key=lambda x: (doc_order.get(_doc_key(x), 999), original.index(x)))
+    _print_order(output, "Target", desired)
+
+    moved = 0
+    for target_index, item in enumerate(desired):
+        current_index = _index_of(children, item)
+        if current_index >= 0 and current_index != target_index:
+            children.Move(current_index, target_index)
+            moved += 1
+
+    final_items = _list_items(children)
+    _print_order(output, "After", final_items)
+    output.print_md("")
+    output.print_md("- `moves`: `{0}`".format(moved))
 
 
 def main():
     output = script.get_output()
     api = types.DocumentTabEventUtils
 
-    output.print_md("## MENVIC | TAB MANAGER PROBE")
-    output.print_md("Read-only runtime probe. No model changes.")
+    output.print_md("## MENVIC | TAB WRITE PROBE")
+    output.print_md("This test only reorders Revit UI tabs. It does not modify model data.")
 
     main_window = ui.get_mainwindow()
     docking_manager = _call(output, "GetDockingManager(uiapp)", api.GetDockingManager, [HOST_APP.uiapp])
 
     pane_groups = []
     if docking_manager is not None:
-        found, visited = _children(docking_manager, 2500)
-        output.print_md("- `docking_manager` visited: `{0}` | pane groups: `{1}`".format(visited, len(found)))
-        pane_groups.extend(found)
+        pane_groups = _children(docking_manager, 2500)
     if not pane_groups and main_window is not None:
-        found, visited = _children(main_window, 2500)
-        output.print_md("- `main_window` visited: `{0}` | pane groups: `{1}`".format(visited, len(found)))
-        pane_groups.extend(found)
+        pane_groups = _children(main_window, 2500)
 
     if not pane_groups:
         output.print_md("- No pane group found.")
         return
 
-    pane_group = pane_groups[0]
-    panes = _call(output, "GetDocumentPanes(pane_group)", api.GetDocumentPanes, [pane_group])
+    panes = _call(output, "GetDocumentPanes(pane_group)", api.GetDocumentPanes, [pane_groups[0]])
     pane_items = _list_items(panes)
-    output.print_md("- `pane count`: `{0}`".format(len(pane_items)))
+    if not pane_items:
+        output.print_md("- No document pane found.")
+        return
 
-    tabs = None
-    if pane_items:
-        tabs = _call(output, "GetDocumentTabs(pane 0)", api.GetDocumentTabs, [pane_items[0]])
-
+    tabs = _call(output, "GetDocumentTabs(pane 0)", api.GetDocumentTabs, [pane_items[0]])
     tab_items = _list_items(tabs)
-    output.print_md("- `tab count`: `{0}`".format(len(tab_items)))
+    if not tab_items:
+        output.print_md("- No document tabs found.")
+        return
 
-    output.print_md("")
-    output.print_md("### Tab order and parent collection")
-    first_layout = None
-    for index, tab in enumerate(tab_items):
-        if index >= 12:
-            break
-        header = _get(tab, "Header")
-        title = _get(header, "Title")
-        tooltip = _get(header, "ToolTip")
-        output.print_md("- `{0}` | Title: `{1}` | ToolTip: `{2}`".format(index, title, tooltip))
-        if first_layout is None:
-            first_layout = header
+    first_layout = _get(tab_items[0], "Header")
+    parent = _get(first_layout, "Parent")
+    children = _get(parent, "Children")
+    if children is None:
+        output.print_md("- Parent.Children not found.")
+        return
 
-    if first_layout is not None:
-        output.print_md("")
-        output.print_md("### First tab LayoutDocument parent details")
-        _print_layout_brief(output, "First LayoutDocument", first_layout)
-        _print_parent_info(output, first_layout)
+    try:
+        _sort_children_by_document(output, children)
+    except Exception as ex:
+        output.print_md("- Reorder failed: `{0}`".format(_err(ex)))
 
-    group = _call(output, "GetDocumentTabGroup(uiapp)", api.GetDocumentTabGroup, [HOST_APP.uiapp])
-    output.print_md("- `group`: `{0}`".format(_desc(group)))
     output.print_md("- Active document: `{0}`".format(HOST_APP.doc.Title if HOST_APP.doc else "None"))
 
 
