@@ -2,6 +2,9 @@
 __title__ = "Link Workset Manager"
 __author__ = "Ricardo J. Mendieta"
 
+import os
+import sys
+
 try:
     from lib.core.branding import get_logo_path
 except ImportError:
@@ -38,9 +41,6 @@ If multiple rows share the same Link Type, they
 must all end with the same target workset, otherwise
 the tool will stop and warn about the conflict.
 """
-
-import os
-import sys
 
 from pyrevit import revit, DB, forms
 from System.Collections.ObjectModel import ObservableCollection
