@@ -309,9 +309,9 @@
           </Border>
           <DataGrid x:Name="ReplaceGrid" Grid.Row="2" AutoGenerateColumns="False" Margin="8,0,8,6">
             <DataGrid.Columns>
-              <DataGridCheckBoxColumn Header="Apply" Binding="{Binding Apply}" Width="58"/>
-              <DataGridTextColumn Header="View / Template" Binding="{Binding ViewName}" Width="2.0*"/>
-              <DataGridTemplateColumn Header="Type" Width="1.0*">
+              <DataGridCheckBoxColumn Header="Apply" Binding="{Binding Apply}" Width="56"/>
+              <DataGridTextColumn Header="View / Template" Binding="{Binding ViewName}" Width="1.85*"/>
+              <DataGridTemplateColumn Header="Type" Width="1.05*">
                 <DataGridTemplateColumn.CellTemplate>
                   <DataTemplate>
                     <Grid>
@@ -321,6 +321,12 @@
                     <DataTemplate.Triggers>
                       <DataTrigger Binding="{Binding ViewKind}" Value="ThreeD">
                         <Setter TargetName="RawTypeText" Property="Visibility" Value="Collapsed"/>
+                        <Setter TargetName="TypeText" Property="Text" Value="3D View"/>
+                        <Setter TargetName="TypeText" Property="Visibility" Value="Visible"/>
+                      </DataTrigger>
+                      <DataTrigger Binding="{Binding ViewKind}" Value="FloorPlan">
+                        <Setter TargetName="RawTypeText" Property="Visibility" Value="Collapsed"/>
+                        <Setter TargetName="TypeText" Property="Text" Value="Floor Plan"/>
                         <Setter TargetName="TypeText" Property="Visibility" Value="Visible"/>
                       </DataTrigger>
                       <MultiDataTrigger>
@@ -330,18 +336,25 @@
                         </MultiDataTrigger.Conditions>
                         <Setter TargetName="TypeText" Property="Text" Value="3D View Template"/>
                       </MultiDataTrigger>
+                      <MultiDataTrigger>
+                        <MultiDataTrigger.Conditions>
+                          <Condition Binding="{Binding ViewKind}" Value="FloorPlan"/>
+                          <Condition Binding="{Binding IsTemplate}" Value="True"/>
+                        </MultiDataTrigger.Conditions>
+                        <Setter TargetName="TypeText" Property="Text" Value="Floor Plan Template"/>
+                      </MultiDataTrigger>
                     </DataTemplate.Triggers>
                   </DataTemplate>
                 </DataGridTemplateColumn.CellTemplate>
               </DataGridTemplateColumn>
-              <DataGridCheckBoxColumn Header="Template" Binding="{Binding IsTemplate}" IsReadOnly="True" Width="76"/>
-              <DataGridCheckBoxColumn Header="Source" Binding="{Binding HasSource}" IsReadOnly="True" Width="68"/>
-              <DataGridCheckBoxColumn Header="Target" Binding="{Binding HasTarget}" IsReadOnly="True" Width="68"/>
-              <DataGridCheckBoxColumn Header="Src Active" Binding="{Binding SourceEnabled}" IsReadOnly="True" Width="78"/>
-              <DataGridCheckBoxColumn Header="Src Visible" Binding="{Binding SourceVisible}" IsReadOnly="True" Width="80"/>
-              <DataGridCheckBoxColumn Header="Tgt Active" Binding="{Binding TargetEnabled}" IsReadOnly="True" Width="78"/>
-              <DataGridCheckBoxColumn Header="Tgt Visible" Binding="{Binding TargetVisible}" IsReadOnly="True" Width="80"/>
-              <DataGridTextColumn Header="Status" Binding="{Binding Status}" IsReadOnly="True" Width="1.15*"/>
+              <DataGridCheckBoxColumn Header="Template" Binding="{Binding IsTemplate}" IsReadOnly="True" Width="74"/>
+              <DataGridCheckBoxColumn Header="Source" Binding="{Binding HasSource}" IsReadOnly="True" Width="66"/>
+              <DataGridCheckBoxColumn Header="Target" Binding="{Binding HasTarget}" IsReadOnly="True" Width="66"/>
+              <DataGridCheckBoxColumn Header="S Active" Binding="{Binding SourceEnabled}" IsReadOnly="True" Width="72"/>
+              <DataGridCheckBoxColumn Header="S Visible" Binding="{Binding SourceVisible}" IsReadOnly="True" Width="74"/>
+              <DataGridCheckBoxColumn Header="T Active" Binding="{Binding TargetEnabled}" IsReadOnly="True" Width="72"/>
+              <DataGridCheckBoxColumn Header="T Visible" Binding="{Binding TargetVisible}" IsReadOnly="True" Width="74"/>
+              <DataGridTextColumn Header="Status" Binding="{Binding Status}" IsReadOnly="True" Width="1.3*"/>
             </DataGrid.Columns>
           </DataGrid>
           <Border Grid.Row="3" Background="#F4F6F8" Padding="8,2,8,6">
