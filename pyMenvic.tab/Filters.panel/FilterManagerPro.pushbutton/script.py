@@ -151,6 +151,10 @@ class FilterManagerProWindow(forms.WPFWindow):
             self.AuditScopeComboBox.SelectedIndex = 0
         except Exception:
             pass
+        try:
+            self.ReplaceShowComboBox.SelectedIndex = 0
+        except Exception:
+            pass
         self.SourceComboBox.ItemsSource = self.filter_names
         self.TargetComboBox.ItemsSource = self.filter_names
         if self.filter_names:
@@ -1154,6 +1158,9 @@ class FilterManagerProWindow(forms.WPFWindow):
     def ReplaceSearchTextBox_TextChanged(self, s, a):
         self._filter_replace_rows()
 
+    def ReplaceShowComboBox_SelectionChanged(self, s, a):
+        self._filter_replace_rows()
+
     def RefreshAuditButton_Click(self, s, a):
         self._load_audit()
 
@@ -1297,6 +1304,21 @@ class FilterManagerProWindow(forms.WPFWindow):
         self._set_replace_status("Preview ready: {} ready to replace | {} already has target | {} no source.".format(ready, already_target, no_source))
         self._update_replace_apply_state()
 
+    def _replace_show_scope(self):
+        try:
+            selected = self.ReplaceShowComboBox.SelectedItem
+            return str(selected.Content) if hasattr(selected, "Content") else str(selected)
+        except Exception:
+            return "All"
+
+    def _replace_row_matches_show_scope(self, row):
+        scope = self._replace_show_scope()
+        if scope == "Ready":
+            return row.Status == "Ready to Replace"
+        if scope == "Already Target":
+            return row.Status == "Already Has Target"
+        return True
+
     def _update_replace_apply_state(self):
         enabled = len([r for r in self.all_replace_rows if r.Apply and r.Status == "Ready to Replace"]) > 0
         try:
@@ -1309,6 +1331,8 @@ class FilterManagerProWindow(forms.WPFWindow):
         self.replace_rows.Clear()
         for r in self.all_replace_rows:
             if term and term not in r.ViewName.lower() and term not in r.ViewKind.lower():
+                continue
+            if not self._replace_row_matches_show_scope(r):
                 continue
             self.replace_rows.Add(r)
         self._update_replace_apply_state()
