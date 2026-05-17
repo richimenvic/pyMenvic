@@ -38,9 +38,6 @@ except Exception:
     pass
 
 from System.Collections.ObjectModel import ObservableCollection
-from System.IO import FileStream, FileMode, FileAccess
-from System.Windows.Media.Imaging import BitmapImage, BitmapCacheOption
-from System.Windows import Visibility
 from System.Windows.Controls import DataGridEditingUnit
 from System import Int64
 
@@ -56,6 +53,7 @@ except Exception:
     PostableCommand = None
 from pyrevit import forms, revit, script
 from filter_models import FilterOption, AuditRow, RenameRow, ReplaceRow
+from filter_ui import FilterManagerUIHelpers
 
 doc = revit.doc
 XAML_FILE = script.get_bundle_file("filter_manager_pro.xaml")
@@ -76,9 +74,10 @@ def safe_element_id(value):
         return ElementId(value)
 
 
-class FilterManagerProWindow(forms.WPFWindow):
+class FilterManagerProWindow(FilterManagerUIHelpers, forms.WPFWindow):
     def __init__(self):
         forms.WPFWindow.__init__(self, XAML_FILE)
+        self._logo_file = LOGO_FILE
         self._load_header_logo()
         try:
             self.FooterVersionTextBlock.Text = TOOL_LABEL
@@ -136,26 +135,6 @@ class FilterManagerProWindow(forms.WPFWindow):
                 pass
         return out
 
-    def _set_text(self, name, v):
-        try:
-            getattr(self, name).Text = str(v)
-        except Exception:
-            pass
-
-    def _set_header_cards(self, cards):
-        cards = cards[:4]
-        for i in range(4):
-            d = cards[i] if i < len(cards) else None
-            self._set_text("HeaderCardLabel{}".format(i + 1), d[0] if d else "")
-            self._set_text("HeaderCardValue{}".format(i + 1), d[1] if d else "")
-            try:
-                getattr(self, "HeaderCardBorder{}".format(i + 1)).Visibility = Visibility.Visible if d else Visibility.Collapsed
-            except Exception:
-                pass
-
-    def _card(self, l, v):
-        return (l, str(v))
-
     def _duplicate_rows(self, rows):
         return [r for r in rows if r.DuplicateType != "Not duplicate"]
 
@@ -165,48 +144,6 @@ class FilterManagerProWindow(forms.WPFWindow):
             if r.DuplicateGroup and r.DuplicateGroup != "-":
                 groups.add(r.DuplicateGroup)
         return len(groups)
-
-    def _refresh_active_tab_summary(self):
-        h = "Audit"
-        try:
-            h = str(self.MainTabControl.SelectedItem.Header)
-        except Exception:
-            pass
-        if "Audit" in h:
-            used = len([r for r in self.all_audit_rows if r.TotalCount > 0])
-            self._set_header_cards([
-                self._card("FILTERS", len(self.all_audit_rows)),
-                self._card("VISIBLE", len(self.audit_rows)),
-                self._card("UNUSED", len(self.all_audit_rows) - used),
-                self._card("DUP. SETS", self._duplicate_group_count(self.all_audit_rows))
-            ])
-        elif "Rename" in h:
-            ready = len([r for r in self.rename_rows if r.Apply and r.Status == "Ready to Rename"])
-            self._set_header_cards([self._card("ROWS", len(self.rename_rows)), self._card("READY", ready)])
-        elif "Replace" in h:
-            self._set_header_cards([self._card("PREVIEW", len(self.replace_rows)), self._card("APPLY", len([r for r in self.replace_rows if r.Apply and r.Status == "Ready to Replace"]))])
-        else:
-            self._set_header_cards([self._card("REPORTS", "CSV")])
-
-    def _load_header_logo(self):
-        s = None
-        try:
-            s = FileStream(LOGO_FILE, FileMode.Open, FileAccess.Read)
-            i = BitmapImage()
-            i.BeginInit()
-            i.StreamSource = s
-            i.CacheOption = BitmapCacheOption.OnLoad
-            i.EndInit()
-            i.Freeze()
-            self.HeaderLogoImage.Source = i
-        except Exception:
-            pass
-        finally:
-            if s:
-                try:
-                    s.Close()
-                except Exception:
-                    pass
 
     def _safe_class_name(self, obj):
         try:
