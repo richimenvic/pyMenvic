@@ -133,6 +133,19 @@ def get_view_family_sort_order(family_name):
         "GraphicalColumnSchedule": 140,
     }
     return order_map.get(family_name, 999)
+
+
+def get_view_family_actual_from_display(display_name, family_names):
+    display_name = normalize_text(display_name)
+    if display_name == "ALL":
+        return "ALL"
+
+    for family_name in family_names:
+        if get_view_family_display_name(family_name) == display_name:
+            return family_name
+
+    return display_name
+
 def get_view_family_name(vft):
     try:
         return safe_str(vft.ViewFamily)
@@ -1038,7 +1051,8 @@ class ViewTypeStandardizerWindow(forms.WPFWindow):
         current_family = get_combobox_text(self.ProjectFamilyFilter) or "ALL"
         current_status = get_combobox_text(self.ProjectStatusFilter) or status_default
 
-        families = ["ALL"] + list(self.project_family_names)
+        families_raw = sorted(self.project_family_names, key=lambda x: (get_view_family_sort_order(x), normalize_key(get_view_family_display_name(x))))
+        families = ["ALL"] + [get_view_family_display_name(x) for x in families_raw]
         statuses = ["ALL", "UNMATCHED", "NORMALIZED", "NUMBERED", "MATCHED", "NO CHANGE", "RENAMED"]
 
         self.ProjectFamilyFilter.ItemsSource = families
@@ -1066,7 +1080,8 @@ class ViewTypeStandardizerWindow(forms.WPFWindow):
         )
 
     def _apply_standard_filters(self):
-        family_filter = get_combobox_text(self.ProjectFamilyFilter)
+        family_filter_display = get_combobox_text(self.ProjectFamilyFilter)
+        family_filter = get_view_family_actual_from_display(family_filter_display, self.project_family_names)
 
         clear_collection(self.standard_rows)
         self._sort_standard_rows_master()
@@ -1092,7 +1107,8 @@ class ViewTypeStandardizerWindow(forms.WPFWindow):
                 self.StandardRulesCountText.Text = "Showing {} rules".format(visible_count)
 
     def _apply_project_filters(self):
-        family_filter = get_combobox_text(self.ProjectFamilyFilter)
+        family_filter_display = get_combobox_text(self.ProjectFamilyFilter)
+        family_filter = get_view_family_actual_from_display(family_filter_display, self.project_family_names)
         status_filter = get_combobox_text(self.ProjectStatusFilter)
         search_text = normalize_key(self.ProjectSearchBox.Text)
 
