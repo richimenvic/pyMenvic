@@ -148,6 +148,30 @@ def _sample(output, title, values):
         index += 1
 
 
+def _sample_tabs(output, values):
+    output.print_md("")
+    output.print_md("### Document tabs")
+    if not values:
+        output.print_md("- None")
+        return
+    index = 0
+    for tab in values:
+        if index >= 20:
+            break
+        header = None
+        content = None
+        try:
+            header = tab.Header
+        except:
+            pass
+        try:
+            content = tab.Content
+        except:
+            pass
+        output.print_md("- `{0}` | `{1}` | Header: `{2}` | Content: `{3}`".format(index, _describe(tab), header, _describe(content)))
+        index += 1
+
+
 def main():
     output = script.get_output()
     obj = types.DocumentTabEventUtils
@@ -187,7 +211,7 @@ def main():
         _print_found(output, "Matches under {0}".format(label), found)
 
     output.print_md("")
-    output.print_md("### Method chain from pane_group")
+    output.print_md("### Method chain")
 
     pane_group = None
     for candidate, depth in all_found:
@@ -212,13 +236,14 @@ def main():
         tabs_pane = _try(output, "GetDocumentTabsPane(pane_group)", obj.GetDocumentTabsPane, [pane_group])
 
     doc_tabs = None
-    if tabs_pane is not None and hasattr(obj, "GetDocumentTabs"):
-        doc_tabs = _try(output, "GetDocumentTabs(tabs_pane)", obj.GetDocumentTabs, [tabs_pane])
+    if pane_items and hasattr(obj, "GetDocumentTabs"):
+        doc_tabs = _try(output, "GetDocumentTabs(pane 0)", obj.GetDocumentTabs, [pane_items[0]])
 
     tab_items = _items(doc_tabs)
-    _sample(output, "Document tabs", tab_items)
+    _sample_tabs(output, tab_items)
 
     if hasattr(obj, "GetDocumentTabGroup"):
+        _try(output, "GetDocumentTabGroup(uiapp)", obj.GetDocumentTabGroup, [HOST_APP.uiapp])
         if tabs_pane is not None:
             _try(output, "GetDocumentTabGroup(tabs_pane)", obj.GetDocumentTabGroup, [tabs_pane])
         for index, tab in enumerate(tab_items):
