@@ -68,33 +68,64 @@ class FilterManagerUIHelpers(object):
                 except Exception:
                     pass
 
-    def _set_audit_status(self, msg):
-        self._set_text("AuditStatusText", msg)
+    def _set_audit_status(self, t):
+        try:
+            self.AuditStatusTextBlock.Text = t
+        except Exception:
+            pass
 
-    def _set_rename_status(self, msg):
-        self._set_text("RenameStatusText", msg)
+    def _set_rename_status(self, t):
+        try:
+            self.RenameStatusTextBlock.Text = t
+        except Exception:
+            pass
 
-    def _set_replace_status(self, msg):
-        self._set_text("ReplaceStatusText", msg)
+    def _set_replace_status(self, t):
+        try:
+            self.ReplaceStatusTextBlock.Text = t
+        except Exception:
+            pass
 
-    def _set_reports_status(self, msg):
-        self._set_text("ReportsStatusText", msg)
+    def _set_reports_status(self, t):
+        try:
+            self.ReportsStatusTextBlock.Text = t
+        except Exception:
+            pass
 
-    def _set_audit_details_columns(self, cols):
-        parts = []
-        for p, c in cols:
-            parts.append("{} ({})".format(p, c))
-        t = ", ".join(parts) if parts else "None"
-        self._set_text("AuditDetailsColumnsText", t)
+    def _set_audit_details_columns(self, filter_text, duplicate_text, rules_text):
+        wrote_new = False
+        try:
+            self.AuditDetailsFilterTextBlock.Text = filter_text
+            wrote_new = True
+        except Exception:
+            pass
+        try:
+            self.AuditDetailsDuplicateTextBlock.Text = duplicate_text
+            wrote_new = True
+        except Exception:
+            pass
+        try:
+            self.AuditDetailsRulesTextBlock.Text = rules_text
+            wrote_new = True
+        except Exception:
+            pass
+        for viewer_name in ("AuditDetailsFilterScrollViewer", "AuditDetailsDuplicateScrollViewer", "AuditDetailsRulesScrollViewer"):
+            try:
+                getattr(self, viewer_name).ScrollToTop()
+            except Exception:
+                pass
+        if not wrote_new:
+            self._set_audit_details("FILTER\n{}\n\nDUPLICATE\n{}\n\nRULES\n{}".format(filter_text, duplicate_text, rules_text))
 
-    def _set_audit_details(self, row):
-        self._set_text("AuditDetailsFilterText", row.FilterName)
-        self._set_text("AuditDetailsUsageText", "Views: {} | Templates: {} | Total: {}".format(row.ViewCount, row.TemplateCount, row.TotalCount))
-        self._set_text("AuditDetailsCategoriesText", row.CategorySummary)
-        self._set_text("AuditDetailsRuleCountText", str(row.RuleCount))
-        self._set_text("AuditDetailsRuleTypesText", row.RuleTypeSummary)
-        self._set_text("AuditDetailsDuplicateText", row.DuplicateType)
-        self._set_text("AuditDetailsDuplicateGroupText", row.DuplicateGroup)
-        self._set_text("AuditDetailsSourceText", row.SourceType)
-        self._set_text("AuditDetailsRulesText", row.RuleSummary)
-        self._set_audit_details_columns(row.ColumnMentions)
+    def _set_audit_details(self, t):
+        try:
+            self.AuditDetailsTextBlock.Text = t
+            return
+        except Exception:
+            pass
+        try:
+            self.AuditDetailsFilterTextBlock.Text = t
+            self.AuditDetailsDuplicateTextBlock.Text = ""
+            self.AuditDetailsRulesTextBlock.Text = ""
+        except Exception:
+            pass
