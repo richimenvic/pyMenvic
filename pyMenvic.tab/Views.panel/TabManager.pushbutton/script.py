@@ -3,7 +3,7 @@
 __title__ = "Tabs by Document"
 __author__ = "Ricardo J. Mendieta"
 
-from pyrevit import HOST_APP, script
+from pyrevit import EXEC_PARAMS, HOST_APP, script
 from pyrevit.revit import tabs, ui
 from pyrevit.runtime import types
 from pyrevit.userconfig import user_config
@@ -13,13 +13,6 @@ from pyrevit.framework import Media
 # --------------------------------------------------
 # pyRevit tab coloring
 # --------------------------------------------------
-
-def _safe_bool(value):
-    try:
-        return bool(value)
-    except:
-        return False
-
 
 def _get_theme():
     try:
@@ -198,7 +191,7 @@ def _sort_tabs_by_document():
 # Commands
 # --------------------------------------------------
 
-def _enable_tabs():
+def _enable_and_sort_tabs():
     theme = _get_theme()
     if theme and hasattr(theme, "SortDocTabs"):
         theme.SortDocTabs = True
@@ -211,11 +204,18 @@ def _enable_tabs():
     _set_icon(True)
 
 
-def _stop_tabs():
+def _disable_tab_coloring():
     user_config.colorize_docs = False
     _save_config()
     tabs.init_doc_colorizer(user_config)
     _set_icon(False)
+
+
+def _is_config_mode():
+    try:
+        return bool(EXEC_PARAMS.config_mode)
+    except:
+        return False
 
 
 def _print_error(ex):
@@ -226,10 +226,10 @@ def _print_error(ex):
 
 def main():
     try:
-        if _safe_bool(tabs.get_doc_colorizer_state()):
-            _stop_tabs()
+        if _is_config_mode():
+            _disable_tab_coloring()
         else:
-            _enable_tabs()
+            _enable_and_sort_tabs()
     except Exception as ex:
         _print_error(ex)
 
