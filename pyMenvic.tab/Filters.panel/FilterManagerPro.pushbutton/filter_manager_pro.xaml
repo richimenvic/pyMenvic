@@ -302,7 +302,7 @@
                   <TextBox x:Name="ReplaceSearchTextBox" Grid.Column="1" Style="{StaticResource ValueBoxStyle}" TextChanged="ReplaceSearchTextBox_TextChanged"/>
                   <Button x:Name="PreviewReplaceButton" Grid.Column="2" Content="Preview" Style="{StaticResource ToolButtonStyle}" Click="PreviewReplaceButton_Click" Margin="10,0,0,0"/>
                   <TextBlock Grid.Column="3" Text="Show" Style="{StaticResource SectionLabelStyle}" Margin="10,0,6,0"/>
-                  <ComboBox x:Name="ReplaceShowComboBox" Grid.Column="4" SelectedIndex="0" SelectionChanged="ReplaceShowComboBox_SelectionChanged">
+                  <ComboBox x:Name="ReplaceShowComboBox" Grid.Column="4" SelectionChanged="ReplaceShowComboBox_SelectionChanged">
                     <ComboBoxItem Content="All"/>
                     <ComboBoxItem Content="Ready"/>
                     <ComboBoxItem Content="Already Target"/>

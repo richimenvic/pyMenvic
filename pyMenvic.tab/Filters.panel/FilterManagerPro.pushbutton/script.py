@@ -1159,6 +1159,12 @@ class FilterManagerProWindow(forms.WPFWindow):
         self._filter_replace_rows()
 
     def ReplaceShowComboBox_SelectionChanged(self, s, a):
+        if not hasattr(self, "ReplaceSearchTextBox"):
+            return
+        if not hasattr(self, "replace_rows"):
+            return
+        if not hasattr(self, "all_replace_rows"):
+            return
         self._filter_replace_rows()
 
     def RefreshAuditButton_Click(self, s, a):
@@ -1327,6 +1333,13 @@ class FilterManagerProWindow(forms.WPFWindow):
             pass
 
     def _filter_replace_rows(self):
+        if not hasattr(self, "ReplaceSearchTextBox"):
+            return
+        if not hasattr(self, "replace_rows"):
+            return
+        if not hasattr(self, "all_replace_rows"):
+            return
+
         term = (self.ReplaceSearchTextBox.Text or "").strip().lower()
         self.replace_rows.Clear()
         for r in self.all_replace_rows:
