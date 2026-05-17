@@ -26,14 +26,11 @@ def _desc(value):
     if value is None:
         return "None"
     text = _tn(value)
-    try:
-        text = text + " | Count: {0}".format(value.Count)
-    except:
-        pass
-    try:
-        text = text + " | Name: {0}".format(value.Name)
-    except:
-        pass
+    for prop in ["Count", "Name", "Title"]:
+        try:
+            text = text + " | {0}: {1}".format(prop, getattr(value, prop))
+        except:
+            pass
     return text
 
 
@@ -54,8 +51,7 @@ def _children(root, limit):
     while queue and visited < limit:
         item = queue.pop(0)
         visited += 1
-        name = _tn(item)
-        if "LayoutDocumentPaneGroupControl" in name:
+        if "LayoutDocumentPaneGroupControl" in _tn(item):
             found.append(item)
         try:
             count = Media.VisualTreeHelper.GetChildrenCount(item)
@@ -87,10 +83,60 @@ def _get(obj, prop):
         return "<error: {0}>".format(_err(ex))
 
 
-def _print_layout(output, prefix, obj):
-    output.print_md("- `{0}` type: `{1}`".format(prefix, _desc(obj)))
-    for prop in ["Title", "ContentId", "ToolTip", "Description", "IsSelected", "IsActive", "CanClose", "CanFloat"]:
+def _try_index(collection, index):
+    try:
+        return collection[index]
+    except:
+        try:
+            return collection.Item[index]
+        except:
+            try:
+                return collection.Item(index)
+            except:
+                return None
+
+
+def _print_collection(output, label, collection):
+    output.print_md("- `{0}`: `{1}`".format(label, _desc(collection)))
+    if collection is None:
+        return
+    count = 0
+    try:
+        count = collection.Count
+    except:
+        try:
+            count = len(collection)
+        except:
+            count = 0
+    output.print_md("  - count: `{0}`".format(count))
+    i = 0
+    while i < count and i < 12:
+        item = _try_index(collection, i)
+        output.print_md("  - item `{0}`: `{1}`".format(i, _desc(item)))
+        i += 1
+
+
+def _print_layout_brief(output, label, obj):
+    output.print_md("- `{0}`: `{1}`".format(label, _desc(obj)))
+    for prop in ["Title", "ToolTip", "IsSelected", "IsActive"]:
         output.print_md("  - `{0}`: `{1}`".format(prop, _get(obj, prop)))
+
+
+def _print_parent_info(output, layout_doc):
+    parent = _get(layout_doc, "Parent")
+    root = _get(layout_doc, "Root")
+    output.print_md("- `Parent`: `{0}`".format(_desc(parent)))
+    output.print_md("- `Root`: `{0}`".format(_desc(root)))
+
+    for prop in ["Children", "Items", "Descendents", "FloatingWindows"]:
+        value = _get(parent, prop)
+        if not str(value).startswith("<error"):
+            _print_collection(output, "Parent.{0}".format(prop), value)
+
+    for prop in ["Children", "Items", "Descendents", "RootPanel"]:
+        value = _get(root, prop)
+        if not str(value).startswith("<error"):
+            _print_collection(output, "Root.{0}".format(prop), value)
 
 
 def main():
@@ -118,31 +164,35 @@ def main():
         return
 
     pane_group = pane_groups[0]
-    output.print_md("- `pane_group`: `{0}`".format(_desc(pane_group)))
-
     panes = _call(output, "GetDocumentPanes(pane_group)", api.GetDocumentPanes, [pane_group])
     pane_items = _list_items(panes)
     output.print_md("- `pane count`: `{0}`".format(len(pane_items)))
 
+    tabs = None
     if pane_items:
         tabs = _call(output, "GetDocumentTabs(pane 0)", api.GetDocumentTabs, [pane_items[0]])
-    else:
-        tabs = None
 
     tab_items = _list_items(tabs)
     output.print_md("- `tab count`: `{0}`".format(len(tab_items)))
 
-    index = 0
-    for tab in tab_items:
+    output.print_md("")
+    output.print_md("### Tab order and parent collection")
+    first_layout = None
+    for index, tab in enumerate(tab_items):
         if index >= 12:
             break
-        output.print_md("### Tab {0}".format(index))
-        output.print_md("- `tab`: `{0}`".format(_desc(tab)))
         header = _get(tab, "Header")
-        content = _get(tab, "Content")
-        _print_layout(output, "Header", header)
-        _print_layout(output, "Content", content)
-        index += 1
+        title = _get(header, "Title")
+        tooltip = _get(header, "ToolTip")
+        output.print_md("- `{0}` | Title: `{1}` | ToolTip: `{2}`".format(index, title, tooltip))
+        if first_layout is None:
+            first_layout = header
+
+    if first_layout is not None:
+        output.print_md("")
+        output.print_md("### First tab LayoutDocument parent details")
+        _print_layout_brief(output, "First LayoutDocument", first_layout)
+        _print_parent_info(output, first_layout)
 
     group = _call(output, "GetDocumentTabGroup(uiapp)", api.GetDocumentTabGroup, [HOST_APP.uiapp])
     output.print_md("- `group`: `{0}`".format(_desc(group)))
