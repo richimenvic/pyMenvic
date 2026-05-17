@@ -105,6 +105,16 @@
             <Setter Property="Margin"     Value="0,0,0,5"/>
         </Style>
 
+        <Style x:Key="SelectedCellTextStyle" TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}">
+            <Setter Property="Foreground" Value="{StaticResource TextMed}"/>
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=DataGridRow}}" Value="True">
+                    <Setter Property="Foreground" Value="White"/>
+                    <Setter Property="FontWeight" Value="SemiBold"/>
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+
         <Style x:Key="SectionTitleStyle" TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}">
             <Setter Property="FontSize"   Value="12"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
@@ -561,17 +571,19 @@
                           CanUserDeleteRows="False"
                           ColumnHeaderStyle="{StaticResource RulesHeaderStyle}">
                     <DataGrid.Columns>
-                        <DataGridComboBoxColumn x:Name="StandardFamilyColumn"
-                                                Header="VIEW FAMILY"
-                                                SelectedItemBinding="{Binding ViewFamilyName, UpdateSourceTrigger=PropertyChanged}"
-                                                Width="210"/>
+                        <DataGridTextColumn x:Name="StandardFamilyColumn"
+                                            Header="VIEW FAMILY"
+                                            Binding="{Binding ViewFamilyName, UpdateSourceTrigger=PropertyChanged}"
+                                            Width="210">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock" BasedOn="{StaticResource SelectedCellTextStyle}"/>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
                         <DataGridTextColumn Header="OLD STANDARD NAME"
                                             Binding="{Binding OldTypeName, UpdateSourceTrigger=PropertyChanged}"
                                             Width="*">
                             <DataGridTextColumn.ElementStyle>
-                                <Style TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}">
-                                    <Setter Property="Foreground" Value="{StaticResource TextMed}"/>
-                                </Style>
+                                <Style TargetType="TextBlock" BasedOn="{StaticResource SelectedCellTextStyle}"/>
                             </DataGridTextColumn.ElementStyle>
                         </DataGridTextColumn>
                         <DataGridTextColumn Header="NEW STANDARD NAME" Binding="{Binding NewTypeName, UpdateSourceTrigger=PropertyChanged}" Width="*"/>
@@ -645,12 +657,14 @@
                           CanUserDeleteRows="False"
                           ColumnHeaderStyle="{StaticResource ProjectHeaderStyle}">
                     <DataGrid.Columns>
-                        <DataGridTextColumn Header="VIEW FAMILY" Binding="{Binding ViewFamilyName}" Width="160" IsReadOnly="True"/>
+                        <DataGridTextColumn Header="VIEW FAMILY" Binding="{Binding ViewFamilyName}" Width="160" IsReadOnly="True">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock" BasedOn="{StaticResource SelectedCellTextStyle}"/>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
                         <DataGridTextColumn Header="CURRENT PROJECT TYPE" Binding="{Binding CurrentTypeName}" Width="*" IsReadOnly="True">
                             <DataGridTextColumn.ElementStyle>
-                                <Style TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}">
-                                    <Setter Property="Foreground" Value="{StaticResource TextMed}"/>
-                                </Style>
+                                <Style TargetType="TextBlock" BasedOn="{StaticResource SelectedCellTextStyle}"/>
                             </DataGridTextColumn.ElementStyle>
                         </DataGridTextColumn>
                         <DataGridTextColumn Header="SUGGESTED / NEW TYPE" Binding="{Binding NewTypeName, UpdateSourceTrigger=PropertyChanged}" Width="*"/>
