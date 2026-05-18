@@ -162,6 +162,7 @@
                 <DataGridTemplateColumn.CellTemplate>
                   <DataTemplate>
                     <CheckBox IsChecked="{Binding Purge, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                              PreviewMouseLeftButtonDown="AuditPurgeCheckBox_PreviewMouseLeftButtonDown"
                               Width="58"
                               Height="20"
                               HorizontalAlignment="Stretch"
