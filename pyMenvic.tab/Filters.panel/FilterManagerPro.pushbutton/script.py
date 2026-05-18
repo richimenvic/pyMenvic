@@ -815,9 +815,13 @@ class FilterManagerProWindow(FilterManagerUIHelpers, forms.WPFWindow):
     def _get_audit_purge_filter_ids(self):
         purge_ids = set()
         try:
+            self.AuditGrid.Items.Refresh()
+        except Exception:
+            pass
+        try:
             for r in self.all_audit_rows:
                 if r.Purge and r.TotalCount == 0:
-                    purge_ids.add(r.FilterId)
+                    purge_ids.add(element_id_value(r.FilterId))
         except Exception:
             pass
         return purge_ids
@@ -827,7 +831,7 @@ class FilterManagerProWindow(FilterManagerUIHelpers, forms.WPFWindow):
             return
         try:
             for r in self.all_audit_rows:
-                if r.FilterId in purge_ids and r.TotalCount == 0:
+                if element_id_value(r.FilterId) in purge_ids and r.TotalCount == 0:
                     r.Purge = True
         except Exception:
             pass
@@ -863,6 +867,35 @@ class FilterManagerProWindow(FilterManagerUIHelpers, forms.WPFWindow):
 
     def AuditGrid_SelectionChanged(self, sender, args):
         self._update_audit_details()
+
+    def AuditPurgeCheckBox_PreviewMouseLeftButtonDown(self, sender, args):
+        row = None
+        try:
+            row = sender.DataContext
+        except Exception:
+            row = None
+        if not row:
+            return
+        try:
+            self.AuditGrid.SelectedItem = row
+        except Exception:
+            pass
+        try:
+            if row.TotalCount != 0:
+                row.Purge = False
+            else:
+                row.Purge = not bool(row.Purge)
+            sender.IsChecked = row.Purge
+        except Exception:
+            pass
+        try:
+            self.AuditGrid.Items.Refresh()
+        except Exception:
+            pass
+        try:
+            args.Handled = True
+        except Exception:
+            pass
 
     def _update_audit_details(self):
         row = None
