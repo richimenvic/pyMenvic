@@ -53,7 +53,7 @@ except Exception:
     RevitCommandId = None
     PostableCommand = None
 from pyrevit import forms, revit, script
-from filter_models import FilterOption, AuditRow, RenameRow, ReplaceRow
+from filter_models import FilterOption, AuditRow, RenameRow, ReplaceRow, UsageViewRow
 from filter_ui import FilterManagerUIHelpers
 
 doc = revit.doc
@@ -680,6 +680,7 @@ class FilterManagerProWindow(FilterManagerUIHelpers, forms.WPFWindow):
         views = self._views()
         usage_by_filter_id = {}
         self.audit_usage_names_by_filter_id = {}
+        self.audit_usage_by_filter_id = {}
         for view in views:
             try:
                 filter_ids = list(view.GetFilters())
@@ -701,12 +702,16 @@ class FilterManagerProWindow(FilterManagerUIHelpers, forms.WPFWindow):
                     usage_by_filter_id[fid] = [0, 0]
                 if fid not in self.audit_usage_names_by_filter_id:
                     self.audit_usage_names_by_filter_id[fid] = {"views": [], "templates": []}
+                if fid not in self.audit_usage_by_filter_id:
+                    self.audit_usage_by_filter_id[fid] = {"views": [], "templates": []}
                 if is_template:
                     usage_by_filter_id[fid][1] += 1
                     self.audit_usage_names_by_filter_id[fid]["templates"].append(view_name)
+                    self.audit_usage_by_filter_id[fid]["templates"].append(UsageViewRow(element_id_value(view.Id), view_name))
                 else:
                     usage_by_filter_id[fid][0] += 1
                     self.audit_usage_names_by_filter_id[fid]["views"].append(view_name)
+                    self.audit_usage_by_filter_id[fid]["views"].append(UsageViewRow(element_id_value(view.Id), view_name))
         rows = []
         content_groups = {}
         name_groups = {}
@@ -928,6 +933,7 @@ class FilterManagerProWindow(FilterManagerUIHelpers, forms.WPFWindow):
             pass
         if not row:
             self._set_audit_details_columns("Select a filter row.", "-", "-")
+            self._update_used_by_views_list(None)
             return
         filter_el = doc.GetElement(safe_element_id(row.FilterId))
         filter_lines = [
@@ -970,6 +976,42 @@ class FilterManagerProWindow(FilterManagerUIHelpers, forms.WPFWindow):
         if not rule_lines:
             rule_lines = ["Category-only filter. No parameter rules."]
         self._set_audit_details_columns("\n".join(filter_lines), "\n".join(duplicate_lines), "\n".join(rule_lines))
+        self._update_used_by_views_list(row)
+
+    def _update_used_by_views_list(self, row):
+        try:
+            self.AuditUsedByViewsListBox.ItemsSource = None
+        except Exception:
+            pass
+        if not row:
+            return
+        usage_map = self.audit_usage_by_filter_id.get(element_id_value(row.FilterId), {}) if hasattr(self, "audit_usage_by_filter_id") else {}
+        view_rows = usage_map.get("views", [])
+        try:
+            self.AuditUsedByViewsListBox.ItemsSource = list(sorted(view_rows, key=lambda x: (x.Name or "").lower()))
+        except Exception:
+            pass
+
+    def AuditUsedByViewsListBox_MouseDoubleClick(self, sender, args):
+        row = None
+        try:
+            row = sender.SelectedItem
+        except Exception:
+            row = None
+        if not row:
+            return
+        try:
+            view = doc.GetElement(safe_element_id(row.ViewId))
+            if not view:
+                self._set_audit_status("Could not find view: {}.".format(row.Name))
+                return
+            if bool(view.IsTemplate):
+                self._set_audit_status("View templates cannot be opened as active views.")
+                return
+            revit.uidoc.ActiveView = view
+            self._set_audit_status("Opened view: {}".format(row.Name))
+        except Exception:
+            self._set_audit_status("Could not open view: {}".format(row.Name))
 
     def ApplyAuditChangesButton_Click(self, s, a):
         self._commit_audit_edits()

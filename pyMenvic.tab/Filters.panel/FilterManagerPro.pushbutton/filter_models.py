@@ -24,6 +24,12 @@ class AuditRow(object):
         self.Purge = False
 
 
+class UsageViewRow(object):
+    def __init__(self, view_id, name):
+        self.ViewId = view_id
+        self.Name = name
+
+
 class RenameRow(object):
     def __init__(self, filter_id, current, proposed):
         self.FilterId = filter_id
