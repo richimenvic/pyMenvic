@@ -926,17 +926,12 @@ class FilterManagerProWindow(FilterManagerUIHelpers, forms.WPFWindow):
         filter_lines = [
             "Name: {}".format(row.FilterName),
             "",
-            "USAGE",
-            "Views: {}".format(row.ViewCount),
-            "Templates: {}".format(row.TemplateCount),
-            "Total: {}".format(row.TotalCount),
-            "",
+            "Usage: {} views | {} templates | {} total".format(row.ViewCount, row.TemplateCount, row.TotalCount),
             "Status: {}".format(row.Status),
             "",
-            "Duplicate: {}".format(row.DuplicateType),
-            "Set: {}".format(row.DuplicateGroup),
+            "Duplicate: {}  ({})".format(row.DuplicateType, row.DuplicateGroup),
             "",
-            "CATEGORIES"
+            "Categories"
         ]
         usage_map = self.audit_usage_names_by_filter_id.get(element_id_value(row.FilterId), {}) if hasattr(self, "audit_usage_names_by_filter_id") else {}
         if row.TotalCount == 0:

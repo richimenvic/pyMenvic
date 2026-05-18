@@ -109,13 +109,13 @@ class FilterManagerUIHelpers(object):
             wrote_new = True
         except Exception:
             pass
-        for viewer_name in ("AuditDetailsFilterScrollViewer", "AuditDetailsDuplicateScrollViewer", "AuditDetailsRulesScrollViewer"):
+        for viewer_name in ("AuditDetailsFilterScrollViewer", "AuditDetailsRulesScrollViewer"):
             try:
                 getattr(self, viewer_name).ScrollToTop()
             except Exception:
                 pass
         if not wrote_new:
-            self._set_audit_details("FILTER\n{}\n\nDUPLICATE\n{}\n\nRULES\n{}".format(filter_text, duplicate_text, rules_text))
+            self._set_audit_details("FILTER INFO\n{}\n\nDUPLICATE\n{}\n\nRULES\n{}".format(filter_text, duplicate_text, rules_text))
 
     def _set_audit_details(self, t):
         try:

@@ -220,52 +220,63 @@
               </Border>
               <Grid Grid.Row="1">
                 <Grid.ColumnDefinitions>
-                  <ColumnDefinition Width="34*"/>
+                  <ColumnDefinition Width="26*"/>
                   <ColumnDefinition Width="8"/>
-                  <ColumnDefinition Width="33*"/>
+                  <ColumnDefinition Width="28*"/>
                   <ColumnDefinition Width="8"/>
-                  <ColumnDefinition Width="33*"/>
+                  <ColumnDefinition Width="22*"/>
+                  <ColumnDefinition Width="8"/>
+                  <ColumnDefinition Width="24*"/>
                 </Grid.ColumnDefinitions>
                 <ScrollViewer x:Name="AuditDetailsFilterScrollViewer" Grid.Column="0" VerticalScrollBarVisibility="Auto">
                   <StackPanel>
-                    <TextBlock Text="FILTER" FontWeight="Bold" Foreground="#1E252B" Margin="0,0,0,4"/>
+                    <TextBlock Text="FILTER INFO" FontWeight="Bold" Foreground="#1E252B" Margin="0,0,0,4"/>
                     <TextBlock x:Name="AuditDetailsFilterTextBlock" Text="Select a filter." TextWrapping="Wrap" FontFamily="Consolas" FontSize="12"/>
                   </StackPanel>
                 </ScrollViewer>
                 <Border Grid.Column="1" Background="#C2CCD5" Width="1" HorizontalAlignment="Center"/>
-                <ScrollViewer x:Name="AuditDetailsDuplicateScrollViewer" Grid.Column="2" VerticalScrollBarVisibility="Auto">
-                  <StackPanel>
-                    <TextBlock Text="USED BY VIEWS (double click to open)"
-                               FontWeight="Bold"
-                               Foreground="#1E252B"
-                               Margin="0,0,0,4"/>
-                    <ListBox x:Name="AuditUsedByViewsListBox"
-                             Height="92"
-                             Style="{StaticResource UsageLinkListBoxStyle}"
-                             ItemContainerStyle="{StaticResource UsageLinkListBoxItemStyle}"
-                             MouseDoubleClick="AuditUsedByViewsListBox_MouseDoubleClick"
-                             DisplayMemberPath="Name"/>
-                    <TextBlock Text="USED BY TEMPLATES"
-                               FontWeight="Bold"
-                               Foreground="#1E252B"
-                               Margin="0,8,0,4"/>
-                    <ListBox x:Name="AuditUsedByTemplatesListBox"
-                             Height="92"
-                             Background="#F7F9FB"
+                <Grid Grid.Column="2">
+                  <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                  </Grid.RowDefinitions>
+                  <TextBlock Text="USED BY VIEWS (double click to open)"
+                             FontWeight="Bold"
                              Foreground="#1E252B"
-                             BorderBrush="#C8D1D8"
-                             BorderThickness="1"
-                             Padding="2"
-                             FontFamily="Consolas"
-                             FontSize="12"
-                             DisplayMemberPath="Name"/>
-                    <TextBlock x:Name="AuditDetailsDuplicateTextBlock"
-                               Visibility="Collapsed"
-                               Text="-"/>
-                  </StackPanel>
-                </ScrollViewer>
+                             Margin="0,0,0,4"/>
+                  <ListBox x:Name="AuditUsedByViewsListBox"
+                           Grid.Row="1"
+                           Style="{StaticResource UsageLinkListBoxStyle}"
+                           ItemContainerStyle="{StaticResource UsageLinkListBoxItemStyle}"
+                           MouseDoubleClick="AuditUsedByViewsListBox_MouseDoubleClick"
+                           DisplayMemberPath="Name"/>
+                </Grid>
                 <Border Grid.Column="3" Background="#C2CCD5" Width="1" HorizontalAlignment="Center"/>
-                <ScrollViewer x:Name="AuditDetailsRulesScrollViewer" Grid.Column="4" VerticalScrollBarVisibility="Auto">
+                <Grid Grid.Column="4">
+                  <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                  </Grid.RowDefinitions>
+                  <TextBlock Text="USED BY TEMPLATES"
+                             FontWeight="Bold"
+                             Foreground="#1E252B"
+                             Margin="0,0,0,4"/>
+                  <ListBox x:Name="AuditUsedByTemplatesListBox"
+                           Grid.Row="1"
+                           Background="#F7F9FB"
+                           Foreground="#1E252B"
+                           BorderBrush="#C8D1D8"
+                           BorderThickness="1"
+                           Padding="2"
+                           FontFamily="Consolas"
+                           FontSize="12"
+                           DisplayMemberPath="Name"/>
+                  <TextBlock x:Name="AuditDetailsDuplicateTextBlock"
+                             Visibility="Collapsed"
+                             Text="-"/>
+                </Grid>
+                <Border Grid.Column="5" Background="#C2CCD5" Width="1" HorizontalAlignment="Center"/>
+                <ScrollViewer x:Name="AuditDetailsRulesScrollViewer" Grid.Column="6" VerticalScrollBarVisibility="Auto">
                   <StackPanel>
                     <TextBlock Text="RULES" FontWeight="Bold" Foreground="#1E252B" Margin="0,0,0,4"/>
                     <TextBlock x:Name="AuditDetailsRulesTextBlock" Text="Rules will appear here." TextWrapping="Wrap" FontFamily="Consolas" FontSize="12"/>
