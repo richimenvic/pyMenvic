@@ -205,6 +205,16 @@
                   <StackPanel>
                     <TextBlock Text="FILTER" FontWeight="Bold" Foreground="#1E252B" Margin="0,0,0,4"/>
                     <TextBlock x:Name="AuditDetailsFilterTextBlock" Text="Select a filter." TextWrapping="Wrap" FontFamily="Consolas" FontSize="12"/>
+                    <TextBlock Text="USED BY VIEWS (double click to open)"
+                               FontWeight="Bold"
+                               Foreground="#1E252B"
+                               Margin="0,8,0,4"/>
+                    <ListBox x:Name="AuditUsedByViewsListBox"
+                             Height="118"
+                             BorderBrush="#AAB8C4"
+                             BorderThickness="1"
+                             MouseDoubleClick="AuditUsedByViewsListBox_MouseDoubleClick"
+                             DisplayMemberPath="Name"/>
                   </StackPanel>
                 </ScrollViewer>
                 <Border Grid.Column="1" Background="#C2CCD5" Width="1" HorizontalAlignment="Center"/>
