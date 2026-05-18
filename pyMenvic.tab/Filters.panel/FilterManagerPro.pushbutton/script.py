@@ -370,41 +370,68 @@ class FilterManagerProWindow(FilterManagerUIHelpers, forms.WPFWindow):
                 pass
         return ""
 
+    def _normalize_operator_key(self, name):
+        text = str(name or "").strip().lower()
+        text = text.replace("filter", "").replace("rule", "").replace("evaluator", "")
+        text = text.replace("_", "").replace(" ", "")
+        return text
+
     def _friendly_operator_name(self, evaluator_name, rule_name):
-        raw = evaluator_name or rule_name or ""
         lookup = {
-            "FilterStringEquals": "equals",
-            "FilterStringContains": "contains",
-            "FilterStringBeginsWith": "begins with",
-            "FilterStringEndsWith": "ends with",
-            "FilterNumericEquals": "equals",
-            "FilterNumericGreater": "greater than",
-            "FilterNumericGreaterOrEqual": "greater than or equal",
-            "FilterNumericLess": "less than",
-            "FilterNumericLessOrEqual": "less than or equal",
-            "FilterElementIdEquals": "equals",
-            "FilterElementIdNotEquals": "does not equal",
-            "FilterStringRule": "equals",
-            "FilterIntegerRule": "equals",
-            "FilterDoubleRule": "equals",
-            "FilterElementIdRule": "equals",
-            "FilterInverseRule": "not"
+            "stringequals": "equals",
+            "stringnotequals": "does not equal",
+            "stringcontains": "contains",
+            "stringnotcontains": "does not contain",
+            "stringbeginswith": "begins with",
+            "stringnotbeginswith": "does not begin with",
+            "stringendswith": "ends with",
+            "stringnotendswith": "does not end with",
+            "stringgreater": "is greater than",
+            "stringgreaterorequal": "is greater than or equal to",
+            "stringless": "is less than",
+            "stringlessorequal": "is less than or equal to",
+            "numberequals": "equals",
+            "numbernotequals": "does not equal",
+            "numbergreater": "is greater than",
+            "numbergreaterorequal": "is greater than or equal to",
+            "numberless": "is less than",
+            "numberlessorequal": "is less than or equal to",
+            "numericequals": "equals",
+            "numericnotequals": "does not equal",
+            "numericgreater": "is greater than",
+            "numericgreaterorequal": "is greater than or equal to",
+            "numericless": "is less than",
+            "numericlessorequal": "is less than or equal to",
+            "elementidequals": "equals",
+            "elementidnotequals": "does not equal",
+            "hasvalue": "has a value",
+            "hasnovalue": "has no value",
+            "exists": "has a value",
+            "notexists": "has no value"
         }
-        if raw in lookup:
-            return lookup[raw]
-        cleaned = raw.replace("Filter", "").replace("Evaluator", "").replace("Rule", "")
-        return cleaned.strip().lower() or "operator not readable"
+        for raw in (evaluator_name, rule_name):
+            key = self._normalize_operator_key(raw)
+            if key in lookup:
+                return lookup[key]
+        key = self._normalize_operator_key(evaluator_name or rule_name)
+        return key or "operator not readable"
 
     def _invert_operator(self, operator_name):
         lookup = {
             "equals": "does not equal",
+            "does not equal": "equals",
             "contains": "does not contain",
+            "does not contain": "contains",
             "begins with": "does not begin with",
+            "does not begin with": "begins with",
             "ends with": "does not end with",
-            "greater than": "is not greater than",
-            "greater than or equal": "is less than",
-            "less than": "is not less than",
-            "less than or equal": "is greater than"
+            "does not end with": "ends with",
+            "is greater than": "is less than or equal to",
+            "is greater than or equal to": "is less than",
+            "is less than": "is greater than or equal to",
+            "is less than or equal to": "is greater than",
+            "has a value": "has no value",
+            "has no value": "has a value"
         }
         return lookup.get(operator_name, "not " + operator_name)
 
