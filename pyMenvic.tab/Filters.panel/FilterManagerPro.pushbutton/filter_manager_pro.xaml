@@ -162,8 +162,13 @@
                 <DataGridTemplateColumn.CellTemplate>
                   <DataTemplate>
                     <CheckBox IsChecked="{Binding Purge, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                              HorizontalAlignment="Center"
-                              VerticalAlignment="Center"
+                              Width="58"
+                              Height="20"
+                              HorizontalAlignment="Stretch"
+                              HorizontalContentAlignment="Center"
+                              VerticalAlignment="Stretch"
+                              VerticalContentAlignment="Center"
+                              Background="Transparent"
                               Focusable="False"/>
                   </DataTemplate>
                 </DataGridTemplateColumn.CellTemplate>
