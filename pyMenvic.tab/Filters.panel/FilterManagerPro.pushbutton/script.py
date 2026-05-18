@@ -812,6 +812,30 @@ class FilterManagerProWindow(FilterManagerUIHelpers, forms.WPFWindow):
         except Exception:
             pass
 
+    def _get_audit_purge_filter_ids(self):
+        purge_ids = set()
+        try:
+            for r in self.all_audit_rows:
+                if r.Purge and r.TotalCount == 0:
+                    purge_ids.add(r.FilterId)
+        except Exception:
+            pass
+        return purge_ids
+
+    def _restore_audit_purge_filter_ids(self, purge_ids):
+        if not purge_ids:
+            return
+        try:
+            for r in self.all_audit_rows:
+                if r.FilterId in purge_ids and r.TotalCount == 0:
+                    r.Purge = True
+        except Exception:
+            pass
+        try:
+            self.AuditGrid.Items.Refresh()
+        except Exception:
+            pass
+
     def _get_changed_audit_rows(self):
         changed = []
         for r in self.all_audit_rows:
@@ -878,6 +902,7 @@ class FilterManagerProWindow(FilterManagerUIHelpers, forms.WPFWindow):
 
     def ApplyAuditChangesButton_Click(self, s, a):
         self._commit_audit_edits()
+        purge_ids = self._get_audit_purge_filter_ids()
         changed = self._get_changed_audit_rows()
         if not changed:
             self._set_audit_status("No filter name changes to apply.")
@@ -923,6 +948,7 @@ class FilterManagerProWindow(FilterManagerUIHelpers, forms.WPFWindow):
         self.SourceComboBox.ItemsSource = self.filter_names
         self.TargetComboBox.ItemsSource = self.filter_names
         self._load_audit()
+        self._restore_audit_purge_filter_ids(purge_ids)
         self._load_rename_rows()
         self._set_audit_status("Apply complete. Renamed: {} | Failed: {}".format(ok, fail))
 
