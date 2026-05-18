@@ -913,19 +913,6 @@ class FilterManagerProWindow(FilterManagerUIHelpers, forms.WPFWindow):
             pass
 
     def _update_audit_details(self):
-        def add_usage_lines(lines, title, names):
-            lines.append(title)
-            if not names:
-                lines.append("- None")
-                return
-            sorted_names = sorted(names, key=lambda x: (x or "").lower())
-            shown = 10
-            for name in sorted_names[:shown]:
-                lines.append("- {}".format(name))
-            remaining = len(sorted_names) - shown
-            if remaining > 0:
-                lines.append("...and {} more".format(remaining))
-
         row = None
         try:
             row = self.AuditGrid.SelectedItem
@@ -933,7 +920,7 @@ class FilterManagerProWindow(FilterManagerUIHelpers, forms.WPFWindow):
             pass
         if not row:
             self._set_audit_details_columns("Select a filter row.", "-", "-")
-            self._update_used_by_views_list(None)
+            self._update_used_by_lists(None)
             return
         filter_el = doc.GetElement(safe_element_id(row.FilterId))
         filter_lines = [
@@ -946,49 +933,45 @@ class FilterManagerProWindow(FilterManagerUIHelpers, forms.WPFWindow):
             "",
             "Status: {}".format(row.Status),
             "",
+            "Duplicate: {}".format(row.DuplicateType),
+            "Set: {}".format(row.DuplicateGroup),
+            "",
             "CATEGORIES"
         ]
         usage_map = self.audit_usage_names_by_filter_id.get(element_id_value(row.FilterId), {}) if hasattr(self, "audit_usage_names_by_filter_id") else {}
-        view_names = usage_map.get("views", [])
-        template_names = usage_map.get("templates", [])
-        add_usage_lines(filter_lines, "USED BY VIEWS", view_names)
-        filter_lines.append("")
-        add_usage_lines(filter_lines, "USED BY TEMPLATES", template_names)
         if row.TotalCount == 0:
             filter_lines.extend(["", "No views or templates are using this filter.", "Safe candidate for purge."])
-        filter_lines.append("")
-        filter_lines.append("CATEGORIES")
         if row.CategoryNames:
             for category_name in row.CategoryNames:
                 filter_lines.append("- {}".format(category_name))
         else:
             filter_lines.append("- N/A")
-        duplicate_lines = [
-            "Type: {}".format(row.DuplicateType),
-            "Set: {}".format(row.DuplicateGroup)
-        ]
-        same_set = [r.FilterName for r in self.all_audit_rows if r.DuplicateGroup == row.DuplicateGroup and r.DuplicateGroup != "-" and r.FilterId != row.FilterId]
-        if same_set:
-            duplicate_lines.append("Same Duplicate Set:")
-            for name in sorted(same_set):
-                duplicate_lines.append("- {}".format(name))
         rule_lines = self._number_repeated_rule_sets(self._filter_rule_lines(filter_el))
         if not rule_lines:
             rule_lines = ["Category-only filter. No parameter rules."]
-        self._set_audit_details_columns("\n".join(filter_lines), "\n".join(duplicate_lines), "\n".join(rule_lines))
-        self._update_used_by_views_list(row)
+        self._set_audit_details_columns("\n".join(filter_lines), "-", "\n".join(rule_lines))
+        self._update_used_by_lists(row)
 
-    def _update_used_by_views_list(self, row):
+    def _update_used_by_lists(self, row):
         try:
             self.AuditUsedByViewsListBox.ItemsSource = None
+        except Exception:
+            pass
+        try:
+            self.AuditUsedByTemplatesListBox.ItemsSource = None
         except Exception:
             pass
         if not row:
             return
         usage_map = self.audit_usage_by_filter_id.get(element_id_value(row.FilterId), {}) if hasattr(self, "audit_usage_by_filter_id") else {}
         view_rows = usage_map.get("views", [])
+        template_rows = usage_map.get("templates", [])
         try:
             self.AuditUsedByViewsListBox.ItemsSource = list(sorted(view_rows, key=lambda x: (x.Name or "").lower()))
+        except Exception:
+            pass
+        try:
+            self.AuditUsedByTemplatesListBox.ItemsSource = list(sorted(template_rows, key=lambda x: (x.Name or "").lower()))
         except Exception:
             pass
 
