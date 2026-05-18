@@ -679,6 +679,7 @@ class FilterManagerProWindow(FilterManagerUIHelpers, forms.WPFWindow):
     def _load_audit(self):
         views = self._views()
         usage_by_filter_id = {}
+        self.audit_usage_names_by_filter_id = {}
         for view in views:
             try:
                 filter_ids = list(view.GetFilters())
@@ -689,14 +690,23 @@ class FilterManagerProWindow(FilterManagerUIHelpers, forms.WPFWindow):
                 is_template = bool(view.IsTemplate)
             except Exception:
                 is_template = False
+            view_name = ""
+            try:
+                view_name = element_name(view)
+            except Exception:
+                view_name = "<Unnamed View>"
             for filter_id in filter_ids:
                 fid = element_id_value(filter_id)
                 if fid not in usage_by_filter_id:
                     usage_by_filter_id[fid] = [0, 0]
+                if fid not in self.audit_usage_names_by_filter_id:
+                    self.audit_usage_names_by_filter_id[fid] = {"views": [], "templates": []}
                 if is_template:
                     usage_by_filter_id[fid][1] += 1
+                    self.audit_usage_names_by_filter_id[fid]["templates"].append(view_name)
                 else:
                     usage_by_filter_id[fid][0] += 1
+                    self.audit_usage_names_by_filter_id[fid]["views"].append(view_name)
         rows = []
         content_groups = {}
         name_groups = {}
@@ -898,6 +908,19 @@ class FilterManagerProWindow(FilterManagerUIHelpers, forms.WPFWindow):
             pass
 
     def _update_audit_details(self):
+        def add_usage_lines(lines, title, names):
+            lines.append(title)
+            if not names:
+                lines.append("- None")
+                return
+            sorted_names = sorted(names, key=lambda x: (x or "").lower())
+            shown = 10
+            for name in sorted_names[:shown]:
+                lines.append("- {}".format(name))
+            remaining = len(sorted_names) - shown
+            if remaining > 0:
+                lines.append("...and {} more".format(remaining))
+
         row = None
         try:
             row = self.AuditGrid.SelectedItem
@@ -909,11 +932,26 @@ class FilterManagerProWindow(FilterManagerUIHelpers, forms.WPFWindow):
         filter_el = doc.GetElement(safe_element_id(row.FilterId))
         filter_lines = [
             "Name: {}".format(row.FilterName),
-            "Usage: {} Views | {} Templates | {} Total".format(row.ViewCount, row.TemplateCount, row.TotalCount),
+            "",
+            "USAGE",
+            "Views: {}".format(row.ViewCount),
+            "Templates: {}".format(row.TemplateCount),
+            "Total: {}".format(row.TotalCount),
+            "",
             "Status: {}".format(row.Status),
             "",
             "CATEGORIES"
         ]
+        usage_map = self.audit_usage_names_by_filter_id.get(element_id_value(row.FilterId), {}) if hasattr(self, "audit_usage_names_by_filter_id") else {}
+        view_names = usage_map.get("views", [])
+        template_names = usage_map.get("templates", [])
+        add_usage_lines(filter_lines, "USED BY VIEWS", view_names)
+        filter_lines.append("")
+        add_usage_lines(filter_lines, "USED BY TEMPLATES", template_names)
+        if row.TotalCount == 0:
+            filter_lines.extend(["", "No views or templates are using this filter.", "Safe candidate for purge."])
+        filter_lines.append("")
+        filter_lines.append("CATEGORIES")
         if row.CategoryNames:
             for category_name in row.CategoryNames:
                 filter_lines.append("- {}".format(category_name))
