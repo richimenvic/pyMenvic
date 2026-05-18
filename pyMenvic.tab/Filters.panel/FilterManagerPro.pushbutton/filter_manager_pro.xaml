@@ -161,16 +161,15 @@
               <DataGridTemplateColumn Header="Purge" Width="60">
                 <DataGridTemplateColumn.CellTemplate>
                   <DataTemplate>
-                    <CheckBox IsChecked="{Binding Purge, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                              PreviewMouseLeftButtonDown="AuditPurgeCheckBox_PreviewMouseLeftButtonDown"
-                              Width="58"
-                              Height="20"
-                              HorizontalAlignment="Stretch"
-                              HorizontalContentAlignment="Center"
-                              VerticalAlignment="Stretch"
-                              VerticalContentAlignment="Center"
-                              Background="Transparent"
-                              Focusable="False"/>
+                    <Grid HorizontalAlignment="Stretch"
+                          VerticalAlignment="Stretch"
+                          Background="Transparent">
+                      <CheckBox IsChecked="{Binding Purge, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                PreviewMouseLeftButtonDown="AuditPurgeCheckBox_PreviewMouseLeftButtonDown"
+                                HorizontalAlignment="Center"
+                                VerticalAlignment="Center"
+                                Focusable="False"/>
+                    </Grid>
                   </DataTemplate>
                 </DataGridTemplateColumn.CellTemplate>
               </DataGridTemplateColumn>
