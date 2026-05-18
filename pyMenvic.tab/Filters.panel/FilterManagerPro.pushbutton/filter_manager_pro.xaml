@@ -33,6 +33,31 @@
       <Setter Property="Padding" Value="6,4"/>
       <Setter Property="VerticalContentAlignment" Value="Center"/>
     </Style>
+    <Style x:Key="UsageLinkListBoxStyle" TargetType="ListBox">
+      <Setter Property="Background" Value="Transparent"/>
+      <Setter Property="BorderThickness" Value="0"/>
+      <Setter Property="Padding" Value="0"/>
+      <Setter Property="Foreground" Value="#0A70B8"/>
+      <Setter Property="FontFamily" Value="Consolas"/>
+      <Setter Property="FontSize" Value="12"/>
+    </Style>
+    <Style x:Key="UsageLinkListBoxItemStyle" TargetType="ListBoxItem">
+      <Setter Property="Foreground" Value="#0A70B8"/>
+      <Setter Property="Padding" Value="0,2,0,2"/>
+      <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+      <Setter Property="Cursor" Value="Hand"/>
+      <Style.Triggers>
+        <Trigger Property="IsMouseOver" Value="True">
+          <Setter Property="Foreground" Value="#064F86"/>
+          <Setter Property="TextBlock.TextDecorations" Value="Underline"/>
+        </Trigger>
+        <Trigger Property="IsSelected" Value="True">
+          <Setter Property="Background" Value="Transparent"/>
+          <Setter Property="Foreground" Value="#064F86"/>
+          <Setter Property="TextBlock.TextDecorations" Value="Underline"/>
+        </Trigger>
+      </Style.Triggers>
+    </Style>
     <Style TargetType="ComboBox">
       <Setter Property="Background" Value="#F7F9FB"/>
       <Setter Property="Foreground" Value="#1E252B"/>
@@ -211,8 +236,8 @@
                                Margin="0,8,0,4"/>
                     <ListBox x:Name="AuditUsedByViewsListBox"
                              Height="118"
-                             BorderBrush="#AAB8C4"
-                             BorderThickness="1"
+                             Style="{StaticResource UsageLinkListBoxStyle}"
+                             ItemContainerStyle="{StaticResource UsageLinkListBoxItemStyle}"
                              MouseDoubleClick="AuditUsedByViewsListBox_MouseDoubleClick"
                              DisplayMemberPath="Name"/>
                   </StackPanel>
