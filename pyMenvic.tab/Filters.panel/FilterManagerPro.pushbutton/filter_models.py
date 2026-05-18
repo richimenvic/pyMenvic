@@ -52,7 +52,9 @@ class ReplaceRow(object):
         self.TargetEnabled = te
         self.TargetVisible = tv
         self.Apply = hs
-        if hs:
+        if hs and ht:
+            self.Status = "Ready to Merge / Replace"
+        elif hs:
             self.Status = "Ready to Replace"
         elif ht:
             self.Status = "Already Has Target"

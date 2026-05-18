@@ -1334,10 +1334,10 @@ class FilterManagerProWindow(FilterManagerUIHelpers, forms.WPFWindow):
             row = ReplaceRow(element_id_value(v.Id), element_name(v), str(v.ViewType), v.IsTemplate, hs, ht, se, sv, te, tv)
             self.all_replace_rows.append(row)
         self._filter_replace_rows()
-        ready = len([r for r in self.all_replace_rows if r.Status == "Ready to Replace"])
-        already_target = len([r for r in self.all_replace_rows if r.Status == "Already Has Target"])
+        ready = len([r for r in self.all_replace_rows if self._is_replace_row_ready(r)])
+        already_target = len([r for r in self.all_replace_rows if r.HasTarget])
         no_source = len([r for r in self.all_replace_rows if r.Status == "No Source"])
-        self._set_replace_status("Preview ready: {} ready to replace | {} already has target | {} no source.".format(ready, already_target, no_source))
+        self._set_replace_status("Preview ready: {} ready to replace | {} has target | {} no source.".format(ready, already_target, no_source))
         self._update_replace_apply_state()
 
     def _replace_show_scope(self):
@@ -1347,16 +1347,19 @@ class FilterManagerProWindow(FilterManagerUIHelpers, forms.WPFWindow):
         except Exception:
             return "All"
 
+    def _is_replace_row_ready(self, row):
+        return bool(getattr(row, "HasSource", False))
+
     def _replace_row_matches_show_scope(self, row):
         scope = self._replace_show_scope()
         if scope == "Ready":
-            return row.Status == "Ready to Replace"
-        if scope == "Already Target":
-            return row.Status == "Already Has Target"
+            return self._is_replace_row_ready(row)
+        if scope == "Has Target":
+            return bool(getattr(row, "HasTarget", False))
         return True
 
     def _update_replace_apply_state(self):
-        enabled = len([r for r in self.all_replace_rows if r.Apply and r.Status == "Ready to Replace"]) > 0
+        enabled = len([r for r in self.all_replace_rows if r.Apply and self._is_replace_row_ready(r)]) > 0
         try:
             self.ApplyReplaceButton.IsEnabled = enabled
         except Exception:
@@ -1387,7 +1390,7 @@ class FilterManagerProWindow(FilterManagerUIHelpers, forms.WPFWindow):
         if not src or not tgt:
             self._set_replace_status("Missing source/target.")
             return
-        rows = [r for r in self.all_replace_rows if r.Apply and r.Status == "Ready to Replace"]
+        rows = [r for r in self.all_replace_rows if r.Apply and self._is_replace_row_ready(r)]
         if not rows:
             self._set_replace_status("Nothing ready to replace.")
             return

@@ -380,7 +380,7 @@
                   <ComboBox x:Name="ReplaceShowComboBox" Grid.Column="4" SelectionChanged="ReplaceShowComboBox_SelectionChanged">
                     <ComboBoxItem Content="All"/>
                     <ComboBoxItem Content="Ready"/>
-                    <ComboBoxItem Content="Already Target"/>
+                    <ComboBoxItem Content="Has Target"/>
                   </ComboBox>
                   <TextBlock Grid.Column="5" Text="Preview reads view/template usage only. Apply remains disabled until rows are ready." Foreground="#6C7A86" VerticalAlignment="Center" Margin="8,0,0,0"/>
                 </Grid>

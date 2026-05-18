@@ -44,7 +44,7 @@ class FilterManagerUIHelpers(object):
             ready = len([r for r in self.rename_rows if r.Apply and r.Status == "Ready to Rename"])
             self._set_header_cards([self._card("ROWS", len(self.rename_rows)), self._card("READY", ready)])
         elif "Replace" in h:
-            self._set_header_cards([self._card("PREVIEW", len(self.replace_rows)), self._card("APPLY", len([r for r in self.replace_rows if r.Apply and r.Status == "Ready to Replace"]))])
+            self._set_header_cards([self._card("PREVIEW", len(self.replace_rows)), self._card("APPLY", len([r for r in self.replace_rows if r.Apply and self._is_replace_row_ready(r)]))])
         else:
             self._set_header_cards([self._card("REPORTS", "CSV")])
 
