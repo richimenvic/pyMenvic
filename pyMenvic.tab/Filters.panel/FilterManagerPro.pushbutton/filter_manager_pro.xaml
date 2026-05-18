@@ -158,7 +158,16 @@
           <TextBlock x:Name="AuditStatusTextBlock" Grid.Row="1" Foreground="#0A70B8" Margin="2,4"/>
           <DataGrid x:Name="AuditGrid" Grid.Row="2" AutoGenerateColumns="False" CellEditEnding="AuditGrid_CellEditEnding" SelectionChanged="AuditGrid_SelectionChanged">
             <DataGrid.Columns>
-              <DataGridCheckBoxColumn Header="Purge" Binding="{Binding Purge}" Width="60"/>
+              <DataGridTemplateColumn Header="Purge" Width="60">
+                <DataGridTemplateColumn.CellTemplate>
+                  <DataTemplate>
+                    <CheckBox IsChecked="{Binding Purge, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                              HorizontalAlignment="Center"
+                              VerticalAlignment="Center"
+                              Focusable="False"/>
+                  </DataTemplate>
+                </DataGridTemplateColumn.CellTemplate>
+              </DataGridTemplateColumn>
               <DataGridTextColumn Header="Filter" Binding="{Binding FilterName}" Width="2*"/>
               <DataGridTextColumn Header="Categories" Binding="{Binding Categories}" IsReadOnly="True" Width="1.35*"/>
               <DataGridTextColumn Header="Views" Binding="{Binding ViewCount}" IsReadOnly="True" Width="60"/>
