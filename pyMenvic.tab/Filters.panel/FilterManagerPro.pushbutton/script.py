@@ -1337,7 +1337,7 @@ class FilterManagerProWindow(FilterManagerUIHelpers, forms.WPFWindow):
         ready = len([r for r in self.all_replace_rows if self._is_replace_row_ready(r)])
         already_target = len([r for r in self.all_replace_rows if r.HasTarget])
         no_source = len([r for r in self.all_replace_rows if r.Status == "No Source"])
-        self._set_replace_status("Preview ready: {} ready to replace | {} has target | {} no source.".format(ready, already_target, no_source))
+        self._set_replace_status("Preview ready: {} ready only | {} already include target | {} no source.".format(ready, already_target, no_source))
         self._update_replace_apply_state()
 
     def _replace_show_scope(self):
