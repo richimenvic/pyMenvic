@@ -1,0 +1,12 @@
+title:
+  en_us: Filters Manager
+  fr_fr: Gestionnaire de Filtres
+  ru: Менеджер фильтров
+  es_es: Gestor de Filtros
+  de_de: Filter-Manager
+  pt_br: Gerenciador de Filtros
+layout:
+  - Filter Manager
+  - Filter Standardizer
+  - Replace Filters
+  

@@ -1,0 +1,551 @@
+<!-- TableImporter.xaml - compact SheetLink/TableGen style UI -->
+<Window
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:System="clr-namespace:System;assembly=mscorlib"
+    Title="Table Importer"
+    Width="1380"
+    Height="720"
+    MinWidth="1120"
+    MinHeight="620"
+    WindowStartupLocation="CenterScreen"
+    Background="#F2F2F2">
+
+    <Window.Resources>
+        <SolidColorBrush x:Key="TextBrush" Color="#2F2F2F"/>
+        <SolidColorBrush x:Key="SelectedTextBrush" Color="#1F1F1F"/>
+        <SolidColorBrush x:Key="MutedTextBrush" Color="#8A8A8A"/>
+        <SolidColorBrush x:Key="SecondaryTextBrush" Color="#666666"/>
+        <SolidColorBrush x:Key="LineBrush" Color="#C8C8C8"/>
+        <SolidColorBrush x:Key="PanelBrush" Color="#FFFFFF"/>
+        <SolidColorBrush x:Key="HeaderBrush" Color="#E9E9E9"/>
+        <SolidColorBrush x:Key="GoldBrush" Color="#D9AF52"/>
+        <SolidColorBrush x:Key="GoldHoverBrush" Color="#C99E42"/>
+        <SolidColorBrush x:Key="GreenBrush" Color="#9CCC65"/>
+        <SolidColorBrush x:Key="GreenHoverBrush" Color="#8BC34A"/>
+        <SolidColorBrush x:Key="BlueSelectBrush" Color="#DCEAF7"/>
+        <SolidColorBrush x:Key="BlueSelectBorderBrush" Color="#A9C8E8"/>
+        <SolidColorBrush x:Key="ButtonBrush" Color="#EFEFEF"/>
+        <SolidColorBrush x:Key="ButtonHoverBrush" Color="#F7F7F7"/>
+        <SolidColorBrush x:Key="ButtonPressedBrush" Color="#E0E0E0"/>
+        <SolidColorBrush x:Key="ButtonBorderBrush" Color="#BDBDBD"/>
+
+        <Style TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
+            <Setter Property="FontSize" Value="12"/>
+        </Style>
+
+        <Style TargetType="Button">
+            <Setter Property="Height" Value="34"/>
+            <Setter Property="Padding" Value="12,3"/>
+            <Setter Property="Margin" Value="0,0,6,0"/>
+            <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
+            <Setter Property="Background" Value="{StaticResource ButtonBrush}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource ButtonBorderBrush}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="bd" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="3" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True"><Setter Property="Background" Value="{StaticResource ButtonHoverBrush}"/></Trigger>
+                <Trigger Property="IsPressed" Value="True"><Setter Property="Background" Value="{StaticResource ButtonPressedBrush}"/></Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="GoldButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+            <Setter Property="Background" Value="{StaticResource GoldBrush}"/>
+            <Setter Property="BorderBrush" Value="#B99643"/>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True"><Setter Property="Background" Value="{StaticResource GoldHoverBrush}"/></Trigger>
+                <Trigger Property="IsPressed" Value="True"><Setter Property="Background" Value="#B88F38"/></Trigger>
+            </Style.Triggers>
+        </Style>
+        <Style x:Key="GreenButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+            <Setter Property="Background" Value="{StaticResource GreenBrush}"/>
+            <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
+            <Setter Property="BorderBrush" Value="#79A94F"/>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True"><Setter Property="Background" Value="{StaticResource GreenHoverBrush}"/></Trigger>
+                <Trigger Property="IsPressed" Value="True"><Setter Property="Background" Value="#7EAD3E"/></Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style TargetType="TextBox">
+            <Setter Property="Height" Value="34"/>
+            <Setter Property="Padding" Value="9,4"/>
+            <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
+            <Setter Property="Background" Value="#FFFFFF"/>
+            <Setter Property="BorderBrush" Value="{StaticResource LineBrush}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+        </Style>
+
+        <Style TargetType="ComboBox">
+            <Setter Property="Height" Value="26"/>
+            <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
+            <Setter Property="Background" Value="#FFFFFF"/>
+            <Setter Property="BorderBrush" Value="{StaticResource LineBrush}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="Padding" Value="6,1"/>
+        </Style>
+
+        <Style x:Key="GridTextBlock" TargetType="TextBlock">
+            <Setter Property="Padding" Value="4,0"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=DataGridRow}}" Value="True">
+                    <Setter Property="Foreground" Value="{StaticResource SelectedTextBrush}"/>
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+        <Style x:Key="MutedGridTextBlock" TargetType="TextBlock" BasedOn="{StaticResource GridTextBlock}">
+            <Setter Property="Foreground" Value="{StaticResource MutedTextBrush}"/>
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=DataGridRow}}" Value="True">
+                    <Setter Property="Foreground" Value="{StaticResource SelectedTextBrush}"/>
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+        <Style x:Key="CenteredGridTextBlock" TargetType="TextBlock" BasedOn="{StaticResource GridTextBlock}">
+            <Setter Property="HorizontalAlignment" Value="Center"/>
+            <Setter Property="TextAlignment" Value="Center"/>
+        </Style>
+        <Style x:Key="CenteredGridComboBox" TargetType="ComboBox" BasedOn="{StaticResource {x:Type ComboBox}}">
+            <Setter Property="HorizontalContentAlignment" Value="Center"/>
+        </Style>
+        <Style x:Key="CenteredCheckBoxElementStyle" TargetType="CheckBox">
+            <Setter Property="HorizontalAlignment" Value="Center"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="HorizontalContentAlignment" Value="Center"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
+            <Setter Property="Margin" Value="0"/>
+        </Style>
+        <Style x:Key="CenteredCheckBoxEditingElementStyle" TargetType="CheckBox" BasedOn="{StaticResource CenteredCheckBoxElementStyle}"/>
+
+        <Style TargetType="DataGridColumnHeader">
+            <Setter Property="Background" Value="{StaticResource HeaderBrush}"/>
+            <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="HorizontalContentAlignment" Value="Center"/>
+            <Setter Property="Padding" Value="4,5"/>
+            <Setter Property="BorderBrush" Value="{StaticResource LineBrush}"/>
+            <Setter Property="BorderThickness" Value="0,0,1,2"/>
+        </Style>
+        <Style TargetType="DataGridRow">
+            <Setter Property="Background" Value="#FFFFFF"/>
+            <Setter Property="Height" Value="32"/>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True"><Setter Property="Background" Value="#EEF5FB"/></Trigger>
+                <Trigger Property="IsSelected" Value="True">
+                    <Setter Property="Background" Value="{StaticResource BlueSelectBrush}"/>
+                    <Setter Property="Foreground" Value="{StaticResource SelectedTextBrush}"/>
+                    <Setter Property="BorderBrush" Value="{StaticResource BlueSelectBorderBrush}"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+        <Style TargetType="DataGridCell">
+            <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
+            <Setter Property="BorderBrush" Value="#D6D6D6"/>
+            <Setter Property="BorderThickness" Value="0,0,1,1"/>
+            <Setter Property="Padding" Value="6,0"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Style.Triggers>
+                <Trigger Property="IsSelected" Value="True">
+                    <Setter Property="Background" Value="Transparent"/>
+                    <Setter Property="Foreground" Value="{StaticResource SelectedTextBrush}"/>
+                    <Setter Property="BorderBrush" Value="{StaticResource BlueSelectBorderBrush}"/>
+                </Trigger>
+                <Trigger Property="IsEditing" Value="True"><Setter Property="Background" Value="#E8F1FA"/></Trigger>
+            </Style.Triggers>
+        </Style>
+        <Style TargetType="CheckBox">
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="HorizontalAlignment" Value="Center"/>
+            <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
+        </Style>
+        <Style TargetType="ContextMenu">
+            <Setter Property="Background" Value="{StaticResource PanelBrush}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource LineBrush}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+        </Style>
+        <Style TargetType="MenuItem">
+            <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Padding" Value="10,6"/>
+        </Style>
+    </Window.Resources>
+
+    <Grid Margin="10,8,10,8">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="4"/>
+            <RowDefinition Height="36"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="38"/>
+        </Grid.RowDefinitions>
+
+        <!-- Header: description only -->
+        <TextBlock Grid.Row="0" Text="Importador de tablas Excel a vistas de Revit." Foreground="{StaticResource SecondaryTextBrush}" Margin="2,0,0,0" VerticalAlignment="Center" FontSize="12"/>
+
+        <!-- Spacer row -->
+
+        <!-- Toolbar row -->
+        <Grid Grid.Row="2">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="16"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="10"/>
+                <ColumnDefinition Width="320"/>
+            </Grid.ColumnDefinitions>
+            <Button x:Name="AddTablesButton" Grid.Column="0" Width="132" Style="{StaticResource GoldButton}" Content="Add Tables"/>
+            <Button x:Name="BatchActionsButton" Grid.Column="1" Width="148" Content="Batch Actions">
+                <Button.ContextMenu>
+                    <ContextMenu x:Name="BatchActionsContextMenu" Width="220">
+                        <MenuItem x:Name="BatchUpdateViewsMenuItem" Header="Update Views">
+                            <MenuItem.Icon><TextBlock Text="↻" Width="22" HorizontalAlignment="Center" TextAlignment="Center"/></MenuItem.Icon>
+                        </MenuItem>
+                        <MenuItem x:Name="BatchDuplicateViewsMenuItem" Header="Duplicate Views">
+                            <MenuItem.Icon><TextBlock Text="⧉" Width="22" HorizontalAlignment="Center" TextAlignment="Center"/></MenuItem.Icon>
+                        </MenuItem>
+                        <MenuItem x:Name="BatchReloadFromMenuItem" Visibility="Collapsed" Header="Reload From"/>
+                        <MenuItem x:Name="BatchResetLegacyContentMenuItem" Visibility="Collapsed" Header="Reset Legacy Content"/>
+                        <Separator/>
+                        <MenuItem x:Name="BatchAbsolutePathMenuItem" Header="Convert Path: Absolute">
+                            <MenuItem.Icon><TextBlock Text="⇥" Width="22" HorizontalAlignment="Center" TextAlignment="Center"/></MenuItem.Icon>
+                        </MenuItem>
+                        <MenuItem x:Name="BatchRelativePathMenuItem" Header="Convert Path: Relative">
+                            <MenuItem.Icon><TextBlock Text="⇤" Width="22" HorizontalAlignment="Center" TextAlignment="Center"/></MenuItem.Icon>
+                        </MenuItem>
+                        <Separator/>
+                        <MenuItem x:Name="BatchOpenFilesMenuItem" Header="Open Files">
+                            <MenuItem.Icon><TextBlock Text="F" Width="22" HorizontalAlignment="Center" TextAlignment="Center"/></MenuItem.Icon>
+                        </MenuItem>
+                        <MenuItem x:Name="BatchOpenFoldersMenuItem" Header="Open Folders">
+                            <MenuItem.Icon><TextBlock Text="O" Width="22" HorizontalAlignment="Center" TextAlignment="Center"/></MenuItem.Icon>
+                        </MenuItem>
+                        <Separator/>
+                        <MenuItem x:Name="BatchDeleteViewsMenuItem" Header="Remove Rows">
+                            <MenuItem.Icon><TextBlock Text="−" Width="22" HorizontalAlignment="Center" TextAlignment="Center"/></MenuItem.Icon>
+                        </MenuItem>
+                        <MenuItem x:Name="BatchUnlinkViewMenuItem" Visibility="Collapsed" Header="Unlink View"/>
+                        <MenuItem x:Name="BatchOpenViewMenuItem" Visibility="Collapsed" Header="Open View"/>
+                    </ContextMenu>
+                </Button.ContextMenu>
+            </Button>
+            <Button x:Name="RefreshButton" Grid.Column="2" Width="90" Content="Refresh"/>
+            <Grid Grid.Column="4" VerticalAlignment="Center">
+                <TextBox x:Name="SearchTextBox" Padding="10,4,34,4"/>
+                <TextBlock Text="Search…" IsHitTestVisible="False" Foreground="{StaticResource MutedTextBrush}" Margin="12,0,0,0" VerticalAlignment="Center" HorizontalAlignment="Left" FontSize="12"/>
+            </Grid>
+            <Border Grid.Column="6" Height="26" Background="{StaticResource PanelBrush}" BorderBrush="{StaticResource LineBrush}" BorderThickness="1" CornerRadius="3" Padding="6,2" VerticalAlignment="Center">
+                <Grid VerticalAlignment="Center">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="22"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <Image x:Name="LogoImage" Grid.Column="0" Width="18" Height="18" Stretch="Uniform" VerticalAlignment="Center" HorizontalAlignment="Left"/>
+                    <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="4,0,0,0">
+                        <DockPanel LastChildFill="True" Height="14">
+                            <TextBlock Text="Status:" VerticalAlignment="Center" FontWeight="SemiBold" Foreground="{StaticResource TextBrush}" FontSize="10" Margin="0,0,4,0"/>
+                            <TextBlock x:Name="ProgressTextBlock" DockPanel.Dock="Right" Text="100%" VerticalAlignment="Center" Foreground="{StaticResource SecondaryTextBrush}" FontSize="10" Margin="8,0,0,0"/>
+                            <TextBlock x:Name="StatusTextBlock" Text="Ready" VerticalAlignment="Center" FontWeight="SemiBold" Foreground="{StaticResource TextBrush}" FontSize="10" TextTrimming="CharacterEllipsis"/>
+                        </DockPanel>
+                        <ProgressBar x:Name="ApplyProgressBar" Height="2" Minimum="0" Maximum="100" Value="100" Foreground="#8BC34A" Background="#E9E9E9" BorderBrush="{StaticResource LineBrush}" BorderThickness="0" Margin="0,0,0,0"/>
+                        <TextBlock x:Name="ProgressDetailTextBlock" Text="Ready." Visibility="Collapsed" FontSize="10" Foreground="{StaticResource MutedTextBrush}" TextTrimming="CharacterEllipsis"/>
+                    </StackPanel>
+                </Grid>
+            </Border>
+            <TextBlock x:Name="CompletedTextBlock" Grid.Column="6" Visibility="Collapsed" Text=""/>
+        </Grid>
+
+        <!-- Data grid -->
+        <Border Grid.Row="3" Background="{StaticResource PanelBrush}" BorderBrush="{StaticResource LineBrush}" BorderThickness="1" Margin="0,4,0,0">
+            <Grid>
+                <DataGrid x:Name="TablesDataGrid"
+                          AutoGenerateColumns="False"
+                          CanUserAddRows="False"
+                          CanUserDeleteRows="False"
+                          HeadersVisibility="Column"
+                          GridLinesVisibility="All"
+                          HorizontalGridLinesBrush="#D6D6D6"
+                          VerticalGridLinesBrush="#D6D6D6"
+                          Background="{StaticResource PanelBrush}"
+                          BorderThickness="0"
+                          RowHeaderWidth="0"
+                          SelectionMode="Extended"
+                          SelectionUnit="FullRow"
+                          HorizontalScrollBarVisibility="Visible"
+                          VerticalScrollBarVisibility="Auto"
+                          AllowDrop="True">
+                    <DataGrid.ContextMenu>
+                        <ContextMenu x:Name="RowActionsContextMenu" Width="220">
+                            <MenuItem x:Name="RowUpdateViewsMenuItem" Header="Update Views">
+                                <MenuItem.Icon><TextBlock Text="↻" Width="22" HorizontalAlignment="Center" TextAlignment="Center"/></MenuItem.Icon>
+                            </MenuItem>
+                            <MenuItem x:Name="RowDuplicateViewsMenuItem" Header="Duplicate Views">
+                                <MenuItem.Icon><TextBlock Text="⧉" Width="22" HorizontalAlignment="Center" TextAlignment="Center"/></MenuItem.Icon>
+                            </MenuItem>
+                            <MenuItem x:Name="RowReloadFromMenuItem" Visibility="Collapsed" Header="Reload From"/>
+                            <MenuItem x:Name="RowResetLegacyContentMenuItem" Visibility="Collapsed" Header="Reset Legacy Content"/>
+                            <Separator/>
+                            <MenuItem x:Name="RowAbsolutePathMenuItem" Header="Convert Path: Absolute">
+                                <MenuItem.Icon><TextBlock Text="⇥" Width="22" HorizontalAlignment="Center" TextAlignment="Center"/></MenuItem.Icon>
+                            </MenuItem>
+                            <MenuItem x:Name="RowRelativePathMenuItem" Header="Convert Path: Relative">
+                                <MenuItem.Icon><TextBlock Text="⇤" Width="22" HorizontalAlignment="Center" TextAlignment="Center"/></MenuItem.Icon>
+                            </MenuItem>
+                            <Separator/>
+                            <MenuItem x:Name="RowOpenFilesMenuItem" Header="Open Files">
+                                <MenuItem.Icon><TextBlock Text="F" Width="22" HorizontalAlignment="Center" TextAlignment="Center"/></MenuItem.Icon>
+                            </MenuItem>
+                            <MenuItem x:Name="RowOpenFoldersMenuItem" Header="Open Folders">
+                                <MenuItem.Icon><TextBlock Text="O" Width="22" HorizontalAlignment="Center" TextAlignment="Center"/></MenuItem.Icon>
+                            </MenuItem>
+                            <MenuItem x:Name="RowOpenViewMenuItem" Visibility="Collapsed" Header="Open View"/>
+                            <Separator/>
+                            <MenuItem x:Name="RowDeleteViewsMenuItem" Header="Remove Rows">
+                                <MenuItem.Icon><TextBlock Text="−" Width="22" HorizontalAlignment="Center" TextAlignment="Center"/></MenuItem.Icon>
+                            </MenuItem>
+                            <MenuItem x:Name="RowUnlinkViewMenuItem" Visibility="Collapsed" Header="Unlink View"/>
+                        </ContextMenu>
+                    </DataGrid.ContextMenu>
+                    <DataGrid.Columns>
+                        <DataGridCheckBoxColumn Header="✓"
+                                                Binding="{Binding Selected, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                ElementStyle="{StaticResource CenteredCheckBoxElementStyle}"
+                                                EditingElementStyle="{StaticResource CenteredCheckBoxEditingElementStyle}"
+                                                Width="42"
+                                                MinWidth="42"/>
+
+                        <DataGridTextColumn Header=""
+                                            Binding="{Binding StatusIcon}"
+                                            Width="44"
+                                            MinWidth="44"
+                                            IsReadOnly="True">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock" BasedOn="{StaticResource CenteredGridTextBlock}">
+                                    <Setter Property="FontWeight" Value="SemiBold"/>
+                                    <Setter Property="ToolTip" Value="{Binding StatusToolTip}"/>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+
+                        <DataGridTextColumn Header="Source"
+                                            Binding="{Binding Source}"
+                                            Width="140"
+                                            MinWidth="140"
+                                            Visibility="Collapsed"
+                                            IsReadOnly="True">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock" BasedOn="{StaticResource MutedGridTextBlock}">
+                                    <Setter Property="ToolTip" Value="{Binding Source}"/>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+
+                        <DataGridTemplateColumn Header="Type" Width="105" MinWidth="105" Visibility="Collapsed">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding ImportType}" Style="{StaticResource GridTextBlock}"/>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                            <DataGridTemplateColumn.CellEditingTemplate>
+                                <DataTemplate>
+                                    <ComboBox SelectedItem="{Binding ImportType, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}">
+                                        <System:String>Excel Link</System:String>
+                                    </ComboBox>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellEditingTemplate>
+                        </DataGridTemplateColumn>
+
+                        <DataGridTextColumn Header="View Name"
+                                            Binding="{Binding ViewName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                            Width="210"
+                                            MinWidth="210"
+                                            IsReadOnly="False">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock" BasedOn="{StaticResource GridTextBlock}">
+                                    <Setter Property="ToolTip" Value="{Binding ViewName}"/>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+
+                        <DataGridTemplateColumn Header="DPI" Width="60" MinWidth="60" Visibility="Collapsed">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding DPI}" Style="{StaticResource CenteredGridTextBlock}"/>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                            <DataGridTemplateColumn.CellEditingTemplate>
+                                <DataTemplate>
+                                    <ComboBox SelectedItem="{Binding DPI, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                              Style="{StaticResource CenteredGridComboBox}">
+                                        <System:String>72</System:String>
+                                        <System:String>96</System:String>
+                                        <System:String>150</System:String>
+                                        <System:String>200</System:String>
+                                        <System:String>300</System:String>
+                                        <System:String>600</System:String>
+                                    </ComboBox>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellEditingTemplate>
+                        </DataGridTemplateColumn>
+
+                        <DataGridCheckBoxColumn Header="Auto Sync"
+                                                Binding="{Binding AutoSync, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                IsReadOnly="True"
+                                                Width="80"
+                                                MinWidth="80">
+                            <DataGridCheckBoxColumn.ElementStyle>
+                                <Style TargetType="CheckBox" BasedOn="{StaticResource CenteredCheckBoxElementStyle}">
+                                    <Setter Property="IsEnabled" Value="False"/>
+                                    <Setter Property="ToolTip" Value="Auto Sync is not implemented yet."/>
+                                </Style>
+                            </DataGridCheckBoxColumn.ElementStyle>
+                            <DataGridCheckBoxColumn.EditingElementStyle>
+                                <Style TargetType="CheckBox" BasedOn="{StaticResource CenteredCheckBoxEditingElementStyle}">
+                                    <Setter Property="IsEnabled" Value="False"/>
+                                </Style>
+                            </DataGridCheckBoxColumn.EditingElementStyle>
+                        </DataGridCheckBoxColumn>
+                        <DataGridCheckBoxColumn Header="Black &amp; White"
+                                                Binding="{Binding BlackAndWhite, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                ElementStyle="{StaticResource CenteredCheckBoxElementStyle}"
+                                                EditingElementStyle="{StaticResource CenteredCheckBoxEditingElementStyle}"
+                                                Width="115"
+                                                MinWidth="115"
+                                                Visibility="Collapsed"/>
+
+                        <DataGridTextColumn Header="Last Modified"
+                                            Binding="{Binding LastModified}"
+                                            Width="140"
+                                            MinWidth="140"
+                                            IsReadOnly="True">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock" BasedOn="{StaticResource MutedGridTextBlock}"/>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+
+                        <DataGridTemplateColumn Header="Worksheet" Width="135" MinWidth="135">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding Worksheet}" Style="{StaticResource GridTextBlock}" ToolTip="{Binding Worksheet}"/>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                            <DataGridTemplateColumn.CellEditingTemplate>
+                                <DataTemplate>
+                                    <ComboBox ItemsSource="{Binding WorksheetOptions}"
+                                              SelectedItem="{Binding Worksheet, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                              IsEditable="False"/>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellEditingTemplate>
+                        </DataGridTemplateColumn>
+
+                        <DataGridTemplateColumn Header="Region" Width="260" MinWidth="260">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding Region}"
+                                               Style="{StaticResource MutedGridTextBlock}"
+                                               ToolTip="{Binding Region}"/>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                            <DataGridTemplateColumn.CellEditingTemplate>
+                                <DataTemplate>
+                                    <ComboBox ItemsSource="{Binding RegionOptions}"
+                                              SelectedItem="{Binding Region, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                              IsEditable="False"/>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellEditingTemplate>
+                        </DataGridTemplateColumn>
+
+                        <DataGridTemplateColumn Header="View Type" Width="125" MinWidth="125">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding ViewType}" Style="{StaticResource GridTextBlock}"/>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                            <DataGridTemplateColumn.CellEditingTemplate>
+                                <DataTemplate>
+                                    <ComboBox SelectedItem="{Binding ViewType, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}">
+                                        <System:String>Drafting View</System:String>
+                                        <System:String>Legend View (Not implemented)</System:String>
+                                        <System:String>Schedule View</System:String>
+                                    </ComboBox>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellEditingTemplate>
+                        </DataGridTemplateColumn>
+
+                        <DataGridTemplateColumn Header="Scale" Width="70" MinWidth="70" Visibility="Collapsed">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding ViewScale}" Style="{StaticResource CenteredGridTextBlock}"/>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                            <DataGridTemplateColumn.CellEditingTemplate>
+                                <DataTemplate>
+                                    <ComboBox SelectedItem="{Binding ViewScale, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                              Style="{StaticResource CenteredGridComboBox}">
+                                        <System:String>1</System:String>
+                                        <System:String>2</System:String>
+                                        <System:String>5</System:String>
+                                        <System:String>10</System:String>
+                                        <System:String>20</System:String>
+                                        <System:String>25</System:String>
+                                        <System:String>50</System:String>
+                                        <System:String>75</System:String>
+                                        <System:String>100</System:String>
+                                    </ComboBox>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellEditingTemplate>
+                        </DataGridTemplateColumn>
+
+                        <DataGridTextColumn Header="File Path"
+                                            Binding="{Binding FilePathDisplay}"
+                                            Width="240"
+                                            MinWidth="180"
+                                            MaxWidth="320"
+                                            IsReadOnly="True">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock" BasedOn="{StaticResource MutedGridTextBlock}">
+                                    <Setter Property="ToolTip" Value="{Binding FilePathToolTip}"/>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+                    </DataGrid.Columns>
+                </DataGrid>
+                <Border x:Name="EmptyStatePanel" AllowDrop="True" Background="{StaticResource PanelBrush}" BorderBrush="{StaticResource LineBrush}" BorderThickness="1" CornerRadius="4" Width="360" Height="92" HorizontalAlignment="Center" VerticalAlignment="Center">
+                    <Button x:Name="EmptyStateButton" AllowDrop="True" Background="Transparent" BorderThickness="0" Content="Drop your files here or click here to browse" FontSize="15" Foreground="{StaticResource SecondaryTextBrush}"/>
+                </Border>
+            </Grid>
+        </Border>
+
+        <Grid Grid.Row="4" Margin="0,4,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <TextBlock x:Name="FooterStatusTextBlock" Text="Total 0 | Legends 0 | Schedules 0 | Drafting 0 | Selected 0" VerticalAlignment="Center" Foreground="{StaticResource SecondaryTextBrush}"/>
+            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                <TextBlock x:Name="VersionTextBlock" Text="MVP 0.3.37" VerticalAlignment="Center" Foreground="{StaticResource MutedTextBrush}" FontSize="11" Margin="0,0,8,0"/>
+                <Button x:Name="CloseButton" Content="Close" Width="0" Visibility="Collapsed"/>
+                <Button x:Name="ApplyButton" Content="Apply" Width="118" Margin="0,0,0,0" Style="{StaticResource GreenButton}"/>
+            </StackPanel>
+        </Grid>
+    </Grid>
+</Window>

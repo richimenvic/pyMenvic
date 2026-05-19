@@ -1,0 +1,59 @@
+title:
+  en_us: SheetLink
+  es_es: SheetLink
+
+tooltip:
+  en_us: |
+    Browse, preview, import, and export Revit schedules and category data to Excel through a dedicated management interface.
+    SheetLink - pyMENVIC is a pyMENVIC productivity tool designed to simplify 
+    data extraction, schedule review, and Excel roundtrips.
+    _______________________________________________________________
+    Key features:
+    - Field Preview: Instantly lists all parameters and fields included in any selected schedule.
+    - Batch Export: Select multiple schedules and export them to CSV format in a single action.
+    - Excel Integration: Automatically opens exported files in Excel using custom user paths.
+    - Search & Filter: Quickly find specific schedules within large projects using the real-time search bar.
+
+    Ideal for data validation, quantity take-offs, and external reporting.
+  es_es: |
+    Navega, previsualiza, importa y exporta tablas de planificación de Revit a Excel mediante una interfaz de gestión dedicada.
+    _______________________________________________________________
+    SheetLink - pyMENVIC es una herramienta de productividad de pyMENVIC diseñada 
+    para simplificar la extracción de datos, la revisión de tablas, categorías y el trabajo de ida y vuelta con Excel.
+
+    Características clave:
+    - Previsualización de Campos: Lista instantáneamente todos los parámetros y campos incluidos en cualquier tabla.
+    - Exportación Masiva: Selecciona múltiples tablas y expórtalas a formato CSV en una sola acción.
+    - Integración con Excel: Abre automáticamente los archivos exportados en Excel usando rutas personalizadas.
+    - Búsqueda y Filtro: Encuentra rápidamente tablas específicas mediante la barra de búsqueda en tiempo real.
+
+    Ideal para validación de datos, cómputos métricos y reportes externos.
+
+description:
+  en_us: >
+    SheetLink - pyMENVIC provides a compact spreadsheet-oriented interface
+    to manage project schedules and category-based exports. It helps BIM teams
+    inspect fields, export editable Excel workbooks, and bring validated
+    changes back into Revit with technical identifiers and import preview support.
+  es_es: >
+    SheetLink - pyMENVIC proporciona una interfaz compacta orientada a hojas
+    de cálculo para gestionar tablas y exportaciones por categoría del proyecto.
+    Permite inspeccionar campos, exportar libros editables de Excel y devolver
+    cambios validados a Revit con identificadores técnicos y previsualización
+    de importación.
+
+author: Ricardo J. Mendieta | pyMENVIC
+version: 1.0.0
+# highlight: NEW
+
+help_url: https://www.menvic.com
+
+min_revit_version: 2020
+max_revit_version: 2026
+
+context: doc-project
+
+engine:
+  clean: true
+  fullframe: false
+  persistent: false
