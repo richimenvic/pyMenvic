@@ -7,11 +7,6 @@ from pyrevit.revit import tabs
 from pyrevit.userconfig import user_config
 
 try:
-    from System.Threading import Thread
-except:
-    Thread = None
-
-try:
     from lib.core.tab_sorter import sort_tabs_by_document
 except ImportError:
     current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -29,8 +24,7 @@ except ImportError:
 
 
 PENDING_ENVVAR = "PYMENVIC_TABS_SORT_PENDING"
-PENDING_TICKS = "12"
-DELAYED_PASS_MS = 180
+PENDING_TICKS = "16"
 
 
 def _safe_bool(value):
@@ -38,15 +32,6 @@ def _safe_bool(value):
         return bool(value)
     except:
         return False
-
-
-def _sleep(ms):
-    if Thread is None:
-        return
-    try:
-        Thread.Sleep(ms)
-    except:
-        pass
 
 
 def _should_sort_tabs():
@@ -72,14 +57,11 @@ def _safe_sort_tabs():
 
 try:
     if _should_sort_tabs():
+        # Queue repeated idling passes so Revit can finish creating the visual tab
+        # before the final order is applied. Avoid sleeping inside this event hook.
         os.environ[PENDING_ENVVAR] = PENDING_TICKS
 
-        # First pass keeps the old behavior for already-visible tabs.
-        _safe_sort_tabs()
-
-        # Revit can append a newly opened view tab after the first event pass.
-        # A very short second pass fixes that without adding a permanent watcher.
-        _sleep(DELAYED_PASS_MS)
+        # Keep the old immediate behavior for tabs already available at event time.
         _safe_sort_tabs()
 except:
     pass
