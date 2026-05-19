@@ -74,7 +74,7 @@ def _safe_sort_tabs():
         return 0
 
 
-def _queue_dispatcher_sort():
+def _dispatcher_sort():
     if Action is None or DispatcherPriority is None:
         return False
     try:
@@ -82,9 +82,12 @@ def _queue_dispatcher_sort():
         dispatcher = main_window.Dispatcher if main_window is not None else None
         if dispatcher is None:
             return False
-        dispatcher.BeginInvoke(DispatcherPriority.ApplicationIdle, Action(_safe_sort_tabs))
-        dispatcher.BeginInvoke(DispatcherPriority.ContextIdle, Action(_safe_sort_tabs))
-        dispatcher.BeginInvoke(DispatcherPriority.Background, Action(_safe_sort_tabs))
+
+        # Use Invoke instead of BeginInvoke. In pyRevit hooks, async delegates can be
+        # lost when the hook engine exits. Probe confirmed synchronous Invoke works.
+        dispatcher.Invoke(DispatcherPriority.ApplicationIdle, Action(_safe_sort_tabs))
+        dispatcher.Invoke(DispatcherPriority.ContextIdle, Action(_safe_sort_tabs))
+        dispatcher.Invoke(DispatcherPriority.Background, Action(_safe_sort_tabs))
         return True
     except:
         return False
@@ -99,6 +102,6 @@ try:
         _safe_sort_tabs()
 
         # Dispatcher passes run after Revit/WPF finishes visual tab creation.
-        _queue_dispatcher_sort()
+        _dispatcher_sort()
 except:
     pass
