@@ -26,7 +26,13 @@ except ImportError:
 
 PENDING_ENVVAR = "PYMENVIC_TABS_SORT_PENDING"
 LAST_RUN_ENVVAR = "PYMENVIC_TABS_SORT_LAST_RUN"
-MIN_INTERVAL_SECONDS = 0.35
+PYMENVIC_SORT_ENVVAR = "PYMENVIC_TABS_BY_DOCUMENT_ENABLED"
+PYMENVIC_SORT_CONFIG = "pymenvic_sort_doc_tabs"
+IDLING_HIT_ENVVAR = "PYMENVIC_TABS_IDLING_HIT"
+IDLING_MOVES_ENVVAR = "PYMENVIC_TABS_IDLING_MOVES"
+IDLING_SHOULD_ENVVAR = "PYMENVIC_TABS_IDLING_SHOULD_SORT"
+IDLING_ERROR_ENVVAR = "PYMENVIC_TABS_IDLING_ERROR"
+MIN_INTERVAL_SECONDS = 0.50
 
 
 def _safe_bool(value):
@@ -50,7 +56,23 @@ def _safe_float(value, default_value):
         return default_value
 
 
+def _set_env(name, value):
+    try:
+        os.environ[name] = str(value)
+    except:
+        pass
+
+
 def _should_sort_tabs():
+    try:
+        if os.environ.get(PYMENVIC_SORT_ENVVAR, "") == "1":
+            return True
+    except:
+        pass
+
+    if _safe_bool(getattr(user_config, PYMENVIC_SORT_CONFIG, False)):
+        return True
+
     if not _safe_bool(getattr(user_config, "colorize_docs", False)):
         return False
 
@@ -64,13 +86,16 @@ def _should_sort_tabs():
     return False
 
 
-def _consume_pending_sort():
-    pending = _safe_int(os.environ.get(PENDING_ENVVAR, "0"), 0)
-    if pending <= 0:
-        return
+def _run_sort_if_due():
+    hit_count = _safe_int(os.environ.get(IDLING_HIT_ENVVAR, "0"), 0) + 1
+    _set_env(IDLING_HIT_ENVVAR, hit_count)
+    _set_env(IDLING_ERROR_ENVVAR, "")
 
-    if not _should_sort_tabs():
+    should_sort = _should_sort_tabs()
+    _set_env(IDLING_SHOULD_ENVVAR, "1" if should_sort else "0")
+    if not should_sort:
         os.environ[PENDING_ENVVAR] = "0"
+        _set_env(IDLING_MOVES_ENVVAR, "skipped")
         return
 
     now = time.time()
@@ -79,18 +104,23 @@ def _consume_pending_sort():
         return
 
     try:
-        sort_tabs_by_document()
-    except:
-        pass
+        moves = sort_tabs_by_document()
+        _set_env(IDLING_MOVES_ENVVAR, moves)
+    except Exception as ex:
+        _set_env(IDLING_ERROR_ENVVAR, str(ex).split("\n")[0])
+        moves = 0
 
     os.environ[LAST_RUN_ENVVAR] = str(now)
-    pending -= 1
-    if pending < 0:
-        pending = 0
-    os.environ[PENDING_ENVVAR] = str(pending)
+
+    pending = _safe_int(os.environ.get(PENDING_ENVVAR, "0"), 0)
+    if pending > 0:
+        pending -= 1
+        if pending < 0:
+            pending = 0
+        os.environ[PENDING_ENVVAR] = str(pending)
 
 
 try:
-    _consume_pending_sort()
-except:
-    pass
+    _run_sort_if_due()
+except Exception as ex:
+    _set_env(IDLING_ERROR_ENVVAR, str(ex).split("\n")[0])
