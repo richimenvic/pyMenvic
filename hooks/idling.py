@@ -28,11 +28,8 @@ PENDING_ENVVAR = "PYMENVIC_TABS_SORT_PENDING"
 LAST_RUN_ENVVAR = "PYMENVIC_TABS_SORT_LAST_RUN"
 PYMENVIC_SORT_ENVVAR = "PYMENVIC_TABS_BY_DOCUMENT_ENABLED"
 PYMENVIC_SORT_CONFIG = "pymenvic_sort_doc_tabs"
-IDLING_HIT_ENVVAR = "PYMENVIC_TABS_IDLING_HIT"
-IDLING_MOVES_ENVVAR = "PYMENVIC_TABS_IDLING_MOVES"
-IDLING_SHOULD_ENVVAR = "PYMENVIC_TABS_IDLING_SHOULD_SORT"
-IDLING_ERROR_ENVVAR = "PYMENVIC_TABS_IDLING_ERROR"
 MIN_INTERVAL_SECONDS = 0.50
+STATE_FILE = os.path.join(os.environ.get("TEMP", os.getcwd()), "pyMenvic_tab_sort_state.txt")
 
 
 def _safe_bool(value):
@@ -56,11 +53,37 @@ def _safe_float(value, default_value):
         return default_value
 
 
-def _set_env(name, value):
+def _read_state():
+    data = {}
     try:
-        os.environ[name] = str(value)
+        if os.path.exists(STATE_FILE):
+            with open(STATE_FILE, "r") as state_file:
+                for line in state_file:
+                    if "=" in line:
+                        key, value = line.rstrip("\n").split("=", 1)
+                        data[key] = value
     except:
         pass
+    return data
+
+
+def _write_state(data):
+    try:
+        folder = os.path.dirname(STATE_FILE)
+        if folder and not os.path.exists(folder):
+            os.makedirs(folder)
+        with open(STATE_FILE, "w") as state_file:
+            for key in sorted(data.keys()):
+                state_file.write("{0}={1}\n".format(key, data[key]))
+    except:
+        pass
+
+
+def _update_state(**kwargs):
+    data = _read_state()
+    for key, value in kwargs.items():
+        data[key] = str(value)
+    _write_state(data)
 
 
 def _should_sort_tabs():
@@ -87,15 +110,19 @@ def _should_sort_tabs():
 
 
 def _run_sort_if_due():
-    hit_count = _safe_int(os.environ.get(IDLING_HIT_ENVVAR, "0"), 0) + 1
-    _set_env(IDLING_HIT_ENVVAR, hit_count)
-    _set_env(IDLING_ERROR_ENVVAR, "")
-
+    state = _read_state()
+    hit_count = _safe_int(state.get("IDLING_HIT", "0"), 0) + 1
     should_sort = _should_sort_tabs()
-    _set_env(IDLING_SHOULD_ENVVAR, "1" if should_sort else "0")
+    _update_state(
+        STATE_FILE=STATE_FILE,
+        IDLING_HIT=hit_count,
+        IDLING_SHOULD_SORT="1" if should_sort else "0",
+        IDLING_ERROR="",
+    )
+
     if not should_sort:
         os.environ[PENDING_ENVVAR] = "0"
-        _set_env(IDLING_MOVES_ENVVAR, "skipped")
+        _update_state(IDLING_MOVES="skipped")
         return
 
     now = time.time()
@@ -105,9 +132,9 @@ def _run_sort_if_due():
 
     try:
         moves = sort_tabs_by_document()
-        _set_env(IDLING_MOVES_ENVVAR, moves)
+        _update_state(IDLING_MOVES=moves, IDLING_LAST_RUN=now)
     except Exception as ex:
-        _set_env(IDLING_ERROR_ENVVAR, str(ex).split("\n")[0])
+        _update_state(IDLING_ERROR=str(ex).split("\n")[0])
         moves = 0
 
     os.environ[LAST_RUN_ENVVAR] = str(now)
@@ -123,4 +150,4 @@ def _run_sort_if_due():
 try:
     _run_sort_if_due()
 except Exception as ex:
-    _set_env(IDLING_ERROR_ENVVAR, str(ex).split("\n")[0])
+    _update_state(IDLING_ERROR=str(ex).split("\n")[0])
