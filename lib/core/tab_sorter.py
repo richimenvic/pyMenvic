@@ -37,6 +37,20 @@ def _list_items(value):
     return items
 
 
+def _is_true(value):
+    try:
+        return bool(value)
+    except:
+        return False
+
+
+def _is_active_tab(item):
+    # AvalonDock/Revit tab objects can expose one or both properties depending
+    # on the Revit/pyRevit version. Avoid moving the active tab directly because
+    # Revit can keep it pinned visually until focus changes.
+    return _is_true(_get(item, "IsSelected")) or _is_true(_get(item, "IsActive"))
+
+
 def _index_of(collection, item):
     try:
         return collection.IndexOf(item)
@@ -148,14 +162,33 @@ def _find_first_single_move(items):
                 seen_closed[open_key] = True
             open_key = key
         if key in seen_closed:
-            # This tab belongs to an earlier document group. Move it right after
-            # the last contiguous tab of that same document group.
             target = 0
             while target < index and keys[target] == key:
                 target += 1
             return index, target
         index += 1
     return None, None
+
+
+def _move_tabs_around_active(children, original, source_index, target_index):
+    active_item = original[source_index]
+    moved = 0
+
+    # Move every intervening tab to the right side of the active tab. This keeps
+    # the selected tab focused while still joining it with its document group.
+    for item in original[target_index:source_index]:
+        item_index = _index_of(children, item)
+        active_index = _index_of(children, active_item)
+        if item_index < 0 or active_index < 0:
+            continue
+        if item_index > active_index:
+            continue
+        try:
+            children.Move(item_index, active_index + 1)
+            moved += 1
+        except:
+            pass
+    return moved
 
 
 def sort_tabs_by_document():
@@ -175,6 +208,10 @@ def sort_tabs_by_document():
         return 0
 
     item = original[source_index]
+
+    if _is_active_tab(item) and target_index < source_index:
+        return _move_tabs_around_active(children, original, source_index, target_index)
+
     current_index = _index_of(children, item)
     if current_index < 0:
         return 0
