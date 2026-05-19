@@ -3,15 +3,12 @@
 __title__ = "Tab Probe"
 __author__ = "Ricardo J. Mendieta"
 
+import os
+
 from pyrevit import HOST_APP, script
 from pyrevit.runtime import types
 from pyrevit.revit import ui
 from pyrevit.framework import Media
-
-try:
-    from System.Threading import Thread
-except:
-    Thread = None
 
 try:
     from System import Action
@@ -21,51 +18,36 @@ except:
     DispatcherPriority = None
 
 
-PROBE_DELAYS_MS = [250, 500, 1000]
-DISPATCHER_PRIORITIES = ["ApplicationIdle", "ContextIdle", "Background"]
+VISUAL_TREE_LIMIT = 2500
+HOOK_KEYS = [
+    "PYMENVIC_TABS_BY_DOCUMENT_ENABLED",
+    "PYMENVIC_TABS_SORT_PENDING",
+    "PYMENVIC_TABS_HOOK_HIT",
+    "PYMENVIC_TABS_HOOK_SHOULD_SORT",
+    "PYMENVIC_TABS_HOOK_IMMEDIATE_MOVES",
+    "PYMENVIC_TABS_HOOK_DISPATCHER",
+    "PYMENVIC_TABS_HOOK_ERROR",
+]
 
 
 def _err(ex):
     return str(ex).split("\n")[0]
 
 
-def _tn(value):
+def _type_name(value):
     if value is None:
-        return "None"
+        return ""
     try:
         return value.GetType().FullName
     except:
         return str(type(value))
 
 
-def _call(output, label, func, args):
+def _get(obj, prop):
     try:
-        result = func(*args)
-        output.print_md("- `{0}` OK".format(label))
-        return result
-    except Exception as ex:
-        output.print_md("- `{0}` FAILED: `{1}`".format(label, _err(ex)))
+        return getattr(obj, prop)
+    except:
         return None
-
-
-def _children(root, limit):
-    found = []
-    queue = [root]
-    visited = 0
-    while queue and visited < limit:
-        item = queue.pop(0)
-        visited += 1
-        if "LayoutDocumentPaneGroupControl" in _tn(item):
-            found.append(item)
-        try:
-            count = Media.VisualTreeHelper.GetChildrenCount(item)
-            for i in range(count):
-                child = Media.VisualTreeHelper.GetChild(item, i)
-                if child is not None:
-                    queue.append(child)
-        except:
-            pass
-    return found
 
 
 def _list_items(value):
@@ -80,11 +62,26 @@ def _list_items(value):
     return result
 
 
-def _get(obj, prop):
-    try:
-        return getattr(obj, prop)
-    except:
-        return None
+def _find_pane_groups(root):
+    found = []
+    queue = [root]
+    visited = 0
+    while queue and visited < VISUAL_TREE_LIMIT:
+        item = queue.pop(0)
+        visited += 1
+        if "LayoutDocumentPaneGroupControl" in _type_name(item):
+            found.append(item)
+        try:
+            count = Media.VisualTreeHelper.GetChildrenCount(item)
+            index = 0
+            while index < count:
+                child = Media.VisualTreeHelper.GetChild(item, index)
+                if child is not None:
+                    queue.append(child)
+                index += 1
+        except:
+            pass
+    return found
 
 
 def _doc_key(layout_doc):
@@ -95,16 +92,12 @@ def _doc_key(layout_doc):
     if " - " in tooltip:
         return tooltip.split(" - ", 1)[0]
     title = _get(layout_doc, "Title")
-    if title is None:
-        return ""
-    return str(title)
+    return str(title) if title is not None else ""
 
 
 def _title(layout_doc):
     title = _get(layout_doc, "Title")
-    if title is None:
-        return ""
-    return str(title)
+    return str(title) if title is not None else ""
 
 
 def _index_of(collection, item):
@@ -116,130 +109,83 @@ def _index_of(collection, item):
         count = collection.Count
     except:
         return -1
-    i = 0
-    while i < count:
+    index = 0
+    while index < count:
         try:
-            if collection[i] == item:
-                return i
+            if collection[index] == item:
+                return index
         except:
             pass
-        i += 1
+        index += 1
     return -1
 
 
-def _sleep(ms):
-    if Thread is None:
-        return
-    try:
-        Thread.Sleep(ms)
-    except:
-        pass
-
-
-def _get_open_documents():
-    titles = []
-    try:
-        for doc in HOST_APP.app.Documents:
-            try:
-                titles.append(doc.Title)
-            except:
-                titles.append("<unknown>")
-    except:
-        pass
-    return titles
-
-
-def _print_open_documents(output):
-    docs = _get_open_documents()
-    output.print_md("")
-    output.print_md("### Revit API documents")
-    output.print_md("- Count: `{0}`".format(len(docs)))
-    for i, title in enumerate(docs):
-        output.print_md("- `{0}` | `{1}`".format(i, title))
-
-
-def _get_tab_context(output, api, verbose):
-    main_window = ui.get_mainwindow()
+def _get_tab_children(output):
+    api = types.DocumentTabEventUtils
     docking_manager = None
-    if verbose:
-        docking_manager = _call(output, "GetDockingManager(uiapp)", api.GetDockingManager, [HOST_APP.uiapp])
-    else:
-        try:
-            docking_manager = api.GetDockingManager(HOST_APP.uiapp)
-        except:
-            docking_manager = None
+    try:
+        docking_manager = api.GetDockingManager(HOST_APP.uiapp)
+        output.print_md("- `GetDockingManager(uiapp)` OK")
+    except Exception as ex:
+        output.print_md("- `GetDockingManager(uiapp)` FAILED: `{0}`".format(_err(ex)))
 
     pane_groups = []
     if docking_manager is not None:
-        pane_groups = _children(docking_manager, 2500)
-    if not pane_groups and main_window is not None:
-        pane_groups = _children(main_window, 2500)
-
+        pane_groups = _find_pane_groups(docking_manager)
     if not pane_groups:
+        main_window = ui.get_mainwindow()
+        if main_window is not None:
+            pane_groups = _find_pane_groups(main_window)
+    if not pane_groups:
+        output.print_md("- No pane group found.")
         return None
 
-    if verbose:
-        panes = _call(output, "GetDocumentPanes(pane_group)", api.GetDocumentPanes, [pane_groups[0]])
-    else:
-        try:
-            panes = api.GetDocumentPanes(pane_groups[0])
-        except:
-            panes = None
-    pane_items = _list_items(panes)
+    try:
+        panes = api.GetDocumentPanes(pane_groups[0])
+        pane_items = _list_items(panes)
+    except Exception as ex:
+        output.print_md("- `GetDocumentPanes` FAILED: `{0}`".format(_err(ex)))
+        return None
     if not pane_items:
+        output.print_md("- No document panes found.")
         return None
 
-    if verbose:
-        tabs = _call(output, "GetDocumentTabs(pane 0)", api.GetDocumentTabs, [pane_items[0]])
-    else:
-        try:
-            tabs = api.GetDocumentTabs(pane_items[0])
-        except:
-            tabs = None
-    tab_items = _list_items(tabs)
+    try:
+        tabs = api.GetDocumentTabs(pane_items[0])
+        tab_items = _list_items(tabs)
+    except Exception as ex:
+        output.print_md("- `GetDocumentTabs` FAILED: `{0}`".format(_err(ex)))
+        return None
     if not tab_items:
+        output.print_md("- No document tabs found.")
         return None
 
     first_layout = _get(tab_items[0], "Header")
     parent = _get(first_layout, "Parent")
     children = _get(parent, "Children")
     if children is None:
+        output.print_md("- Parent.Children not found.")
         return None
-
-    return {
-        "pane_groups": pane_groups,
-        "panes": pane_items,
-        "tabs": tab_items,
-        "children": children,
-    }
+    return children
 
 
-def _print_items(output, title, items):
-    output.print_md("#### {0}".format(title))
-    output.print_md("- Count: `{0}`".format(len(items)))
-    for i, item in enumerate(items):
-        output.print_md("- `{0}` | key: `{1}` | title: `{2}`".format(i, _doc_key(item), _title(item)))
-
-
-def _snapshot(output, api, label):
+def _print_order(output, label, children):
     output.print_md("")
     output.print_md("### {0}".format(label))
-
-    context = _get_tab_context(output, api, False)
-    if context is None:
-        output.print_md("- Tab context not available.")
-        return None
-
-    output.print_md("- Pane groups: `{0}`".format(len(context["pane_groups"])))
-    output.print_md("- Panes: `{0}`".format(len(context["panes"])))
-    _print_items(output, "DocumentTabEventUtils.GetDocumentTabs", context["tabs"])
-    visual_items = _list_items(context["children"])
-    _print_items(output, "Visual parent.Children order", visual_items)
-    return context
+    items = _list_items(children)
+    output.print_md("- Count: `{0}`".format(len(items)))
+    for index, item in enumerate(items):
+        output.print_md("- `{0}` | key: `{1}` | title: `{2}`".format(index, _doc_key(item), _title(item)))
 
 
-def _sort_children_by_document(output, children):
+def _sort_children(output, children, label):
+    output.print_md("")
+    output.print_md("### {0}".format(label))
     original = _list_items(children)
+    if len(original) < 2:
+        output.print_md("- Reorder moves: `0`")
+        return 0
+
     doc_order = {}
     for item in original:
         key = _doc_key(item)
@@ -254,73 +200,47 @@ def _sort_children_by_document(output, children):
         if current_index >= 0 and current_index != target_index:
             children.Move(current_index, target_index)
             moved += 1
-
     output.print_md("- Reorder moves: `{0}`".format(moved))
     return moved
 
 
-def _reorder_current_context(output, api, label):
-    output.print_md("")
-    output.print_md("### {0}".format(label))
-    context = _get_tab_context(output, api, False)
-    if context is None:
-        output.print_md("- Tab context not available. Reorder skipped.")
-        return 0
-    try:
-        return _sort_children_by_document(output, context["children"])
-    except Exception as ex:
-        output.print_md("- Reorder failed: `{0}`".format(_err(ex)))
-        return 0
-
-
-def _get_dispatcher_priority(name):
-    if DispatcherPriority is None:
-        return None
-    try:
-        return getattr(DispatcherPriority, name)
-    except:
-        return None
-
-
-def _dispatcher_invoke_reorder(output, api, priority_name):
+def _dispatcher_sort(output, priority_name):
     output.print_md("")
     output.print_md("### Dispatcher Invoke | {0}".format(priority_name))
-
     if Action is None or DispatcherPriority is None:
         output.print_md("- Dispatcher types not available.")
-        return False
-
-    priority = _get_dispatcher_priority(priority_name)
-    if priority is None:
-        output.print_md("- Dispatcher priority not available.")
-        return False
-
+        return
     try:
         main_window = ui.get_mainwindow()
         dispatcher = main_window.Dispatcher if main_window is not None else None
+        priority = getattr(DispatcherPriority, priority_name)
         if dispatcher is None:
             output.print_md("- Dispatcher not available.")
-            return False
+            return
 
         def _run():
-            _reorder_current_context(output, api, "Dispatcher pass executed | {0}".format(priority_name))
+            children = _get_tab_children(output)
+            if children is not None:
+                _sort_children(output, children, "Dispatcher pass executed")
 
         dispatcher.Invoke(priority, Action(_run))
         output.print_md("- Dispatcher Invoke completed.")
-        return True
     except Exception as ex:
         output.print_md("- Dispatcher Invoke failed: `{0}`".format(_err(ex)))
-        return False
 
 
-def main():
-    output = script.get_output()
-    api = types.DocumentTabEventUtils
+def _print_hook_state(output):
+    output.print_md("")
+    output.print_md("### Auto hook state")
+    for key in HOOK_KEYS:
+        try:
+            value = os.environ.get(key, "")
+        except:
+            value = ""
+        output.print_md("- `{0}`: `{1}`".format(key, value))
 
-    output.print_md("## MENVIC | TAB MANAGER TIMING + DISPATCHER PROBE")
-    output.print_md("This diagnostic reads Revit tab state and tests direct, delayed, and WPF Dispatcher reorder passes.")
-    output.print_md("It does not modify model data. It only tests Revit UI tab ordering.")
 
+def _print_active_context(output):
     output.print_md("")
     output.print_md("### Active context")
     output.print_md("- Active document: `{0}`".format(HOST_APP.doc.Title if HOST_APP.doc else "None"))
@@ -329,36 +249,49 @@ def main():
     except:
         output.print_md("- Active view: `None`")
 
-    _print_open_documents(output)
+    try:
+        docs = []
+        for doc in HOST_APP.app.Documents:
+            docs.append(doc.Title)
+        output.print_md("- Revit API documents: `{0}`".format(len(docs)))
+        for index, title in enumerate(docs):
+            output.print_md("  - `{0}` | `{1}`".format(index, title))
+    except:
+        pass
 
-    initial_context = _get_tab_context(output, api, True)
-    if initial_context is None:
-        output.print_md("")
-        output.print_md("- No document tabs found.")
+
+def main():
+    output = script.get_output()
+    output.print_md("## MENVIC | TAB MANAGER PROBE")
+    output.print_md("Reads tab order, auto-hook state, and tests the same reorder used by the automatic organizer.")
+    output.print_md("It does not modify model data. It only reorders Revit UI tabs for testing.")
+
+    _print_hook_state(output)
+    _print_active_context(output)
+
+    children = _get_tab_children(output)
+    if children is None:
         return
 
-    _snapshot(output, api, "T+0 ms | Before first reorder")
-    _reorder_current_context(output, api, "Pass 1 | Immediate reorder")
-    _snapshot(output, api, "T+0 ms | After first reorder")
+    _print_order(output, "Before manual reorder", children)
+    _sort_children(output, children, "Manual reorder")
+    _print_order(output, "After manual reorder", children)
 
-    elapsed = 0
-    for delay in PROBE_DELAYS_MS:
-        _sleep(delay)
-        elapsed += delay
-        _snapshot(output, api, "T+{0} ms | Delayed snapshot".format(elapsed))
+    _dispatcher_sort(output, "ApplicationIdle")
+    _dispatcher_sort(output, "ContextIdle")
+    _dispatcher_sort(output, "Background")
 
-    for priority_name in DISPATCHER_PRIORITIES:
-        _dispatcher_invoke_reorder(output, api, priority_name)
-        _snapshot(output, api, "After Dispatcher Invoke | {0}".format(priority_name))
+    children = _get_tab_children(output)
+    if children is not None:
+        _print_order(output, "Final order", children)
 
-    _reorder_current_context(output, api, "Pass 2 | Final delayed reorder")
-    _snapshot(output, api, "After final reorder")
+    _print_hook_state(output)
 
     output.print_md("")
     output.print_md("### How to read this")
-    output.print_md("- If Pass 1 fixes the last tab, the sorter works.")
-    output.print_md("- If Dispatcher Invoke works here but the automatic hook does not, the issue is that the hook is not firing or user config blocks it.")
-    output.print_md("- If Dispatcher Invoke fails here, the auto hook should not rely on WPF Dispatcher in this Revit/pyRevit session.")
+    output.print_md("- If `PYMENVIC_TABS_HOOK_HIT` is empty, `view-activated.py` is not firing.")
+    output.print_md("- If `PYMENVIC_TABS_HOOK_SHOULD_SORT` is `0`, the auto organizer is blocked by settings.")
+    output.print_md("- If manual reorder moves tabs but hook moves are `0`, the hook ran before the new tab existed visually.")
 
 
 if __name__ == "__main__":
