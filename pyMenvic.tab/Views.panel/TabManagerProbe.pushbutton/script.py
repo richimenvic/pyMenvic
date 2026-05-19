@@ -27,6 +27,10 @@ HOOK_KEYS = [
     "PYMENVIC_TABS_HOOK_IMMEDIATE_MOVES",
     "PYMENVIC_TABS_HOOK_DISPATCHER",
     "PYMENVIC_TABS_HOOK_ERROR",
+    "PYMENVIC_TABS_IDLING_HIT",
+    "PYMENVIC_TABS_IDLING_SHOULD_SORT",
+    "PYMENVIC_TABS_IDLING_MOVES",
+    "PYMENVIC_TABS_IDLING_ERROR",
 ]
 
 
@@ -231,7 +235,7 @@ def _dispatcher_sort(output, priority_name):
 
 def _print_hook_state(output):
     output.print_md("")
-    output.print_md("### Auto hook state")
+    output.print_md("### Auto hook / idling state")
     for key in HOOK_KEYS:
         try:
             value = os.environ.get(key, "")
@@ -263,7 +267,7 @@ def _print_active_context(output):
 def main():
     output = script.get_output()
     output.print_md("## MENVIC | TAB MANAGER PROBE")
-    output.print_md("Reads tab order, auto-hook state, and tests the same reorder used by the automatic organizer.")
+    output.print_md("Reads tab order, auto-hook/idling state, and tests the same reorder used by the automatic organizer.")
     output.print_md("It does not modify model data. It only reorders Revit UI tabs for testing.")
 
     _print_hook_state(output)
@@ -289,9 +293,9 @@ def main():
 
     output.print_md("")
     output.print_md("### How to read this")
-    output.print_md("- If `PYMENVIC_TABS_HOOK_HIT` is empty, `view-activated.py` is not firing.")
-    output.print_md("- If `PYMENVIC_TABS_HOOK_SHOULD_SORT` is `0`, the auto organizer is blocked by settings.")
-    output.print_md("- If manual reorder moves tabs but hook moves are `0`, the hook ran before the new tab existed visually.")
+    output.print_md("- If `PYMENVIC_TABS_IDLING_HIT` is empty, `idling.py` is not firing.")
+    output.print_md("- If `PYMENVIC_TABS_IDLING_SHOULD_SORT` is `0`, the auto organizer is disabled or blocked by settings.")
+    output.print_md("- If manual reorder moves tabs but idling moves are `0`, idling ran before the new tab existed visually.")
 
 
 if __name__ == "__main__":
