@@ -6,7 +6,7 @@ from pyrevit.runtime import types
 from pyrevit.framework import Media
 
 
-VISUAL_TREE_LIMIT = 1600
+VISUAL_TREE_LIMIT = 1200
 
 
 def _type_name(value):
@@ -134,35 +134,53 @@ def _get_layout_children():
     return _get(parent, "Children")
 
 
+def _find_first_single_move(items):
+    keys = []
+    for item in items:
+        keys.append(_doc_key(item))
+
+    seen_closed = {}
+    open_key = None
+    index = 0
+    for key in keys:
+        if key != open_key:
+            if open_key is not None:
+                seen_closed[open_key] = True
+            open_key = key
+        if key in seen_closed:
+            # This tab belongs to an earlier document group. Move it right after
+            # the last contiguous tab of that same document group.
+            target = 0
+            while target < index and keys[target] == key:
+                target += 1
+            return index, target
+        index += 1
+    return None, None
+
+
 def sort_tabs_by_document():
     children = _get_layout_children()
     if children is None:
         return 0
 
     original = _list_items(children)
-    count = len(original)
-    if count < 2:
+    if len(original) < 2:
         return 0
 
-    original_index = {}
-    doc_order = {}
-    index = 0
-    for item in original:
-        original_index[item] = index
-        key = _doc_key(item)
-        if key not in doc_order:
-            doc_order[key] = len(doc_order)
-        index += 1
+    source_index, target_index = _find_first_single_move(original)
+    if source_index is None or target_index is None:
+        return 0
 
-    desired = sorted(
-        original,
-        key=lambda x: (doc_order.get(_doc_key(x), 999), original_index.get(x, 999999))
-    )
+    if source_index == target_index:
+        return 0
 
-    moved = 0
-    for target_index, item in enumerate(desired):
-        current_index = _index_of(children, item)
-        if current_index >= 0 and current_index != target_index:
-            children.Move(current_index, target_index)
-            moved += 1
-    return moved
+    item = original[source_index]
+    current_index = _index_of(children, item)
+    if current_index < 0:
+        return 0
+
+    try:
+        children.Move(current_index, target_index)
+        return 1
+    except:
+        return 0
