@@ -1,11 +1,60 @@
 title:
   en_us: Sort Tabs
+  es_es: Ordenar Pestañas
+
+tooltip:
+  en_us: |
+    Sort open Revit document tabs by project or family.
+    _______________________________________________________________
+    Sort Tabs is a pyMENVIC utility for grouping open Revit tabs by document,
+    helping keep project and family views organized while working.
+
+    Key features:
+    - Manual trigger: Runs only when you click the button.
+    - Document grouping: Groups tabs belonging to the same project or family.
+    - Cleaner workspace: Helps reduce tab clutter during multi-document workflows.
+    - Lightweight workflow: Uses a one-shot request through pyMENVIC startup.
+
+    Ideal for users working with multiple Revit projects, families, and views
+    who need a cleaner tab organization without permanent automatic sorting.
+
+  es_es: |
+    Ordena las pestañas abiertas de Revit por proyecto o familia.
+    _______________________________________________________________
+    Sort Tabs es una utilidad de pyMENVIC para agrupar las pestañas abiertas de
+    Revit por documento, ayudando a mantener organizadas las vistas de proyectos
+    y familias durante el trabajo.
+
+    Características clave:
+    - Activación manual: Se ejecuta solo cuando haces click en el botón.
+    - Agrupación por documento: Agrupa pestañas del mismo proyecto o familia.
+    - Espacio de trabajo más limpio: Ayuda a reducir el desorden de pestañas.
+    - Flujo ligero: Usa una solicitud única mediante startup de pyMENVIC.
+
+    Ideal para usuarios que trabajan con varios proyectos, familias y vistas de
+    Revit y necesitan una organización más clara sin ordenado automático permanente.
+
+description:
+  en_us: >
+    Sort Tabs groups open Revit document tabs by project or family using a manual,
+    one-shot request. It helps organize the workspace without leaving permanent
+    automatic sorting active in the background.
+
+  es_es: >
+    Sort Tabs agrupa las pestañas abiertas de Revit por proyecto o familia mediante
+    una solicitud manual de una sola ejecución. Ayuda a organizar el espacio de
+    trabajo sin dejar un ordenado automático permanente activo en segundo plano.
 
 author: Ricardo J. Mendieta | pyMENVIC
 version: 1.2.0
+# highlight: NEW
+
+help_url: https://www.menvic.com
 
 min_revit_version: 2020
 max_revit_version: 2026
+
+context: zero-doc
 
 engine:
   clean: false

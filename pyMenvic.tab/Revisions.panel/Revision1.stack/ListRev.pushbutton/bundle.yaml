@@ -1,11 +1,86 @@
 title:
   en_us: Sheet List
+  es_es: Listado de Hojas
   fr_fr: Liste des feuilles
-  es_es: Listado de hojas
 
 tooltip:
-  en_us: List sheets containing revision clouds
-  fr_fr: Liste les feuilles contenant des nuages de révision
-  es_es: Lista las hojas que contienen nubes de revisión
+  en_us: |
+    List sheets containing revision clouds in the current Revit project.
+    _______________________________________________________________
+    Sheet List is a pyMENVIC tool for quickly identifying sheets that contain
+    revision clouds, helping teams review revision impact and prepare issue sets.
 
-# highlight: new
+    Key features:
+    - Revision cloud scan: Finds sheets containing revision clouds.
+    - Sheet review: Helps identify which sheets are affected by revisions.
+    - Issue preparation: Supports revision-based documentation workflows.
+    - Faster coordination: Reduces manual checking across sheet views.
+
+    Ideal for project teams that need to review revision clouds and prepare
+    coordinated drawing issue packages.
+
+  es_es: |
+    Lista las hojas que contienen nubes de revisión en el proyecto Revit actual.
+    _______________________________________________________________
+    Sheet List es una herramienta de pyMENVIC para identificar rápidamente las hojas
+    que contienen nubes de revisión, ayudando a revisar el impacto de revisiones y
+    preparar conjuntos de emisión.
+
+    Características clave:
+    - Escaneo de nubes de revisión: Encuentra hojas que contienen nubes de revisión.
+    - Revisión de hojas: Ayuda a identificar qué hojas están afectadas por revisiones.
+    - Preparación de emisiones: Apoya flujos documentales basados en revisiones.
+    - Coordinación más rápida: Reduce la revisión manual hoja por hoja.
+
+    Ideal para equipos de proyecto que necesitan revisar nubes de revisión y preparar
+    paquetes coordinados de emisión de planos.
+
+  fr_fr: |
+    Liste les feuilles contenant des nuages de révision dans le projet Revit actuel.
+    _______________________________________________________________
+    Sheet List est un outil pyMENVIC permettant d’identifier rapidement les feuilles
+    contenant des nuages de révision, afin d’aider les équipes à vérifier l’impact
+    des révisions et à préparer les dossiers d’émission.
+
+    Fonctionnalités principales :
+    - Analyse des nuages de révision : Identifie les feuilles contenant des nuages de révision.
+    - Revue des feuilles : Aide à repérer les feuilles concernées par les révisions.
+    - Préparation des émissions : Soutient les flux documentaires basés sur les révisions.
+    - Coordination plus rapide : Réduit la vérification manuelle feuille par feuille.
+
+    Idéal pour les équipes projet qui doivent vérifier les nuages de révision et préparer
+    des dossiers d’émission coordonnés.
+
+description:
+  en_us: >
+    Sheet List helps project teams identify Revit sheets that contain revision
+    clouds. It supports revision review, issue preparation, and coordination by
+    reducing the need to manually inspect each sheet.
+
+  es_es: >
+    Sheet List ayuda a los equipos de proyecto a identificar hojas de Revit que
+    contienen nubes de revisión. Apoya la revisión de revisiones, la preparación
+    de emisiones y la coordinación al reducir la necesidad de revisar cada hoja
+    manualmente.
+
+  fr_fr: >
+    Sheet List aide les équipes projet à identifier les feuilles Revit contenant
+    des nuages de révision. Il soutient la revue des révisions, la préparation
+    des émissions et la coordination en réduisant la vérification manuelle de
+    chaque feuille.
+
+author: Ricardo J. Mendieta | pyMENVIC
+version: 1.0.0
+# highlight: NEW
+
+help_url: https://www.menvic.com
+
+min_revit_version: 2020
+max_revit_version: 2026
+
+context: doc-project
+
+engine:
+  clean: true
+  fullframe: false
+  persistent: false

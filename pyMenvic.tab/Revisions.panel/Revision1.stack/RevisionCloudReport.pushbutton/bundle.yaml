@@ -1,11 +1,96 @@
 title:
-  en_us: Revision Cloud Report
-  fr_fr: Rapport des nuages de révision
-  es_es: Informe de nubes de revisión
+  en_us: |-
+    Revision Cloud
+    Report
+  es_es: |-
+    Informe de Nubes
+    de Revisión
+  fr_fr: |-
+    Rapport des nuages
+    de révision
 
 tooltip:
-  en_us: List all revision clouds grouped by sheet and view
-  fr_fr: Liste tous les nuages de révision regroupés par feuille et vue
-  es_es: Lista todas las nubes de revisión agrupadas por plano y vista
+  en_us: |
+    List all revision clouds grouped by sheet and view.
+    _______________________________________________________________
+    Revision Cloud Report is a pyMENVIC tool for auditing revision clouds across
+    the current Revit project, grouped by sheet and view for clearer review.
 
-# highlight: new
+    Key features:
+    - Cloud inventory: Lists revision clouds found in the project.
+    - Sheet and view grouping: Organizes results by sheet and view.
+    - Revision review: Helps identify where revision clouds are located.
+    - Documentation control: Supports cleaner revision issue coordination.
+    - Faster QA/QC: Reduces manual checking across sheets and views.
+
+    Ideal for project teams that need to review revision clouds, coordinate issue
+    packages, and maintain better documentation control.
+
+  es_es: |
+    Lista todas las nubes de revisión agrupadas por plano y vista.
+    _______________________________________________________________
+    Revision Cloud Report es una herramienta de pyMENVIC para auditar nubes de
+    revisión en el proyecto Revit actual, agrupadas por plano y vista para una
+    revisión más clara.
+
+    Características clave:
+    - Inventario de nubes: Lista las nubes de revisión encontradas en el proyecto.
+    - Agrupación por plano y vista: Organiza los resultados por plano y vista.
+    - Revisión de revisiones: Ayuda a identificar dónde se ubican las nubes.
+    - Control documental: Apoya una coordinación más limpia de emisiones.
+    - QA/QC más rápido: Reduce la revisión manual en planos y vistas.
+
+    Ideal para equipos de proyecto que necesitan revisar nubes de revisión,
+    coordinar paquetes de emisión y mantener mejor control documental.
+
+  fr_fr: |
+    Liste tous les nuages de révision regroupés par feuille et vue.
+    _______________________________________________________________
+    Revision Cloud Report est un outil pyMENVIC permettant d’auditer les nuages
+    de révision dans le projet Revit actuel, regroupés par feuille et par vue
+    pour une revue plus claire.
+
+    Fonctionnalités principales :
+    - Inventaire des nuages : Liste les nuages de révision trouvés dans le projet.
+    - Regroupement par feuille et vue : Organise les résultats par feuille et par vue.
+    - Revue des révisions : Aide à identifier l’emplacement des nuages.
+    - Contrôle documentaire : Soutient une coordination plus propre des émissions.
+    - QA/QC plus rapide : Réduit la vérification manuelle des feuilles et des vues.
+
+    Idéal pour les équipes projet qui doivent vérifier les nuages de révision,
+    coordonner les dossiers d’émission et maintenir un meilleur contrôle documentaire.
+
+description:
+  en_us: >
+    Revision Cloud Report helps project teams audit revision clouds across the
+    current Revit project. It groups revision clouds by sheet and view, making it
+    easier to review revision impact, coordinate issue packages, and support
+    documentation QA/QC.
+
+  es_es: >
+    Revision Cloud Report ayuda a los equipos de proyecto a auditar nubes de
+    revisión en el proyecto Revit actual. Agrupa las nubes por plano y vista,
+    facilitando la revisión del impacto de revisiones, la coordinación de paquetes
+    de emisión y el control QA/QC documental.
+
+  fr_fr: >
+    Revision Cloud Report aide les équipes projet à auditer les nuages de révision
+    dans le projet Revit actuel. Il regroupe les nuages par feuille et par vue,
+    afin de faciliter la revue de l’impact des révisions, la coordination des
+    dossiers d’émission et le contrôle QA/QC documentaire.
+
+author: Ricardo J. Mendieta | pyMENVIC
+version: 1.0.0
+# highlight: NEW
+
+help_url: https://www.menvic.com
+
+min_revit_version: 2020
+max_revit_version: 2026
+
+context: doc-project
+
+engine:
+  clean: true
+  fullframe: false
+  persistent: false

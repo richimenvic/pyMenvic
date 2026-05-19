@@ -1,11 +1,93 @@
 title:
-  en_us: Sheets by Rev
-  fr_fr: Recherche des nuages de révision
-  es_es: Buscador de nubes de revisión
+  en_us: |-
+    Sheets
+    by Rev
+  es_es: |-
+    Planos por
+    Revisión
+  fr_fr: |-
+    Feuilles par
+    révision
 
 tooltip:
-  en_us: Find all revision clouds belonging to a selected revision
-  fr_fr: Trouve tous les nuages de révision appartenant à la révision sélectionnée
-  es_es: Encuentra todas las nubes de revisión que pertenecen a una revisión seleccionada
+  en_us: |
+    Find all revision clouds belonging to a selected revision.
+    _______________________________________________________________
+    Sheets by Rev is a pyMENVIC tool for locating revision clouds associated
+    with a specific revision and reviewing the affected sheets and views.
 
-# highlight: new
+    Key features:
+    - Revision-based search: Finds revision clouds by selected revision.
+    - Sheet impact review: Identifies sheets affected by that revision.
+    - View location support: Helps locate where each revision cloud appears.
+    - Faster issue checking: Reduces manual review across sheets and views.
+    - Documentation control: Supports cleaner revision tracking and issue coordination.
+
+    Ideal for project teams that need to verify revision scope, locate related
+    clouds, and prepare coordinated drawing issue packages.
+
+  es_es: |
+    Encuentra todas las nubes de revisión que pertenecen a una revisión seleccionada.
+    _______________________________________________________________
+    Sheets by Rev es una herramienta de pyMENVIC para localizar nubes de revisión
+    asociadas a una revisión específica y revisar los planos y vistas afectados.
+
+    Características clave:
+    - Búsqueda por revisión: Encuentra nubes según la revisión seleccionada.
+    - Revisión de impacto en planos: Identifica los planos afectados por esa revisión.
+    - Ubicación por vista: Ayuda a localizar dónde aparece cada nube de revisión.
+    - Verificación más rápida: Reduce la revisión manual en planos y vistas.
+    - Control documental: Apoya un seguimiento más limpio de revisiones y emisiones.
+
+    Ideal para equipos de proyecto que necesitan verificar el alcance de una revisión,
+    localizar sus nubes asociadas y preparar paquetes coordinados de emisión.
+
+  fr_fr: |
+    Trouve tous les nuages de révision appartenant à la révision sélectionnée.
+    _______________________________________________________________
+    Sheets by Rev est un outil pyMENVIC permettant de localiser les nuages de
+    révision associés à une révision spécifique et de vérifier les feuilles et vues concernées.
+
+    Fonctionnalités principales :
+    - Recherche par révision : Identifie les nuages liés à la révision sélectionnée.
+    - Revue de l’impact sur les feuilles : Repère les feuilles concernées par cette révision.
+    - Localisation par vue : Aide à localiser où chaque nuage de révision apparaît.
+    - Vérification plus rapide : Réduit la revue manuelle des feuilles et des vues.
+    - Contrôle documentaire : Soutient un suivi plus clair des révisions et des émissions.
+
+    Idéal pour les équipes projet qui doivent vérifier le périmètre d’une révision,
+    localiser les nuages associés et préparer des dossiers d’émission coordonnés.
+
+description:
+  en_us: >
+    Sheets by Rev helps project teams find revision clouds associated with a
+    selected revision. It supports revision scope review, affected sheet
+    identification, and coordination of drawing issue packages.
+
+  es_es: >
+    Sheets by Rev ayuda a los equipos de proyecto a encontrar nubes de revisión
+    asociadas a una revisión seleccionada. Apoya la revisión del alcance de la
+    revisión, la identificación de planos afectados y la coordinación de paquetes
+    de emisión de planos.
+
+  fr_fr: >
+    Sheets by Rev aide les équipes projet à trouver les nuages de révision associés
+    à une révision sélectionnée. Il soutient la revue du périmètre de révision,
+    l’identification des feuilles concernées et la coordination des dossiers
+    d’émission de plans.
+
+author: Ricardo J. Mendieta | pyMENVIC
+version: 1.0.0
+# highlight: NEW
+
+help_url: https://www.menvic.com
+
+min_revit_version: 2020
+max_revit_version: 2026
+
+context: doc-project
+
+engine:
+  clean: true
+  fullframe: false
+  persistent: false

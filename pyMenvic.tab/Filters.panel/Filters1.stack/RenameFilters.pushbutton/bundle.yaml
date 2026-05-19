@@ -5,27 +5,63 @@ title:
 tooltip:
   en_us: |
     Standardize Revit filter names in batch with preview and validation.
+    _______________________________________________________________
+    Filter Standardizer is a pyMENVIC tool for searching and replacing text
+    across Revit parameter filter names, reviewing proposed standard names,
+    and applying only valid changes through a safer batch workflow.
+
+    Key features:
+    - Batch renaming: Search and replace text across multiple filter names.
+    - Preview first: Review proposed names before applying changes.
+    - Validation checks: Avoid invalid, empty, or duplicated filter names.
+    - Controlled apply: Modify only the filters approved by the user.
+    - Naming cleanup: Helps align filters with office or project standards.
+
+    Ideal for BIM coordinators and project teams that need consistent Revit
+    filter naming without renaming filters one by one.
+
   es_es: |
-    Estandariza filtros de Revit en lote con vista previa y validacion.
+    Estandariza nombres de filtros de Revit en lote con vista previa y validación.
+    _______________________________________________________________
+    Filter Standardizer es una herramienta de pyMENVIC para buscar y reemplazar
+    texto en nombres de filtros de parámetros de Revit, revisar nombres estándar
+    propuestos y aplicar únicamente cambios válidos mediante un flujo más seguro.
+
+    Características clave:
+    - Renombrado en lote: Busca y reemplaza texto en múltiples nombres de filtros.
+    - Vista previa: Revisa los nombres propuestos antes de aplicar cambios.
+    - Validaciones: Evita nombres inválidos, vacíos o duplicados.
+    - Aplicación controlada: Modifica solo los filtros aprobados por el usuario.
+    - Limpieza de nomenclatura: Ayuda a alinear filtros con estándares de oficina o proyecto.
+
+    Ideal para coordinadores BIM y equipos de proyecto que necesitan una nomenclatura
+    consistente de filtros de Revit sin renombrarlos uno por uno.
 
 description:
   en_us: >
-    Filter Standardizer lets you search and replace text across Parameter Filter
-    names, review the proposed standard names, and safely apply only valid changes.
+    Filter Standardizer provides a controlled batch workflow for standardizing
+    Revit parameter filter names. It allows users to search and replace text,
+    preview proposed names, validate possible conflicts, and safely apply only
+    approved changes.
+
   es_es: >
-    Estandarizador de Filtros permite buscar y reemplazar texto en nombres de
-    Parameter Filters, revisar los nombres estandar propuestos y aplicar solo
-    los cambios validos de forma segura.
+    Filter Standardizer proporciona un flujo controlado de renombrado en lote para
+    estandarizar nombres de filtros de parámetros de Revit. Permite buscar y
+    reemplazar texto, revisar nombres propuestos, validar posibles conflictos y
+    aplicar de forma segura únicamente los cambios aprobados.
 
 author: Ricardo J. Mendieta | pyMENVIC
 version: 1.0.0
+# highlight: NEW
+
 help_url: https://www.menvic.com
+
 min_revit_version: 2020
 max_revit_version: 2026
+
 context: doc-project
 
 engine:
   clean: true
   fullframe: false
   persistent: false
-

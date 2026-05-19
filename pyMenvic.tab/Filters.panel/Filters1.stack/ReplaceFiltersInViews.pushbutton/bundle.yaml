@@ -4,25 +4,59 @@ title:
 
 tooltip:
   en_us: |
-    Replace one filter with another across views and templates.
+    Replace one Revit filter with another across views and templates.
+    _______________________________________________________________
+    Replace Filters is a pyMENVIC tool for reviewing source and target filter
+    states in views and view templates before replacing or merging filters.
+
+    Key features:
+    - Source/target review: Compare filter states before applying changes.
+    - View and template support: Replace filters across project views and templates.
+    - Override protection: Preserve intended visibility and graphic override settings.
+    - Merge workflow: Consolidate equivalent filters without losing setup.
+    - Safer apply: Review affected views before committing replacements.
+
+    Ideal for BIM coordinators and project teams that need to consolidate filters
+    while protecting existing visibility settings.
+
   es_es: |
-    Reemplaza un filtro por otro en vistas y templates.
+    Reemplaza un filtro de Revit por otro en vistas y plantillas.
+    _______________________________________________________________
+    Replace Filters es una herramienta de pyMENVIC para revisar el estado del filtro
+    origen y destino en vistas y plantillas antes de reemplazar o combinar filtros.
+
+    Características clave:
+    - Revisión origen/destino: Compara el estado de los filtros antes de aplicar cambios.
+    - Soporte para vistas y plantillas: Reemplaza filtros en vistas y plantillas del proyecto.
+    - Protección de overrides: Conserva la visibilidad y configuración gráfica prevista.
+    - Flujo de combinación: Consolida filtros equivalentes sin perder configuración.
+    - Aplicación segura: Revisa las vistas afectadas antes de confirmar reemplazos.
+
+    Ideal para coordinadores BIM y equipos de proyecto que necesitan consolidar filtros
+    protegiendo la configuración de visibilidad existente.
 
 description:
   en_us: >
-    Replace Filters lets you review source and target filter states in each
-    view or template, then replace or merge filters without losing the
-    intended visibility and override setup.
+    Replace Filters provides a controlled workflow for replacing or merging Revit
+    filters across views and view templates. It allows users to review source and
+    target filter states, understand affected views, and preserve intended visibility
+    and override settings during consolidation.
+
   es_es: >
-    Reemplazar Filtros te permite revisar el estado del filtro origen y
-    destino en cada vista o template, y luego reemplazar o combinar filtros
-    sin perder la configuracion de visibilidad y overrides.
+    Replace Filters proporciona un flujo controlado para reemplazar o combinar filtros
+    de Revit en vistas y plantillas. Permite revisar el estado del filtro origen y
+    destino, comprender las vistas afectadas y conservar la visibilidad y los overrides
+    previstos durante la consolidación.
 
 author: Ricardo J. Mendieta | pyMENVIC
 version: 1.0.0
+# highlight: NEW
+
 help_url: https://www.menvic.com
+
 min_revit_version: 2020
 max_revit_version: 2026
+
 context: doc-project
 
 engine:

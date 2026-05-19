@@ -4,20 +4,62 @@ title:
 
 tooltip:
   en_us: |
-    Unified audit, rename preview, and replace planning for filters.
+    Audit, rename, consolidate, replace, and report Revit filters from one unified interface.
+    _______________________________________________________________
+    Filter Manager Pro is a pyMENVIC tool for reviewing project filters, detecting
+    naming issues, previewing rename operations, planning replacements, and preparing
+    cleaner filter management workflows.
+
+    Key features:
+    - Unified audit: Review filter names, categories, rules, and usage in one place.
+    - Rename preview: Check proposed standard names before applying changes.
+    - Replace planning: Identify duplicate or equivalent filters before consolidation.
+    - Safer workflow: Preview changes before modifying project filters.
+    - Reporting support: Prepare audit information for project cleanup and QA/QC.
+
+    Ideal for BIM coordinators and project teams that need cleaner, safer, and more
+    consistent Revit filter management.
+
   es_es: |
-    Auditoria unificada, vista previa de renombrado y plan de reemplazo de filtros.
+    Audita, renombra, consolida, reemplaza y reporta filtros de Revit desde una interfaz unificada.
+    _______________________________________________________________
+    Filter Manager Pro es una herramienta de pyMENVIC para revisar filtros del proyecto,
+    detectar problemas de nomenclatura, previsualizar operaciones de renombrado,
+    planificar reemplazos y preparar flujos de gestión de filtros más limpios.
+
+    Características clave:
+    - Auditoría unificada: Revisa nombres, categorías, reglas y uso de filtros en un solo lugar.
+    - Vista previa de renombrado: Verifica nombres estándar propuestos antes de aplicar cambios.
+    - Planificación de reemplazo: Identifica filtros duplicados o equivalentes antes de consolidar.
+    - Flujo más seguro: Permite previsualizar cambios antes de modificar filtros del proyecto.
+    - Soporte para reportes: Prepara información de auditoría para limpieza y control QA/QC.
+
+    Ideal para coordinadores BIM y equipos de proyecto que necesitan una gestión de filtros
+    más limpia, segura y consistente.
 
 description:
   en_us: >
-    Filter Manager Pro centralizes filter audit, rename standardization preview,
-    replacement planning, and reporting placeholders in one tabbed tool.
+    Filter Manager Pro centralizes Revit filter audit, rename standardization,
+    replacement planning, consolidation workflows, and reporting support in one
+    tabbed interface. It helps project teams review filter quality, reduce
+    duplication, and manage filter changes with safer preview-based workflows.
+
+  es_es: >
+    Filter Manager Pro centraliza la auditoría de filtros de Revit, la estandarización
+    de nombres, la planificación de reemplazos, los flujos de consolidación y el soporte
+    para reportes en una interfaz con pestañas. Ayuda a los equipos de proyecto a revisar
+    la calidad de los filtros, reducir duplicados y gestionar cambios mediante flujos más
+    seguros basados en vista previa.
 
 author: Ricardo J. Mendieta | pyMENVIC
 version: 0.4.0-preview
+# highlight: NEW
+
 help_url: https://www.menvic.com
+
 min_revit_version: 2020
 max_revit_version: 2026
+
 context: doc-project
 
 engine:

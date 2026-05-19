@@ -1,11 +1,91 @@
 title:
-  en_us: Print in Order
-  fr_fr: Imprimer en ordre
-  es_es: Imprimir en orden
+  en_us: |-
+    Print in
+    Order
+  es_es: |-
+    Imprimir
+    en Orden
+  fr_fr: |-
+    Imprimer
+    en Ordre
 
 tooltip:
-  en_us: Script prints revision to PDF
-  fr_fr: Script imprime la révision en PDF
-  es_es: Script imprime la revisión en PDF
+  en_us: |
+    Print sheets to PDF in the correct revision or sheet order.
+    _______________________________________________________________
+    Print in Order is a pyMENVIC tool for generating PDF output from sheets
+    while preserving a clean and controlled print sequence.
 
-# highlight: new
+    Key features:
+    - Ordered printing: Prints sheets following the defined sheet/revision order.
+    - PDF workflow: Helps prepare coordinated PDF issue packages.
+    - Reduced manual sorting: Avoids reordering sheets manually before printing.
+    - Consistent output: Supports cleaner documentation delivery.
+
+    Ideal for project teams that need predictable PDF exports and organized
+    revision or drawing issue packages.
+
+  es_es: |
+    Imprime planos en PDF respetando el orden correcto de revisión o de planos.
+    _______________________________________________________________
+    Print in Order es una herramienta de pyMENVIC para generar PDFs de planos
+    manteniendo una secuencia de impresión limpia y controlada.
+
+    Características clave:
+    - Impresión ordenada: Imprime los planos siguiendo el orden definido.
+    - Flujo PDF: Ayuda a preparar paquetes coordinados de emisión.
+    - Menos orden manual: Evita reorganizar planos manualmente antes de imprimir.
+    - Salida consistente: Permite una entrega documental más limpia.
+
+    Ideal para equipos de proyecto que necesitan exportaciones PDF predecibles
+    y paquetes de planos organizados por revisión o emisión.
+
+  fr_fr: |
+    Imprime les feuilles en PDF en respectant l’ordre correct de révision ou de feuilles.
+    _______________________________________________________________
+    Print in Order est un outil pyMENVIC permettant de générer des PDF de feuilles
+    tout en conservant une séquence d’impression claire et contrôlée.
+
+    Fonctionnalités principales :
+    - Impression ordonnée : Imprime les feuilles selon l’ordre défini.
+    - Flux PDF : Aide à préparer des dossiers d’émission coordonnés.
+    - Moins de tri manuel : Évite de réorganiser les feuilles avant l’impression.
+    - Sortie cohérente : Permet une livraison documentaire plus propre.
+
+    Idéal pour les équipes projet qui ont besoin d’exports PDF prévisibles
+    et de dossiers de plans organisés par révision ou émission.
+
+description:
+  en_us: >
+    Print in Order provides a controlled workflow for printing or exporting
+    Revit sheets to PDF in the correct sequence. It helps project teams prepare
+    organized issue packages without manually reordering sheets before every
+    print/export operation.
+
+  es_es: >
+    Print in Order proporciona un flujo de trabajo controlado para imprimir o
+    exportar planos de Revit a PDF en la secuencia correcta. Ayuda a los equipos
+    de proyecto a preparar paquetes de emisión organizados sin tener que ordenar
+    manualmente los planos antes de cada impresión o exportación.
+
+  fr_fr: >
+    Print in Order fournit un flux de travail contrôlé pour imprimer ou exporter
+    les feuilles Revit en PDF dans la bonne séquence. Il aide les équipes projet
+    à préparer des dossiers d’émission organisés sans devoir trier manuellement
+    les feuilles avant chaque impression ou export.
+
+author: Ricardo J. Mendieta | pyMENVIC
+version: 1.0.0
+# highlight: NEW
+
+help_url: https://www.menvic.com
+
+min_revit_version: 2020
+max_revit_version: 2026
+
+context: doc-project
+
+engine:
+  clean: true
+  fullframe: false
+  persistent: false

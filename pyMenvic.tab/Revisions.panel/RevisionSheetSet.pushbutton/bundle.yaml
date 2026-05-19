@@ -1,11 +1,92 @@
 title:
-  en_us: Revision Sheet Set
-  fr_fr: Jeu de feuilles par révision
-  es_es: Conjunto de planos por revisión
+  en_us: |-
+    Revision
+    Sheet Set
+  es_es: |-
+    Conjunto de
+    Planos por Revisión
+  fr_fr: |-
+    Jeu de feuilles
+    par révision
 
 tooltip:
-  en_us: Create a sheet set containing all sheets with the selected revision
-  fr_fr: Crée un jeu de feuilles contenant toutes les feuilles avec la révision sélectionnée
-  es_es: Crea un conjunto de planos con todas las hojas que contienen la revisión seleccionada
+  en_us: |
+    Create a Revit sheet set containing all sheets with the selected revision.
+    _______________________________________________________________
+    Revision Sheet Set is a pyMENVIC tool for quickly filtering sheets by revision
+    and generating a ready-to-use print/export sheet set.
 
-# highlight: new
+    Key features:
+    - Revision-based selection: Finds all sheets containing the selected revision.
+    - Fast sheet set creation: Creates or updates a Revit sheet set for printing.
+    - Cleaner documentation workflow: Helps prepare revision issue packages faster.
+    - Reduced manual work: Avoids selecting sheets one by one.
+
+    Ideal for project teams that need to manage revision-based drawing issues
+    with consistency and speed.
+
+  es_es: |
+    Crea un conjunto de planos de Revit con todos los planos que contienen la revisión seleccionada.
+    _______________________________________________________________
+    Revision Sheet Set es una herramienta de pyMENVIC para filtrar rápidamente
+    planos por revisión y generar un conjunto listo para impresión o exportación.
+
+    Características clave:
+    - Selección por revisión: Encuentra todos los planos que contienen la revisión seleccionada.
+    - Creación rápida: Crea o actualiza un conjunto de planos para impresión.
+    - Flujo documental más limpio: Ayuda a preparar paquetes de emisión por revisión.
+    - Menos trabajo manual: Evita seleccionar planos uno por uno.
+
+    Ideal para equipos de proyecto que necesitan gestionar emisiones de planos
+    por revisión con mayor consistencia y rapidez.
+
+  fr_fr: |
+    Crée un jeu de feuilles Revit contenant toutes les feuilles avec la révision sélectionnée.
+    _______________________________________________________________
+    Revision Sheet Set est un outil pyMENVIC permettant de filtrer rapidement
+    les feuilles par révision et de générer un jeu prêt pour l’impression ou l’export.
+
+    Fonctionnalités principales :
+    - Sélection par révision : Identifie toutes les feuilles contenant la révision sélectionnée.
+    - Création rapide : Crée ou met à jour un jeu de feuilles pour l’impression.
+    - Flux documentaire plus clair : Facilite la préparation des dossiers d’émission.
+    - Moins de travail manuel : Évite la sélection feuille par feuille.
+
+    Idéal pour les équipes projet qui doivent gérer les émissions de plans
+    par révision avec cohérence et rapidité.
+
+description:
+  en_us: >
+    Revision Sheet Set provides a focused workflow to create or update Revit
+    sheet sets based on a selected revision. It helps project teams quickly
+    gather all sheets affected by a revision and prepare them for printing,
+    PDF export, or issue documentation.
+
+  es_es: >
+    Revision Sheet Set proporciona un flujo de trabajo específico para crear o
+    actualizar conjuntos de planos de Revit a partir de una revisión seleccionada.
+    Ayuda a los equipos de proyecto a reunir rápidamente todos los planos afectados
+    por una revisión y prepararlos para impresión, exportación PDF o documentación
+    de emisión.
+
+  fr_fr: >
+    Revision Sheet Set fournit un flux de travail ciblé pour créer ou mettre à
+    jour des jeux de feuilles Revit à partir d’une révision sélectionnée. Il aide
+    les équipes projet à regrouper rapidement toutes les feuilles concernées par
+    une révision et à les préparer pour l’impression, l’export PDF ou l’émission.
+
+author: Ricardo J. Mendieta | pyMENVIC
+version: 1.0.0
+# highlight: NEW
+
+help_url: https://www.menvic.com
+
+min_revit_version: 2020
+max_revit_version: 2026
+
+context: doc-project
+
+engine:
+  clean: true
+  fullframe: false
+  persistent: false
