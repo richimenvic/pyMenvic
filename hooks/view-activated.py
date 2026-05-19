@@ -35,6 +35,11 @@ PENDING_ENVVAR = "PYMENVIC_TABS_SORT_PENDING"
 PENDING_TICKS = "20"
 PYMENVIC_SORT_ENVVAR = "PYMENVIC_TABS_BY_DOCUMENT_ENABLED"
 PYMENVIC_SORT_CONFIG = "pymenvic_sort_doc_tabs"
+HOOK_HIT_ENVVAR = "PYMENVIC_TABS_HOOK_HIT"
+HOOK_SHOULD_ENVVAR = "PYMENVIC_TABS_HOOK_SHOULD_SORT"
+HOOK_IMMEDIATE_MOVES_ENVVAR = "PYMENVIC_TABS_HOOK_IMMEDIATE_MOVES"
+HOOK_DISPATCHER_ENVVAR = "PYMENVIC_TABS_HOOK_DISPATCHER"
+HOOK_ERROR_ENVVAR = "PYMENVIC_TABS_HOOK_ERROR"
 
 
 def _safe_bool(value):
@@ -42,6 +47,20 @@ def _safe_bool(value):
         return bool(value)
     except:
         return False
+
+
+def _safe_int(value, default_value):
+    try:
+        return int(value)
+    except:
+        return default_value
+
+
+def _set_env(name, value):
+    try:
+        os.environ[name] = str(value)
+    except:
+        pass
 
 
 def _should_sort_tabs():
@@ -70,7 +89,8 @@ def _should_sort_tabs():
 def _safe_sort_tabs():
     try:
         return sort_tabs_by_document()
-    except:
+    except Exception as ex:
+        _set_env(HOOK_ERROR_ENVVAR, str(ex).split("\n")[0])
         return 0
 
 
@@ -89,19 +109,32 @@ def _dispatcher_sort():
         dispatcher.Invoke(DispatcherPriority.ContextIdle, Action(_safe_sort_tabs))
         dispatcher.Invoke(DispatcherPriority.Background, Action(_safe_sort_tabs))
         return True
-    except:
+    except Exception as ex:
+        _set_env(HOOK_ERROR_ENVVAR, str(ex).split("\n")[0])
         return False
 
 
 try:
-    if _should_sort_tabs():
+    hit_count = _safe_int(os.environ.get(HOOK_HIT_ENVVAR, "0"), 0) + 1
+    _set_env(HOOK_HIT_ENVVAR, hit_count)
+    _set_env(HOOK_ERROR_ENVVAR, "")
+
+    should_sort = _should_sort_tabs()
+    _set_env(HOOK_SHOULD_ENVVAR, "1" if should_sort else "0")
+
+    if should_sort:
         # Keep several idling passes as a lightweight fallback.
         os.environ[PENDING_ENVVAR] = PENDING_TICKS
 
         # Immediate pass handles tabs already visible at event time.
-        _safe_sort_tabs()
+        immediate_moves = _safe_sort_tabs()
+        _set_env(HOOK_IMMEDIATE_MOVES_ENVVAR, immediate_moves)
 
         # Dispatcher passes run after Revit/WPF finishes visual tab creation.
-        _dispatcher_sort()
-except:
-    pass
+        dispatcher_ok = _dispatcher_sort()
+        _set_env(HOOK_DISPATCHER_ENVVAR, "1" if dispatcher_ok else "0")
+    else:
+        _set_env(HOOK_IMMEDIATE_MOVES_ENVVAR, "skipped")
+        _set_env(HOOK_DISPATCHER_ENVVAR, "skipped")
+except Exception as ex:
+    _set_env(HOOK_ERROR_ENVVAR, str(ex).split("\n")[0])
