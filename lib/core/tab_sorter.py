@@ -7,6 +7,7 @@ from pyrevit.framework import Media
 
 
 VISUAL_TREE_LIMIT = 1200
+MAX_SORT_PASSES = 8
 
 
 def _type_name(value):
@@ -45,9 +46,6 @@ def _is_true(value):
 
 
 def _is_active_tab(item):
-    # AvalonDock/Revit tab objects can expose one or both properties depending
-    # on the Revit/pyRevit version. Avoid moving the active tab directly because
-    # Revit can keep it pinned visually until focus changes.
     return _is_true(_get(item, "IsSelected")) or _is_true(_get(item, "IsActive"))
 
 
@@ -174,8 +172,6 @@ def _move_tabs_around_active(children, original, source_index, target_index):
     active_item = original[source_index]
     moved = 0
 
-    # Move every intervening tab to the right side of the active tab. This keeps
-    # the selected tab focused while still joining it with its document group.
     for item in original[target_index:source_index]:
         item_index = _index_of(children, item)
         active_index = _index_of(children, active_item)
@@ -191,11 +187,7 @@ def _move_tabs_around_active(children, original, source_index, target_index):
     return moved
 
 
-def sort_tabs_by_document():
-    children = _get_layout_children()
-    if children is None:
-        return 0
-
+def _sort_one_pass(children):
     original = _list_items(children)
     if len(original) < 2:
         return 0
@@ -203,12 +195,10 @@ def sort_tabs_by_document():
     source_index, target_index = _find_first_single_move(original)
     if source_index is None or target_index is None:
         return 0
-
     if source_index == target_index:
         return 0
 
     item = original[source_index]
-
     if _is_active_tab(item) and target_index < source_index:
         return _move_tabs_around_active(children, original, source_index, target_index)
 
@@ -221,3 +211,19 @@ def sort_tabs_by_document():
         return 1
     except:
         return 0
+
+
+def sort_tabs_by_document():
+    children = _get_layout_children()
+    if children is None:
+        return 0
+
+    total_moved = 0
+    pass_index = 0
+    while pass_index < MAX_SORT_PASSES:
+        moved = _sort_one_pass(children)
+        if moved <= 0:
+            break
+        total_moved += moved
+        pass_index += 1
+    return total_moved
