@@ -5,6 +5,14 @@ import sys
 
 from pyrevit.revit import tabs
 from pyrevit.userconfig import user_config
+from pyrevit.revit import ui
+
+try:
+    from System import Action
+    from System.Windows.Threading import DispatcherPriority
+except:
+    Action = None
+    DispatcherPriority = None
 
 try:
     from lib.core.tab_sorter import sort_tabs_by_document
@@ -24,7 +32,7 @@ except ImportError:
 
 
 PENDING_ENVVAR = "PYMENVIC_TABS_SORT_PENDING"
-PENDING_TICKS = "16"
+PENDING_TICKS = "20"
 
 
 def _safe_bool(value):
@@ -55,13 +63,31 @@ def _safe_sort_tabs():
         return 0
 
 
+def _queue_dispatcher_sort():
+    if Action is None or DispatcherPriority is None:
+        return False
+    try:
+        main_window = ui.get_mainwindow()
+        dispatcher = main_window.Dispatcher if main_window is not None else None
+        if dispatcher is None:
+            return False
+        dispatcher.BeginInvoke(DispatcherPriority.ApplicationIdle, Action(_safe_sort_tabs))
+        dispatcher.BeginInvoke(DispatcherPriority.ContextIdle, Action(_safe_sort_tabs))
+        dispatcher.BeginInvoke(DispatcherPriority.Background, Action(_safe_sort_tabs))
+        return True
+    except:
+        return False
+
+
 try:
     if _should_sort_tabs():
-        # Queue repeated idling passes so Revit can finish creating the visual tab
-        # before the final order is applied. Avoid sleeping inside this event hook.
+        # Keep several idling passes as a lightweight fallback.
         os.environ[PENDING_ENVVAR] = PENDING_TICKS
 
-        # Keep the old immediate behavior for tabs already available at event time.
+        # Immediate pass handles tabs already visible at event time.
         _safe_sort_tabs()
+
+        # Dispatcher passes run after Revit/WPF finishes visual tab creation.
+        _queue_dispatcher_sort()
 except:
     pass
