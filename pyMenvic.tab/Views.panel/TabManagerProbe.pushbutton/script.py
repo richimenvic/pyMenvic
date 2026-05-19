@@ -13,8 +13,16 @@ try:
 except:
     Thread = None
 
+try:
+    from System import Action
+    from System.Windows.Threading import DispatcherPriority
+except:
+    Action = None
+    DispatcherPriority = None
+
 
 PROBE_DELAYS_MS = [250, 500, 1000]
+DISPATCHER_PRIORITIES = ["ApplicationIdle", "ContextIdle", "Background"]
 
 
 def _err(ex):
@@ -265,12 +273,52 @@ def _reorder_current_context(output, api, label):
         return 0
 
 
+def _get_dispatcher_priority(name):
+    if DispatcherPriority is None:
+        return None
+    try:
+        return getattr(DispatcherPriority, name)
+    except:
+        return None
+
+
+def _dispatcher_invoke_reorder(output, api, priority_name):
+    output.print_md("")
+    output.print_md("### Dispatcher Invoke | {0}".format(priority_name))
+
+    if Action is None or DispatcherPriority is None:
+        output.print_md("- Dispatcher types not available.")
+        return False
+
+    priority = _get_dispatcher_priority(priority_name)
+    if priority is None:
+        output.print_md("- Dispatcher priority not available.")
+        return False
+
+    try:
+        main_window = ui.get_mainwindow()
+        dispatcher = main_window.Dispatcher if main_window is not None else None
+        if dispatcher is None:
+            output.print_md("- Dispatcher not available.")
+            return False
+
+        def _run():
+            _reorder_current_context(output, api, "Dispatcher pass executed | {0}".format(priority_name))
+
+        dispatcher.Invoke(priority, Action(_run))
+        output.print_md("- Dispatcher Invoke completed.")
+        return True
+    except Exception as ex:
+        output.print_md("- Dispatcher Invoke failed: `{0}`".format(_err(ex)))
+        return False
+
+
 def main():
     output = script.get_output()
     api = types.DocumentTabEventUtils
 
-    output.print_md("## MENVIC | TAB MANAGER TIMING PROBE")
-    output.print_md("This diagnostic reads Revit tab state, performs two controlled reorder passes, and compares immediate/delayed tab lists.")
+    output.print_md("## MENVIC | TAB MANAGER TIMING + DISPATCHER PROBE")
+    output.print_md("This diagnostic reads Revit tab state and tests direct, delayed, and WPF Dispatcher reorder passes.")
     output.print_md("It does not modify model data. It only tests Revit UI tab ordering.")
 
     output.print_md("")
@@ -299,14 +347,18 @@ def main():
         elapsed += delay
         _snapshot(output, api, "T+{0} ms | Delayed snapshot".format(elapsed))
 
-    _reorder_current_context(output, api, "Pass 2 | Delayed reorder")
-    _snapshot(output, api, "After delayed reorder")
+    for priority_name in DISPATCHER_PRIORITIES:
+        _dispatcher_invoke_reorder(output, api, priority_name)
+        _snapshot(output, api, "After Dispatcher Invoke | {0}".format(priority_name))
+
+    _reorder_current_context(output, api, "Pass 2 | Final delayed reorder")
+    _snapshot(output, api, "After final reorder")
 
     output.print_md("")
     output.print_md("### How to read this")
-    output.print_md("- If the newest tab is missing at T+0 but appears in delayed snapshots, the issue is timing.")
-    output.print_md("- If GetDocumentTabs and parent.Children disagree, the issue is between Revit API state and visual WPF state.")
-    output.print_md("- If Pass 2 fixes the last tab, the final organizer should use a delayed second pass, not a heavy watcher.")
+    output.print_md("- If Pass 1 fixes the last tab, the sorter works.")
+    output.print_md("- If Dispatcher Invoke works here but the automatic hook does not, the issue is that the hook is not firing or user config blocks it.")
+    output.print_md("- If Dispatcher Invoke fails here, the auto hook should not rely on WPF Dispatcher in this Revit/pyRevit session.")
 
 
 if __name__ == "__main__":
