@@ -7,7 +7,7 @@ from pyrevit.framework import Media
 
 
 VISUAL_TREE_LIMIT = 1200
-MAX_SORT_PASSES = 8
+MAX_MOVES_PER_CLICK = 12
 
 
 def _type_name(value):
@@ -146,71 +146,25 @@ def _get_layout_children():
     return _get(parent, "Children")
 
 
-def _find_first_single_move(items):
-    keys = []
-    for item in items:
-        keys.append(_doc_key(item))
-
-    seen_closed = {}
-    open_key = None
+def _desired_order(items):
+    doc_order = {}
+    original_index = {}
     index = 0
-    for key in keys:
-        if key != open_key:
-            if open_key is not None:
-                seen_closed[open_key] = True
-            open_key = key
-        if key in seen_closed:
-            target = 0
-            while target < index and keys[target] == key:
-                target += 1
-            return index, target
+    for item in items:
+        original_index[item] = index
+        key = _doc_key(item)
+        if key not in doc_order:
+            doc_order[key] = len(doc_order)
         index += 1
-    return None, None
+
+    return sorted(
+        items,
+        key=lambda x: (doc_order.get(_doc_key(x), 999), original_index.get(x, 999999))
+    )
 
 
-def _move_tabs_around_active(children, original, source_index, target_index):
-    active_item = original[source_index]
-    moved = 0
-
-    for item in original[target_index:source_index]:
-        item_index = _index_of(children, item)
-        active_index = _index_of(children, active_item)
-        if item_index < 0 or active_index < 0:
-            continue
-        if item_index > active_index:
-            continue
-        try:
-            children.Move(item_index, active_index + 1)
-            moved += 1
-        except:
-            pass
-    return moved
-
-
-def _sort_one_pass(children):
-    original = _list_items(children)
-    if len(original) < 2:
-        return 0
-
-    source_index, target_index = _find_first_single_move(original)
-    if source_index is None or target_index is None:
-        return 0
-    if source_index == target_index:
-        return 0
-
-    item = original[source_index]
-    if _is_active_tab(item) and target_index < source_index:
-        return _move_tabs_around_active(children, original, source_index, target_index)
-
-    current_index = _index_of(children, item)
-    if current_index < 0:
-        return 0
-
-    try:
-        children.Move(current_index, target_index)
-        return 1
-    except:
-        return 0
+def _current_items(children):
+    return _list_items(children)
 
 
 def sort_tabs_by_document():
@@ -218,12 +172,41 @@ def sort_tabs_by_document():
     if children is None:
         return 0
 
-    total_moved = 0
-    pass_index = 0
-    while pass_index < MAX_SORT_PASSES:
-        moved = _sort_one_pass(children)
-        if moved <= 0:
+    original = _current_items(children)
+    if len(original) < 2:
+        return 0
+
+    desired = _desired_order(original)
+    moved = 0
+
+    while moved < MAX_MOVES_PER_CLICK:
+        current = _current_items(children)
+        if current == desired:
             break
-        total_moved += moved
-        pass_index += 1
-    return total_moved
+
+        made_move = False
+        target_index = 0
+        while target_index < len(desired):
+            wanted = desired[target_index]
+            if target_index < len(current) and current[target_index] == wanted:
+                target_index += 1
+                continue
+
+            if _is_active_tab(wanted):
+                target_index += 1
+                continue
+
+            current_index = _index_of(children, wanted)
+            if current_index >= 0 and current_index != target_index:
+                try:
+                    children.Move(current_index, target_index)
+                    moved += 1
+                    made_move = True
+                except:
+                    pass
+            break
+
+        if not made_move:
+            break
+
+    return moved
