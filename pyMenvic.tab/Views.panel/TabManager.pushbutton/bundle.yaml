@@ -1,13 +1,13 @@
 title:
-  en_us: Tabs by Document
+  en_us: Sort Tabs
 
 author: Ricardo J. Mendieta | pyMENVIC
-version: 1.1.0
+version: 1.2.0
 
 min_revit_version: 2020
 max_revit_version: 2026
 
 engine:
-  clean: true
+  clean: false
   fullframe: false
   persistent: false
