@@ -29,6 +29,14 @@ except ImportError:
 
 PYMENVIC_SORT_ENVVAR = "PYMENVIC_TABS_BY_DOCUMENT_ENABLED"
 PYMENVIC_SORT_CONFIG = "pymenvic_sort_doc_tabs"
+STATE_FILE = os.path.join(os.environ.get("TEMP", os.getcwd()), "pyMenvic_tab_sort_state.txt")
+
+
+def _safe_bool(value):
+    try:
+        return bool(value)
+    except:
+        return False
 
 
 def _get_theme():
@@ -52,6 +60,32 @@ def _set_icon(state):
         pass
 
 
+def _clear_runtime_flags():
+    for key in [
+        "PYMENVIC_TABS_SORT_PENDING",
+        "PYMENVIC_TABS_HOOK_HIT",
+        "PYMENVIC_TABS_HOOK_SHOULD_SORT",
+        "PYMENVIC_TABS_HOOK_IMMEDIATE_MOVES",
+        "PYMENVIC_TABS_HOOK_DISPATCHER",
+        "PYMENVIC_TABS_HOOK_ERROR",
+        "PYMENVIC_TABS_IDLING_HIT",
+        "PYMENVIC_TABS_IDLING_SHOULD_SORT",
+        "PYMENVIC_TABS_IDLING_MOVES",
+        "PYMENVIC_TABS_IDLING_ERROR",
+        "PYMENVIC_TABS_COMMAND_LAST_RUN",
+    ]:
+        try:
+            if key in os.environ:
+                del os.environ[key]
+        except:
+            pass
+    try:
+        if os.path.exists(STATE_FILE):
+            os.remove(STATE_FILE)
+    except:
+        pass
+
+
 def _set_pymenvic_sort_flag(state):
     try:
         setattr(user_config, PYMENVIC_SORT_CONFIG, bool(state))
@@ -61,6 +95,17 @@ def _set_pymenvic_sort_flag(state):
         os.environ[PYMENVIC_SORT_ENVVAR] = "1" if state else "0"
     except:
         pass
+
+
+def _is_sort_enabled():
+    if _safe_bool(getattr(user_config, PYMENVIC_SORT_CONFIG, False)):
+        return True
+    try:
+        if os.environ.get(PYMENVIC_SORT_ENVVAR, "") == "1":
+            return True
+    except:
+        pass
+    return False
 
 
 def _enable_and_sort_tabs():
@@ -77,11 +122,20 @@ def _enable_and_sort_tabs():
     _set_icon(True)
 
 
-def _disable_tab_coloring():
-    user_config.colorize_docs = False
+def _disable_tab_sorting():
+    theme = _get_theme()
+    if theme and hasattr(theme, "SortDocTabs"):
+        theme.SortDocTabs = False
+        tabs.set_tabcoloring_theme(user_config, theme)
+
     _set_pymenvic_sort_flag(False)
     _save_config()
-    tabs.init_doc_colorizer(user_config)
+    _clear_runtime_flags()
+
+    try:
+        tabs.init_doc_colorizer(user_config)
+    except:
+        pass
     _set_icon(False)
 
 
@@ -90,6 +144,15 @@ def _is_config_mode():
         return bool(EXEC_PARAMS.config_mode)
     except:
         return False
+
+
+def _print_status(enabled):
+    output = script.get_output()
+    output.print_md("## MENVIC | TABS BY DOCUMENT")
+    if enabled:
+        output.print_md("- Auto tab sorting: `ON`")
+    else:
+        output.print_md("- Auto tab sorting: `OFF`")
 
 
 def _print_error(ex):
@@ -101,9 +164,16 @@ def _print_error(ex):
 def main():
     try:
         if _is_config_mode():
-            _disable_tab_coloring()
+            _disable_tab_sorting()
+            _print_status(False)
+            return
+
+        if _is_sort_enabled():
+            _disable_tab_sorting()
+            _print_status(False)
         else:
             _enable_and_sort_tabs()
+            _print_status(True)
     except Exception as ex:
         _print_error(ex)
 
