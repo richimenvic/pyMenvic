@@ -34,9 +34,48 @@ STATE_FILE = os.path.join(os.environ.get("TEMP", os.getcwd()), "pyMenvic_tab_sor
 
 def _safe_bool(value):
     try:
+        if isinstance(value, basestring):
+            return value.strip().lower() in ["1", "true", "yes", "on"]
+    except:
+        pass
+    try:
         return bool(value)
     except:
         return False
+
+
+def _read_state():
+    data = {}
+    try:
+        if os.path.exists(STATE_FILE):
+            with open(STATE_FILE, "r") as state_file:
+                for line in state_file:
+                    if "=" in line:
+                        key, value = line.rstrip("\n").split("=", 1)
+                        data[key] = value
+    except:
+        pass
+    return data
+
+
+def _write_state(data):
+    try:
+        folder = os.path.dirname(STATE_FILE)
+        if folder and not os.path.exists(folder):
+            os.makedirs(folder)
+        with open(STATE_FILE, "w") as state_file:
+            for key in sorted(data.keys()):
+                state_file.write("{0}={1}\n".format(key, data[key]))
+    except:
+        pass
+
+
+def _update_state(**kwargs):
+    data = _read_state()
+    for key, value in kwargs.items():
+        data[key] = str(value)
+    data["STATE_FILE"] = STATE_FILE
+    _write_state(data)
 
 
 def _get_theme():
@@ -79,11 +118,6 @@ def _clear_runtime_flags():
                 del os.environ[key]
         except:
             pass
-    try:
-        if os.path.exists(STATE_FILE):
-            os.remove(STATE_FILE)
-    except:
-        pass
 
 
 def _set_pymenvic_sort_flag(state):
@@ -95,9 +129,16 @@ def _set_pymenvic_sort_flag(state):
         os.environ[PYMENVIC_SORT_ENVVAR] = "1" if state else "0"
     except:
         pass
+    _update_state(ENABLED="1" if state else "0")
 
 
 def _is_sort_enabled():
+    state = _read_state()
+    if state.get("ENABLED", "") == "1":
+        return True
+    if state.get("ENABLED", "") == "0":
+        return False
+
     if _safe_bool(getattr(user_config, PYMENVIC_SORT_CONFIG, False)):
         return True
     try:
@@ -153,6 +194,7 @@ def _print_status(enabled):
         output.print_md("- Auto tab sorting: `ON`")
     else:
         output.print_md("- Auto tab sorting: `OFF`")
+    output.print_md("- State file: `{0}`".format(STATE_FILE))
 
 
 def _print_error(ex):
