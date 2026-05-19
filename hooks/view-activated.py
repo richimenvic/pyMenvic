@@ -6,13 +6,13 @@ import sys
 from pyrevit.revit import ui
 
 try:
-    from System import Action
-    from System.Threading import Thread
-    from System.Windows.Threading import DispatcherPriority
+    from System import Action, TimeSpan
+    from System.Windows.Threading import DispatcherPriority, DispatcherTimer
 except:
     Action = None
-    Thread = None
+    TimeSpan = None
     DispatcherPriority = None
+    DispatcherTimer = None
 
 try:
     from lib.core.tab_sorter import sort_tabs_by_document
@@ -33,7 +33,7 @@ except ImportError:
 
 PENDING_ENVVAR = "PYMENVIC_TABS_SORT_PENDING"
 PENDING_TICKS = "20"
-DELAYED_PASS_MS = 220
+TIMER_DELAYS_MS = [300, 700, 1200]
 STATE_FILE = os.path.join(os.environ.get("LOCALAPPDATA", os.environ.get("TEMP", os.getcwd())), "Temp", "pyMenvic", "tab_sort_state.txt")
 if not os.environ.get("LOCALAPPDATA", ""):
     STATE_FILE = os.path.join(os.environ.get("TEMP", os.getcwd()), "pyMenvic", "tab_sort_state.txt")
@@ -85,15 +85,6 @@ def _is_enabled():
     return state.get("ENABLED", "").strip() == "1"
 
 
-def _sleep(ms):
-    if Thread is None:
-        return
-    try:
-        Thread.Sleep(ms)
-    except:
-        pass
-
-
 def _safe_sort_tabs():
     try:
         return sort_tabs_by_document()
@@ -128,6 +119,44 @@ def _dispatcher_sort(label_prefix):
         return False, total_moves
 
 
+def _timer_sort(label):
+    if not _is_enabled():
+        _update_state(**{"{0}_SKIPPED".format(label): "disabled"})
+        return 0
+    moves = _safe_sort_tabs()
+    dispatcher_ok, dispatcher_moves = _dispatcher_sort(label + "_DISPATCHER")
+    _update_state(**{
+        "{0}_MOVES".format(label): moves,
+        "{0}_DISPATCHER".format(label): "1" if dispatcher_ok else "0",
+        "{0}_DISPATCHER_MOVES".format(label): dispatcher_moves,
+    })
+    return moves + dispatcher_moves
+
+
+def _schedule_timer_sort(delay_ms, label):
+    if DispatcherTimer is None or TimeSpan is None:
+        _update_state(**{"{0}_TIMER".format(label): "unavailable"})
+        return False
+    try:
+        timer = DispatcherTimer()
+        timer.Interval = TimeSpan.FromMilliseconds(delay_ms)
+
+        def _on_tick(sender, args):
+            try:
+                sender.Stop()
+            except:
+                pass
+            _timer_sort(label)
+
+        timer.Tick += _on_tick
+        timer.Start()
+        _update_state(**{"{0}_TIMER".format(label): "scheduled"})
+        return True
+    except Exception as ex:
+        _update_state(**{"{0}_TIMER".format(label): "failed: {0}".format(str(ex).split("\n")[0])})
+        return False
+
+
 try:
     state = _read_state()
     hit_count = _safe_int(state.get("HOOK_HIT", "0"), 0) + 1
@@ -142,26 +171,22 @@ try:
         immediate_moves = _safe_sort_tabs()
         dispatcher_ok, dispatcher_moves = _dispatcher_sort("HOOK_DISPATCHER_1")
 
-        # Revit can append the newest tab after the first visual/UI pass.
-        # This second pass catches the real last tab instead of only fixing the previous one.
-        _sleep(DELAYED_PASS_MS)
-        delayed_moves = _safe_sort_tabs()
-        delayed_dispatcher_ok, delayed_dispatcher_moves = _dispatcher_sort("HOOK_DISPATCHER_2")
+        scheduled = 0
+        for delay_ms in TIMER_DELAYS_MS:
+            if _schedule_timer_sort(delay_ms, "HOOK_TIMER_{0}MS".format(delay_ms)):
+                scheduled += 1
 
         _update_state(
             HOOK_IMMEDIATE_MOVES=immediate_moves,
-            HOOK_DELAYED_MOVES=delayed_moves,
             HOOK_DISPATCHER="1" if dispatcher_ok else "0",
             HOOK_DISPATCHER_MOVES=dispatcher_moves,
-            HOOK_DISPATCHER_DELAYED="1" if delayed_dispatcher_ok else "0",
-            HOOK_DISPATCHER_DELAYED_MOVES=delayed_dispatcher_moves,
+            HOOK_TIMER_SCHEDULED=scheduled,
         )
     else:
         _update_state(
             HOOK_IMMEDIATE_MOVES="skipped",
-            HOOK_DELAYED_MOVES="skipped",
             HOOK_DISPATCHER="skipped",
-            HOOK_DISPATCHER_DELAYED="skipped",
+            HOOK_TIMER_SCHEDULED="skipped",
         )
 except Exception as ex:
     _update_state(HOOK_ERROR=str(ex).split("\n")[0])
