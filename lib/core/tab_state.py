@@ -21,14 +21,18 @@ STATE_DIR = os.path.join(_get_base_temp_dir(), "pyMenvic")
 STATE_FILE = os.path.join(STATE_DIR, "tab_sort_state.txt")
 
 
+def _clean(value):
+    if value is None:
+        return ""
+    try:
+        return str(value).strip()
+    except:
+        return ""
+
+
 def safe_bool(value):
     try:
-        if isinstance(value, basestring):
-            return value.strip().lower() in ["1", "true", "yes", "on"]
-    except:
-        pass
-    try:
-        return bool(value)
+        return _clean(value).lower() in ["1", "true", "yes", "on"]
     except:
         return False
 
@@ -40,8 +44,11 @@ def read_state():
             with open(STATE_FILE, "r") as state_file:
                 for line in state_file:
                     if "=" in line:
-                        key, value = line.rstrip("\n").split("=", 1)
-                        data[key] = value
+                        key, value = line.split("=", 1)
+                        key = _clean(key)
+                        value = _clean(value)
+                        if key:
+                            data[key] = value
     except:
         pass
     return data
@@ -54,7 +61,7 @@ def write_state(data):
         data["STATE_FILE"] = STATE_FILE
         with open(STATE_FILE, "w") as state_file:
             for key in sorted(data.keys()):
-                state_file.write("{0}={1}\n".format(key, data[key]))
+                state_file.write("{0}={1}\n".format(_clean(key), _clean(data[key])))
     except:
         pass
 
@@ -62,7 +69,7 @@ def write_state(data):
 def update_state(**kwargs):
     data = read_state()
     for key, value in kwargs.items():
-        data[key] = str(value)
+        data[_clean(key)] = _clean(value)
     write_state(data)
 
 
@@ -80,16 +87,17 @@ def set_enabled(user_config, enabled):
 
 def is_enabled(user_config, tabs_module):
     state = read_state()
-    if state.get("ENABLED", "") == "1":
+    enabled_value = _clean(state.get("ENABLED", ""))
+    if enabled_value == "1":
         return True
-    if state.get("ENABLED", "") == "0":
+    if enabled_value == "0":
         return False
 
     if safe_bool(getattr(user_config, PYMENVIC_SORT_CONFIG, False)):
         return True
 
     try:
-        if os.environ.get(PYMENVIC_SORT_ENVVAR, "") == "1":
+        if _clean(os.environ.get(PYMENVIC_SORT_ENVVAR, "")) == "1":
             return True
     except:
         pass
