@@ -27,6 +27,10 @@ except ImportError:
     from core.tab_sorter import sort_tabs_by_document
 
 
+PYMENVIC_SORT_ENVVAR = "PYMENVIC_TABS_BY_DOCUMENT_ENABLED"
+PYMENVIC_SORT_CONFIG = "pymenvic_sort_doc_tabs"
+
+
 def _get_theme():
     try:
         return tabs.get_tabcoloring_theme(user_config)
@@ -48,6 +52,17 @@ def _set_icon(state):
         pass
 
 
+def _set_pymenvic_sort_flag(state):
+    try:
+        setattr(user_config, PYMENVIC_SORT_CONFIG, bool(state))
+    except:
+        pass
+    try:
+        os.environ[PYMENVIC_SORT_ENVVAR] = "1" if state else "0"
+    except:
+        pass
+
+
 def _enable_and_sort_tabs():
     theme = _get_theme()
     if theme and hasattr(theme, "SortDocTabs"):
@@ -55,6 +70,7 @@ def _enable_and_sort_tabs():
         tabs.set_tabcoloring_theme(user_config, theme)
 
     user_config.colorize_docs = True
+    _set_pymenvic_sort_flag(True)
     _save_config()
     tabs.init_doc_colorizer(user_config)
     sort_tabs_by_document()
@@ -63,6 +79,7 @@ def _enable_and_sort_tabs():
 
 def _disable_tab_coloring():
     user_config.colorize_docs = False
+    _set_pymenvic_sort_flag(False)
     _save_config()
     tabs.init_doc_colorizer(user_config)
     _set_icon(False)
