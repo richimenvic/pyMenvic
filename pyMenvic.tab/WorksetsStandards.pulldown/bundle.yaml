@@ -1,0 +1,19 @@
+title:
+  en_us: |-
+    Workset
+    Manager
+  es_es: |-
+    Gestionar
+    Worksets
+  fr_fr: |-
+    Gérer
+    Worksets
+
+layout:
+  - AuditLinkWorksets
+  - LevelsGrids2Workset
+  - LinkWorksetManager
+  - SyncLinkWorksets
+  - WorksetMappingManager
+  - WorksetSeeder
+  - WorksetStandardizer
