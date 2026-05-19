@@ -32,22 +32,11 @@ def _set_sort_doc_tabs(theme, state):
     return False
 
 
-def _native_sort_tabs_once():
+def _sort_with_existing_tab_coloring():
     theme = _get_theme()
-    previous_colorize = False
-    previous_sort = False
 
-    try:
-        previous_colorize = bool(getattr(user_config, "colorize_docs", False))
-    except:
-        previous_colorize = False
-
-    try:
-        if theme and hasattr(theme, "SortDocTabs"):
-            previous_sort = bool(theme.SortDocTabs)
-    except:
-        previous_sort = False
-
+    # Do not disable pyRevit Tab Coloring. The user may already be using it.
+    # This button only asks pyRevit to sort/group document tabs using its native system.
     try:
         _set_sort_doc_tabs(theme, True)
         user_config.colorize_docs = True
@@ -56,22 +45,9 @@ def _native_sort_tabs_once():
     except:
         pass
 
-    try:
-        if not previous_colorize:
-            user_config.colorize_docs = False
-            _save_config()
-            tabs.init_doc_colorizer(user_config)
-        else:
-            if theme:
-                _set_sort_doc_tabs(theme, previous_sort)
-                _save_config()
-                tabs.init_doc_colorizer(user_config)
-    except:
-        pass
-
 
 def main():
-    _native_sort_tabs_once()
+    _sort_with_existing_tab_coloring()
 
 
 if __name__ == "__main__":
