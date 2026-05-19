@@ -1,7 +1,13 @@
 title:
-  en_us: Family Library Sorter
-  es_es: Clasificador de Librerías de Familias
-  fr_fr: Trieur de Bibliothèques de Familles
+  en_us: |-
+    Library
+    Sorter
+  es_es: |-
+    Ordenar
+    Librerías
+  fr_fr: |-
+    Trier
+    Bibliothèques
 
 tooltip:
   en_us: |

@@ -1,6 +1,10 @@
 title:
-  en_us: Drafting Audit View
-  es_es: Vista de Auditoría de Dibujo
+  en_us: |-
+    View
+    Audit
+  es_es: |-
+    Auditar
+    Vistas
 
 tooltip:
   en_us: |

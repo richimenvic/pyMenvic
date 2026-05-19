@@ -1,7 +1,13 @@
 title:
-  en_us: Export Selected Families
-  fr_fr: Exporter les familles sélectionnées
-  es_es: Exportar familias seleccionadas
+  en_us: |-
+    Export
+    Selected
+  fr_fr: |-
+    Exporter
+    Sélection
+  es_es: |-
+    Exportar
+    Selección
 
 tooltip:
   en_us: |
