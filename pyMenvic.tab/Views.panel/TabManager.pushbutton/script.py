@@ -4,19 +4,28 @@ __title__ = "Sort Tabs"
 __author__ = "Ricardo J. Mendieta"
 
 import os
+import sys
 
-STATE_FILE = os.path.join(os.environ.get("LOCALAPPDATA", os.environ.get("TEMP", os.getcwd())), "Temp", "pyMenvic", "tab_sort_request.txt")
-if not os.environ.get("LOCALAPPDATA", ""):
-    STATE_FILE = os.path.join(os.environ.get("TEMP", os.getcwd()), "pyMenvic", "tab_sort_request.txt")
+try:
+    from lib.core.tab_sort_request import request_sort
+except ImportError:
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    while True:
+        if os.path.basename(current_dir).lower() == "pymenvic.extension":
+            lib_dir = os.path.join(current_dir, "lib")
+            if lib_dir not in sys.path:
+                sys.path.append(lib_dir)
+            break
+        parent_dir = os.path.dirname(current_dir)
+        if parent_dir == current_dir:
+            break
+        current_dir = parent_dir
+    from core.tab_sort_request import request_sort
 
 
 def main():
     try:
-        folder = os.path.dirname(STATE_FILE)
-        if folder and not os.path.exists(folder):
-            os.makedirs(folder)
-        with open(STATE_FILE, "w") as state_file:
-            state_file.write("1")
+        request_sort()
     except:
         pass
 
