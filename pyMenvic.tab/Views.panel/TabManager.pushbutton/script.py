@@ -6,8 +6,6 @@ __author__ = "Ricardo J. Mendieta"
 import os
 import sys
 
-from pyrevit import script
-
 try:
     from lib.core.tab_sorter import sort_tabs_by_document
 except ImportError:
@@ -26,15 +24,10 @@ except ImportError:
 
 
 def main():
-    output = script.get_output()
-    output.print_md("## MENVIC | SORT TABS")
-    output.print_md("Manual mode only. No automatic hook, timer, or background sorting is enabled.")
-
     try:
-        moves = sort_tabs_by_document()
-        output.print_md("- Reorder moves: `{0}`".format(moves))
-    except Exception as ex:
-        output.print_md("- Failed: `{0}`".format(str(ex).split("\n")[0]))
+        sort_tabs_by_document()
+    except:
+        pass
 
 
 if __name__ == "__main__":
