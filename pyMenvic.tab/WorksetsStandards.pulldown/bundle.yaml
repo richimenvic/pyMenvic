@@ -12,7 +12,7 @@ title:
 layout:
   - AuditLinkWorksets
   - LevelsGrids2Workset
-  - LinkWorksetManager
+  - LinkWorksetMananger
   - SyncLinkWorksets
   - WorksetMappingManager
   - WorksetSeeder
