@@ -12,6 +12,7 @@ from pyrevit.userconfig import user_config
 
 try:
     from lib.core.tab_sorter import sort_tabs_by_document
+    from lib.core import tab_state
 except ImportError:
     current_dir = os.path.dirname(os.path.abspath(__file__))
     while True:
@@ -25,57 +26,10 @@ except ImportError:
             break
         current_dir = parent_dir
     from core.tab_sorter import sort_tabs_by_document
+    from core import tab_state
 
 
-PYMENVIC_SORT_ENVVAR = "PYMENVIC_TABS_BY_DOCUMENT_ENABLED"
-PYMENVIC_SORT_CONFIG = "pymenvic_sort_doc_tabs"
-STATE_FILE = os.path.join(os.environ.get("TEMP", os.getcwd()), "pyMenvic_tab_sort_state.txt")
-
-
-def _safe_bool(value):
-    try:
-        if isinstance(value, basestring):
-            return value.strip().lower() in ["1", "true", "yes", "on"]
-    except:
-        pass
-    try:
-        return bool(value)
-    except:
-        return False
-
-
-def _read_state():
-    data = {}
-    try:
-        if os.path.exists(STATE_FILE):
-            with open(STATE_FILE, "r") as state_file:
-                for line in state_file:
-                    if "=" in line:
-                        key, value = line.rstrip("\n").split("=", 1)
-                        data[key] = value
-    except:
-        pass
-    return data
-
-
-def _write_state(data):
-    try:
-        folder = os.path.dirname(STATE_FILE)
-        if folder and not os.path.exists(folder):
-            os.makedirs(folder)
-        with open(STATE_FILE, "w") as state_file:
-            for key in sorted(data.keys()):
-                state_file.write("{0}={1}\n".format(key, data[key]))
-    except:
-        pass
-
-
-def _update_state(**kwargs):
-    data = _read_state()
-    for key, value in kwargs.items():
-        data[key] = str(value)
-    data["STATE_FILE"] = STATE_FILE
-    _write_state(data)
+STATE_FILE = tab_state.STATE_FILE
 
 
 def _get_theme():
@@ -120,35 +74,6 @@ def _clear_runtime_flags():
             pass
 
 
-def _set_pymenvic_sort_flag(state):
-    try:
-        setattr(user_config, PYMENVIC_SORT_CONFIG, bool(state))
-    except:
-        pass
-    try:
-        os.environ[PYMENVIC_SORT_ENVVAR] = "1" if state else "0"
-    except:
-        pass
-    _update_state(ENABLED="1" if state else "0")
-
-
-def _is_sort_enabled():
-    state = _read_state()
-    if state.get("ENABLED", "") == "1":
-        return True
-    if state.get("ENABLED", "") == "0":
-        return False
-
-    if _safe_bool(getattr(user_config, PYMENVIC_SORT_CONFIG, False)):
-        return True
-    try:
-        if os.environ.get(PYMENVIC_SORT_ENVVAR, "") == "1":
-            return True
-    except:
-        pass
-    return False
-
-
 def _enable_and_sort_tabs():
     theme = _get_theme()
     if theme and hasattr(theme, "SortDocTabs"):
@@ -156,7 +81,7 @@ def _enable_and_sort_tabs():
         tabs.set_tabcoloring_theme(user_config, theme)
 
     user_config.colorize_docs = True
-    _set_pymenvic_sort_flag(True)
+    tab_state.set_enabled(user_config, True)
     _save_config()
     tabs.init_doc_colorizer(user_config)
     sort_tabs_by_document()
@@ -169,7 +94,7 @@ def _disable_tab_sorting():
         theme.SortDocTabs = False
         tabs.set_tabcoloring_theme(user_config, theme)
 
-    _set_pymenvic_sort_flag(False)
+    tab_state.set_enabled(user_config, False)
     _save_config()
     _clear_runtime_flags()
 
@@ -210,7 +135,7 @@ def main():
             _print_status(False)
             return
 
-        if _is_sort_enabled():
+        if tab_state.is_enabled(user_config, tabs):
             _disable_tab_sorting()
             _print_status(False)
         else:
