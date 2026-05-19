@@ -16,6 +16,7 @@ except:
 
 try:
     from lib.core.tab_sorter import sort_tabs_by_document
+    from lib.core import tab_state
 except ImportError:
     current_dir = os.path.dirname(os.path.abspath(__file__))
     while True:
@@ -29,24 +30,11 @@ except ImportError:
             break
         current_dir = parent_dir
     from core.tab_sorter import sort_tabs_by_document
+    from core import tab_state
 
 
 PENDING_ENVVAR = "PYMENVIC_TABS_SORT_PENDING"
 PENDING_TICKS = "20"
-PYMENVIC_SORT_ENVVAR = "PYMENVIC_TABS_BY_DOCUMENT_ENABLED"
-PYMENVIC_SORT_CONFIG = "pymenvic_sort_doc_tabs"
-HOOK_HIT_ENVVAR = "PYMENVIC_TABS_HOOK_HIT"
-HOOK_SHOULD_ENVVAR = "PYMENVIC_TABS_HOOK_SHOULD_SORT"
-HOOK_IMMEDIATE_MOVES_ENVVAR = "PYMENVIC_TABS_HOOK_IMMEDIATE_MOVES"
-HOOK_DISPATCHER_ENVVAR = "PYMENVIC_TABS_HOOK_DISPATCHER"
-HOOK_ERROR_ENVVAR = "PYMENVIC_TABS_HOOK_ERROR"
-
-
-def _safe_bool(value):
-    try:
-        return bool(value)
-    except:
-        return False
 
 
 def _safe_int(value, default_value):
@@ -56,41 +44,11 @@ def _safe_int(value, default_value):
         return default_value
 
 
-def _set_env(name, value):
-    try:
-        os.environ[name] = str(value)
-    except:
-        pass
-
-
-def _should_sort_tabs():
-    try:
-        if os.environ.get(PYMENVIC_SORT_ENVVAR, "") == "1":
-            return True
-    except:
-        pass
-
-    if _safe_bool(getattr(user_config, PYMENVIC_SORT_CONFIG, False)):
-        return True
-
-    if not _safe_bool(getattr(user_config, "colorize_docs", False)):
-        return False
-
-    try:
-        theme = tabs.get_tabcoloring_theme(user_config)
-        if hasattr(theme, "SortDocTabs"):
-            return _safe_bool(theme.SortDocTabs)
-    except:
-        pass
-
-    return False
-
-
 def _safe_sort_tabs():
     try:
         return sort_tabs_by_document()
     except Exception as ex:
-        _set_env(HOOK_ERROR_ENVVAR, str(ex).split("\n")[0])
+        tab_state.update_state(HOOK_ERROR=str(ex).split("\n")[0])
         return 0
 
 
@@ -102,39 +60,32 @@ def _dispatcher_sort():
         dispatcher = main_window.Dispatcher if main_window is not None else None
         if dispatcher is None:
             return False
-
-        # Use Invoke instead of BeginInvoke. In pyRevit hooks, async delegates can be
-        # lost when the hook engine exits. Probe confirmed synchronous Invoke works.
         dispatcher.Invoke(DispatcherPriority.ApplicationIdle, Action(_safe_sort_tabs))
         dispatcher.Invoke(DispatcherPriority.ContextIdle, Action(_safe_sort_tabs))
         dispatcher.Invoke(DispatcherPriority.Background, Action(_safe_sort_tabs))
         return True
     except Exception as ex:
-        _set_env(HOOK_ERROR_ENVVAR, str(ex).split("\n")[0])
+        tab_state.update_state(HOOK_ERROR=str(ex).split("\n")[0])
         return False
 
 
 try:
-    hit_count = _safe_int(os.environ.get(HOOK_HIT_ENVVAR, "0"), 0) + 1
-    _set_env(HOOK_HIT_ENVVAR, hit_count)
-    _set_env(HOOK_ERROR_ENVVAR, "")
+    state = tab_state.read_state()
+    hit_count = _safe_int(state.get("HOOK_HIT", "0"), 0) + 1
+    tab_state.update_state(HOOK_HIT=hit_count, HOOK_ERROR="")
 
-    should_sort = _should_sort_tabs()
-    _set_env(HOOK_SHOULD_ENVVAR, "1" if should_sort else "0")
+    should_sort = tab_state.is_enabled(user_config, tabs)
+    tab_state.update_state(HOOK_SHOULD_SORT="1" if should_sort else "0")
 
     if should_sort:
-        # Keep several idling passes as a lightweight fallback.
         os.environ[PENDING_ENVVAR] = PENDING_TICKS
-
-        # Immediate pass handles tabs already visible at event time.
         immediate_moves = _safe_sort_tabs()
-        _set_env(HOOK_IMMEDIATE_MOVES_ENVVAR, immediate_moves)
-
-        # Dispatcher passes run after Revit/WPF finishes visual tab creation.
         dispatcher_ok = _dispatcher_sort()
-        _set_env(HOOK_DISPATCHER_ENVVAR, "1" if dispatcher_ok else "0")
+        tab_state.update_state(
+            HOOK_IMMEDIATE_MOVES=immediate_moves,
+            HOOK_DISPATCHER="1" if dispatcher_ok else "0",
+        )
     else:
-        _set_env(HOOK_IMMEDIATE_MOVES_ENVVAR, "skipped")
-        _set_env(HOOK_DISPATCHER_ENVVAR, "skipped")
+        tab_state.update_state(HOOK_IMMEDIATE_MOVES="skipped", HOOK_DISPATCHER="skipped")
 except Exception as ex:
-    _set_env(HOOK_ERROR_ENVVAR, str(ex).split("\n")[0])
+    tab_state.update_state(HOOK_ERROR=str(ex).split("\n")[0])
