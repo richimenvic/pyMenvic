@@ -33,6 +33,8 @@ except ImportError:
 
 PENDING_ENVVAR = "PYMENVIC_TABS_SORT_PENDING"
 PENDING_TICKS = "20"
+PYMENVIC_SORT_ENVVAR = "PYMENVIC_TABS_BY_DOCUMENT_ENABLED"
+PYMENVIC_SORT_CONFIG = "pymenvic_sort_doc_tabs"
 
 
 def _safe_bool(value):
@@ -43,6 +45,15 @@ def _safe_bool(value):
 
 
 def _should_sort_tabs():
+    try:
+        if os.environ.get(PYMENVIC_SORT_ENVVAR, "") == "1":
+            return True
+    except:
+        pass
+
+    if _safe_bool(getattr(user_config, PYMENVIC_SORT_CONFIG, False)):
+        return True
+
     if not _safe_bool(getattr(user_config, "colorize_docs", False)):
         return False
 
