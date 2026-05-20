@@ -307,7 +307,7 @@ def scan_link_worksets(host_worksets, ui_strings):
 
 class WorksetRow(object):
     def __init__(self, workset_name, normalized_name, status, source_links, is_missing):
-        self.IsChecked = is_missing
+        self.IsChecked = False
         self.WorksetName = workset_name
         self.NormalizedName = normalized_name
         self.Status = status
@@ -569,12 +569,14 @@ tx = DB.Transaction(doc, tr(UI_STRINGS, "Create Worksets"))
 tx.Start()
 
 created = 0
+created_names = []
 
 for row in names_to_create:
     try:
         if DB.WorksetTable.IsWorksetNameUnique(doc, row.WorksetName):
             DB.Workset.Create(doc, row.WorksetName)
             created += 1
+            created_names.append(row.WorksetName)
     except:
         pass
 
@@ -584,8 +586,21 @@ tx.Commit()
 # REPORT
 # ==================================================
 
-forms.alert(tr(UI_STRINGS, "{0} worksets created.").format(created))
+forms.alert("{0} workset(s) imported into the host model.".format(created), title="Sync Link Worksets")
+
+output.print_md("# pyMENVIC | SYNC LINK WORKSETS")
+output.print_md("")
+output.print_md("## Imported worksets")
+output.print_md("")
+
+if created_names:
+    for item in created_names:
+        output.print_md("- {}".format(item))
+else:
+    output.print_md("- No worksets were imported.")
 
 output.print_md("")
-output.print_md(tr(UI_STRINGS, "Scanned links: {0}").format(scanned_links))
-output.print_md(tr(UI_STRINGS, "Skipped links: {0}").format(len(skipped_links)))
+output.print_md("## Source scan")
+output.print_md("")
+output.print_md("- Scanned links: {}".format(scanned_links))
+output.print_md("- Skipped links: {}".format(len(skipped_links)))
