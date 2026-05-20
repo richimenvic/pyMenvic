@@ -62,7 +62,8 @@
         <Style TargetType="ListViewItem">
             <Setter Property="Foreground" Value="#1E252B" />
             <Setter Property="Background" Value="#FFFFFF" />
-            <Setter Property="Height" Value="24" />
+            <Setter Property="Height" Value="28" />
+            <Setter Property="Padding" Value="0" />
             <Style.Triggers>
                 <Trigger Property="IsSelected" Value="True">
                     <Setter Property="Background" Value="#0A70B8" />
@@ -164,17 +165,35 @@
                         <ListView x:Name="PreviewList" Grid.Row="1" BorderThickness="1" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
                             <ListView.View>
                                 <GridView>
-                                    <GridViewColumn Header="" Width="28">
+                                    <GridViewColumn Header="" Width="38">
                                         <GridViewColumn.CellTemplate>
                                             <DataTemplate>
-                                                <CheckBox IsChecked="{Binding Selected}" IsEnabled="{Binding IsSelectable}" HorizontalAlignment="Center" />
+                                                <CheckBox IsChecked="{Binding Selected}"
+                                                          IsEnabled="{Binding IsSelectable}"
+                                                          Width="18"
+                                                          Height="18"
+                                                          Margin="0"
+                                                          HorizontalAlignment="Center"
+                                                          VerticalAlignment="Center" />
                                             </DataTemplate>
                                         </GridViewColumn.CellTemplate>
                                     </GridViewColumn>
-                                    <GridViewColumn Header="Workset" Width="430">
+                                    <GridViewColumn Header="Workset" Width="420">
                                         <GridViewColumn.CellTemplate>
                                             <DataTemplate>
-                                                <TextBlock Text="{Binding Name}" Foreground="#1E252B" />
+                                                <TextBlock Text="{Binding Name}">
+                                                    <TextBlock.Style>
+                                                        <Style TargetType="TextBlock">
+                                                            <Setter Property="Foreground" Value="#1E252B" />
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType={x:Type ListViewItem}}, Path=IsSelected}" Value="True">
+                                                                    <Setter Property="Foreground" Value="White" />
+                                                                    <Setter Property="FontWeight" Value="SemiBold" />
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </TextBlock.Style>
+                                                </TextBlock>
                                             </DataTemplate>
                                         </GridViewColumn.CellTemplate>
                                     </GridViewColumn>
@@ -191,6 +210,10 @@
                                                                 </DataTrigger>
                                                                 <DataTrigger Binding="{Binding Status}" Value="EXISTS">
                                                                     <Setter Property="Foreground" Value="#2D9D55" />
+                                                                </DataTrigger>
+                                                                <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType={x:Type ListViewItem}}, Path=IsSelected}" Value="True">
+                                                                    <Setter Property="Foreground" Value="White" />
+                                                                    <Setter Property="FontWeight" Value="SemiBold" />
                                                                 </DataTrigger>
                                                             </Style.Triggers>
                                                         </Style>
