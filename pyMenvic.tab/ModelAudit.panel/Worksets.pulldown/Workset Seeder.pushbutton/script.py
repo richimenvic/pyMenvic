@@ -306,6 +306,8 @@ class PreviewRow(object):
     def __init__(self, name, status):
         self.Name = name
         self.Status = status
+        self.Selected = status == "MISSING"
+        self.IsSelectable = status == "MISSING"
 
 
 # ==================================================
@@ -394,6 +396,7 @@ class WorksetSeederWindow(forms.WPFWindow):
         total_count = 0
         missing_count = 0
         existing_count = 0
+        selected_count = 0
 
         for name, status in preview_rows:
             total_count += 1
@@ -401,12 +404,15 @@ class WorksetSeederWindow(forms.WPFWindow):
                 missing_count += 1
             else:
                 existing_count += 1
-            self._rows.Add(PreviewRow(name, status))
+            row = PreviewRow(name, status)
+            if row.Selected:
+                selected_count += 1
+            self._rows.Add(row)
 
         self.TotalCountText.Text = str(total_count)
         self.MissingCountText.Text = str(missing_count)
         self.ExistingCountText.Text = str(existing_count)
-        self.update_status("Preview ready.")
+        self.update_status("Preview ready. Selected: {}".format(selected_count))
 
     def on_options_changed(self, sender, args):
         self.refresh_preview()
@@ -416,15 +422,13 @@ class WorksetSeederWindow(forms.WPFWindow):
         self.update_status("Preview refreshed.")
 
     def on_create(self, sender, args):
-        targets = build_target_worksets(
-            self.get_profile_level(),
-            self.get_discipline(),
-            self.include_coordination(),
-            self.include_links()
-        )
+        targets = []
+        for row in self._rows:
+            if row.Selected and row.Status == "MISSING":
+                targets.append(row.Name)
 
         if not targets:
-            forms.alert("No worksets found in the selected profile.", title="Workset Seeder")
+            forms.alert("No missing worksets selected.", title="Workset Seeder")
             return
 
         confirm = forms.alert(
