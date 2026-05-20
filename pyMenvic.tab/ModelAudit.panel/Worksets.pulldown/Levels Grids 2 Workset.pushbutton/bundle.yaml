@@ -43,7 +43,7 @@ description:
 
 author: Ricardo J. Mendieta | pyMENVIC
 version: 1.0.0
-highlight: NEW
+# highlight: NEW
 
 help_url: https://www.menvic.com
 

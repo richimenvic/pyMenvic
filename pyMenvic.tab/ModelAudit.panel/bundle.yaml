@@ -1,0 +1,8 @@
+title:
+  en_us: Model Audit
+  es_es: Auditoría de Modelo
+  fr_fr: Audit du Modèle
+  
+layout:
+  - ViewTypeManager
+  - Worksets

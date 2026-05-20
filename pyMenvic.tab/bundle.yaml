@@ -3,7 +3,6 @@ layout:
   - Revisions
   - Families
   - Miscellaneous
-  - WorksetsStandards
-  - Views
-  - ViewTypeAudit
-  - DataIO
+  - Filters
+  - ModelAudit
+  - pyROOTS
