@@ -103,18 +103,44 @@
                     </StackPanel>
                 </Grid>
 
-                <ListView x:Name="PreviewList" Grid.Row="1" BorderBrush="#D9DEE5" BorderThickness="1">
+                <ListView x:Name="PreviewList" Grid.Row="1" BorderBrush="#D9DEE5" BorderThickness="1" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
                     <ListView.View>
                         <GridView>
-                            <GridViewColumn Header="" Width="40">
+                            <GridViewColumn Header="" Width="28">
                                 <GridViewColumn.CellTemplate>
                                     <DataTemplate>
                                         <CheckBox IsChecked="{Binding Selected}" IsEnabled="{Binding IsSelectable}" HorizontalAlignment="Center" />
                                     </DataTemplate>
                                 </GridViewColumn.CellTemplate>
                             </GridViewColumn>
-                            <GridViewColumn Header="Workset" Width="450" DisplayMemberBinding="{Binding Name}" />
-                            <GridViewColumn Header="Status" Width="140" DisplayMemberBinding="{Binding Status}" />
+                            <GridViewColumn Header="Workset" Width="430">
+                                <GridViewColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding Name}" Foreground="#1F2933" />
+                                    </DataTemplate>
+                                </GridViewColumn.CellTemplate>
+                            </GridViewColumn>
+                            <GridViewColumn Header="Status" Width="120">
+                                <GridViewColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding Status}">
+                                            <TextBlock.Style>
+                                                <Style TargetType="TextBlock">
+                                                    <Setter Property="Foreground" Value="{StaticResource MutedBrush}" />
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding Status}" Value="MISSING">
+                                                            <Setter Property="Foreground" Value="#B7791F" />
+                                                        </DataTrigger>
+                                                        <DataTrigger Binding="{Binding Status}" Value="EXISTS">
+                                                            <Setter Property="Foreground" Value="#2F6B5F" />
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBlock.Style>
+                                        </TextBlock>
+                                    </DataTemplate>
+                                </GridViewColumn.CellTemplate>
+                            </GridViewColumn>
                         </GridView>
                     </ListView.View>
                 </ListView>
