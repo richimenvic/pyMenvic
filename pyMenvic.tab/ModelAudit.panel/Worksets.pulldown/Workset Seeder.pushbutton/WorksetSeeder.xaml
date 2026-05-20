@@ -162,7 +162,7 @@
                             </StackPanel>
                         </Grid>
 
-                        <ListView x:Name="PreviewList" Grid.Row="1" BorderThickness="1" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                        <ListView x:Name="PreviewList" Grid.Row="1" BorderThickness="1" ScrollViewer.HorizontalScrollBarVisibility="Auto">
                             <ListView.View>
                                 <GridView>
                                     <GridViewColumn Header="" Width="38">
