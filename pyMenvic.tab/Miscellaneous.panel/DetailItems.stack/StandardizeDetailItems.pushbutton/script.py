@@ -64,6 +64,50 @@ def safe_int(v, default=0):
         return default
 
 
+def element_id_int(element_id, default=0):
+    try:
+        return int(element_id.Value)
+    except:
+        try:
+            return int(element_id.IntegerValue)
+        except:
+            try:
+                return int(element_id)
+            except:
+                return default
+
+
+def print_candidate_table(title, rows):
+    output.print_md("---")
+    output.print_md("## {0}".format(title))
+    if not rows:
+        output.print_md("No candidates found.")
+        return
+
+    try:
+        output.print_table(
+            table_data=rows,
+            columns=[
+                "Subcategory Name",
+                "ElementId",
+                "Reason",
+                "Curve Uses / Reassigned Count",
+            ],
+        )
+    except:
+        output.print_md("| Subcategory Name | ElementId | Reason | Curve Uses / Reassigned Count |")
+        output.print_md("| --- | ---: | --- | ---: |")
+        for row in rows:
+            output.print_md(
+                "| {0} | {1} | {2} | {3} |".format(
+                    row[0],
+                    row[1],
+                    row[2],
+                    row[3],
+                )
+            )
+
+
 def get_solid_pattern_id():
     """Best-effort solid pattern. If not found, InvalidElementId is treated as solid in many contexts."""
     try:
@@ -112,7 +156,7 @@ def get_subcat_gsid(subcat, gtype=GTYPE):
         gs = subcat.GetGraphicsStyle(gtype)
         if not gs:
             return None
-        return gs.Id.IntegerValue
+        return element_id_int(gs.Id, None)
     except:
         return None
 
@@ -139,7 +183,9 @@ def count_curve_usage():
         try:
             ls = cv.LineStyle
             if ls:
-                sid = ls.Id.IntegerValue
+                sid = element_id_int(ls.Id, None)
+                if sid is None:
+                    continue
                 usage[sid] = usage.get(sid, 0) + 1
         except:
             pass
@@ -262,7 +308,7 @@ for w in range(1, 9):
 
 # Map old styles -> canonical GS by weight
 old_gsid_to_new_gs = {}
-subcats_to_try_delete = []
+mapped_subcat_rows = []
 canon_names = set(WEIGHT_TO_NAME.values())
 
 for sub in iter_user_subcats(parent_cat):
@@ -286,7 +332,15 @@ for sub in iter_user_subcats(parent_cat):
             continue
 
         old_gsid_to_new_gs[old_gsid] = canon_gs
-        subcats_to_try_delete.append(sub.Id)
+        mapped_subcat_rows.append(
+            {
+                "name": nm,
+                "id": sub.Id,
+                "id_int": element_id_int(sub.Id, 0),
+                "gsid": old_gsid,
+                "reason": "Maps to {0}".format(target_name),
+            }
+        )
         mapped += 1
 
         # Also normalize props of the old one (optional, keeps things consistent if delete fails)
@@ -294,55 +348,128 @@ for sub in iter_user_subcats(parent_cat):
     except:
         pass
 
-# Reassign CurveElements
-with DB.Transaction(doc, "MENVIC: Reassign to Canonical Detail Items") as t2:
-    t2.Start()
-    curves = DB.FilteredElementCollector(doc).OfClass(DB.CurveElement).WhereElementIsNotElementType()
-    for cv in curves:
-        try:
-            ls = cv.LineStyle
-            if not ls:
-                continue
-            old_id = ls.Id.IntegerValue
-            if old_id in old_gsid_to_new_gs:
-                cv.LineStyle = old_gsid_to_new_gs[old_id]
-                reassigned += 1
-        except:
-            pass
-    t2.Commit()
+reassign_preview_rows = []
+for row in mapped_subcat_rows:
+    curve_uses = usage_before.get(row["gsid"], 0)
+    if curve_uses > 0:
+        reassign_preview_rows.append(
+            [
+                row["name"],
+                row["id_int"],
+                row["reason"],
+                curve_uses,
+            ]
+        )
+
+print_candidate_table("CURVE REASSIGNMENT CANDIDATES", reassign_preview_rows)
+
+do_reassign = False
+if reassign_preview_rows:
+    do_reassign = forms.alert(
+        "Reassign listed CurveElements to canonical Detail Items subcategories?",
+        title="MENVIC | CONFIRM CURVE REASSIGNMENT",
+        yes=True,
+        no=True,
+    )
+
+reassigned_by_gsid = {}
+if do_reassign:
+    with DB.Transaction(doc, "MENVIC: Reassign to Canonical Detail Items") as t2:
+        t2.Start()
+        curves = DB.FilteredElementCollector(doc).OfClass(DB.CurveElement).WhereElementIsNotElementType()
+        for cv in curves:
+            try:
+                ls = cv.LineStyle
+                if not ls:
+                    continue
+                old_id = element_id_int(ls.Id, None)
+                if old_id in old_gsid_to_new_gs:
+                    cv.LineStyle = old_gsid_to_new_gs[old_id]
+                    reassigned += 1
+                    reassigned_by_gsid[old_id] = reassigned_by_gsid.get(old_id, 0) + 1
+            except:
+                pass
+        t2.Commit()
 
 # Purge: delete mapped subcats + delete any remaining unused (and not protected)
 usage_after = count_curve_usage()
+delete_candidates = []
+delete_preview_rows = []
+delete_seen = set()
+can_delete_mapped_subcats = (not reassign_preview_rows) or do_reassign
+mapped_subcat_id_ints = set([row["id_int"] for row in mapped_subcat_rows])
 
-with DB.Transaction(doc, "MENVIC: Purge Detail Items Subcategories") as t3:
-    t3.Start()
+if can_delete_mapped_subcats:
+    for row in mapped_subcat_rows:
+        sid_int = row["id_int"]
+        if sid_int in delete_seen:
+            continue
+        delete_seen.add(sid_int)
+        delete_candidates.append(row["id"])
+        delete_preview_rows.append(
+            [
+                row["name"],
+                sid_int,
+                "Mapped non-canonical subcategory",
+                reassigned_by_gsid.get(row["gsid"], usage_after.get(row["gsid"], 0)),
+            ]
+        )
 
-    # Delete the specific mapped subcategories first
-    for sid in subcats_to_try_delete:
-        try:
-            doc.Delete(sid)
-            purge_deleted_ok += 1
-        except:
-            purge_deleted_fail += 1
+# Delete anything else (non <...>, non protected) that has 0 curve usage
+for sub in iter_user_subcats(parent_cat):
+    try:
+        nm = sub.Name or ""
+        if nm in protected_names:
+            continue
 
-    # Delete anything else (non <...>, non protected) that has 0 curve usage
-    for sub in iter_user_subcats(parent_cat):
-        try:
-            nm = sub.Name or ""
-            if nm in protected_names:
-                continue
+        sid_int = element_id_int(sub.Id, 0)
+        if (not can_delete_mapped_subcats) and sid_int in mapped_subcat_id_ints:
+            continue
 
-            gsid = get_subcat_gsid(sub, GTYPE)
-            if gsid is None:
-                continue
+        if sid_int in delete_seen:
+            continue
 
-            if usage_after.get(gsid, 0) == 0:
-                doc.Delete(sub.Id)
+        gsid = get_subcat_gsid(sub, GTYPE)
+        if gsid is None:
+            continue
+
+        if usage_after.get(gsid, 0) == 0:
+            delete_seen.add(sid_int)
+            delete_candidates.append(sub.Id)
+            delete_preview_rows.append(
+                [
+                    nm,
+                    sid_int,
+                    "Unused non-canonical subcategory",
+                    0,
+                ]
+            )
+    except:
+        pass
+
+print_candidate_table("DELETE CANDIDATES", delete_preview_rows)
+
+do_delete = False
+if delete_candidates:
+    do_delete = forms.alert(
+        "Delete listed Detail Items subcategories?",
+        title="MENVIC | CONFIRM SUBCATEGORY DELETE",
+        yes=True,
+        no=True,
+    )
+
+if do_delete:
+    with DB.Transaction(doc, "MENVIC: Purge Detail Items Subcategories") as t3:
+        t3.Start()
+
+        for sid in delete_candidates:
+            try:
+                doc.Delete(sid)
                 purge_deleted_ok += 1
-        except:
-            purge_deleted_fail += 1
+            except:
+                purge_deleted_fail += 1
 
-    t3.Commit()
+        t3.Commit()
 
 # ---------------- REPORT ----------------
 output.print_md("---")
