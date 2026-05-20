@@ -298,12 +298,12 @@ def get_element_id_value(element_id):
         return None
 
     try:
-        return int(element_id.IntegerValue)
+        return int(element_id.Value)
     except:
         pass
 
     try:
-        return int(element_id.Value)
+        return int(element_id.IntegerValue)
     except:
         pass
 
