@@ -1632,8 +1632,8 @@ class WorksetMappingManagerWindow(forms.WPFWindow):
                         error_rows.append((row.SourceName, row.FinalTarget, "Workset not found"))
                         continue
 
-                    source_wsid = source_element_id_value(ws.Id)
-                    target_wsid = target_element_id_value(ws.Id)
+                    source_wsid = element_id_value(source_ws.Id)
+                    target_wsid = element_id_value(target_ws.Id)
 
                     if source_wsid == target_wsid:
                         skipped_total += 1

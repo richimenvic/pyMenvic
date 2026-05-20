@@ -1382,7 +1382,7 @@ class WorksetStandardizerWindow(forms.WPFWindow):
                 t = DB.Transaction(doc, "pyMENVIC | Consolidate Workset - {}".format(src_name))
                 t.Start()
                 try:
-                    changed, skipped, failed = move_elements_to_workset(source_element_id_value(ws.Id), target_element_id_value(ws.Id))
+                    changed, skipped, failed = move_elements_to_workset(element_id_value(source_ws.Id), element_id_value(target_ws.Id))
                     elements_moved += changed
 
                     remaining = get_true_workset_element_count(source_ws.Id)

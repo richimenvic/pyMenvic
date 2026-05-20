@@ -825,7 +825,7 @@ class InspectorWindow(Window):
                     fail_rows.append(['<group>', row.CategoryName, row.TypeName, 'Missing destination workset'])
                     continue
 
-                target_id = target_element_id_value(ws.Id)
+                target_id = element_id_value(target_ws.Id)
 
                 for elem_id in row.ElementIds:
                     try:
