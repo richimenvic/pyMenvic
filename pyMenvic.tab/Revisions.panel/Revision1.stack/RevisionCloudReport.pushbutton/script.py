@@ -20,6 +20,28 @@ def natural_key(s):
     return [int(t) if t.isdigit() else t.lower() for t in re.split(r'(\d+)', s)]
 
 
+def element_id_value(element_id):
+    if element_id is None:
+        return None
+
+    try:
+        return element_id.Value
+    except Exception:
+        pass
+
+    try:
+        return element_id.IntegerValue
+    except Exception:
+        pass
+
+    try:
+        return int(str(element_id))
+    except Exception:
+        pass
+
+    return str(element_id)
+
+
 def safe_as_string(param):
     if not param:
         return None
@@ -90,7 +112,7 @@ for s in all_sheets:
 def get_sheet_info(revision_cloud):
     sheet_name = UNKNOWN_SHEET_NAME
     sheet_number = UNKNOWN_SHEET_LABEL
-    sheet_key = "unknown:{}".format(revision_cloud.OwnerViewId.IntegerValue)
+    sheet_key = "unknown:{}".format(element_id_value(revision_cloud.OwnerViewId))
     sheet = None
 
     owner_view = doc.GetElement(revision_cloud.OwnerViewId)
@@ -165,7 +187,7 @@ for _, sheet_data in sorted_sheets:
         output.print_md('#### **View:** {}\n'.format(view_name))
 
         # Orden estable de clouds por Id
-        clouds.sort(key=lambda item: item[0].Id.IntegerValue)
+        clouds.sort(key=lambda item: element_id_value(item[0].Id))
 
         rows = []
         headers = ["CloudId", "Revision", "Comment"]

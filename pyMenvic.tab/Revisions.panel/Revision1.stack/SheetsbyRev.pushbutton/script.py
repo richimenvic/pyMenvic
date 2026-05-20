@@ -32,19 +32,19 @@ def natural_key(value):
 def element_id_value(element_id):
     """
     Compatible ElementId integer value for Revit 2024-2026.
-    Revit 2024 usually uses IntegerValue.
-    Newer versions may expose Value.
+    Revit 2024+ may expose Value.
+    Older versions use IntegerValue.
     """
     if element_id is None:
         return None
 
     try:
-        return element_id.IntegerValue
+        return element_id.Value
     except Exception:
         pass
 
     try:
-        return element_id.Value
+        return element_id.IntegerValue
     except Exception:
         pass
 
