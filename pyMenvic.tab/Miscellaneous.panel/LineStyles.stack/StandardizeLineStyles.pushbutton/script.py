@@ -81,12 +81,12 @@ def element_id_value(element_id):
         return None
 
     try:
-        return element_id.IntegerValue
+        return element_id.Value
     except Exception:
         pass
 
     try:
-        return element_id.Value
+        return element_id.IntegerValue
     except Exception:
         pass
 

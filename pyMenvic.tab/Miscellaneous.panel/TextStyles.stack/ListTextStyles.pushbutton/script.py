@@ -57,11 +57,11 @@ def element_id_int(eid, default=-1):
     if eid is None:
         return default
     try:
-        return int(eid.IntegerValue)
+        return int(eid.Value)
     except:
         pass
     try:
-        return int(eid.Value)
+        return int(eid.IntegerValue)
     except:
         pass
     try:

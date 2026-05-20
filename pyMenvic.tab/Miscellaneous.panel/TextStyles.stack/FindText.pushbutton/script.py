@@ -50,11 +50,11 @@ def element_id_int(eid, default=-1):
     if eid is None:
         return default
     try:
-        return int(eid.IntegerValue)   # Revit antiguo
+        return int(eid.Value)          # Revit 2024/2025/2026+
     except:
         pass
     try:
-        return int(eid.Value)          # Revit 2024/2025/2026+
+        return int(eid.IntegerValue)   # Revit antiguo
     except:
         pass
     try:
