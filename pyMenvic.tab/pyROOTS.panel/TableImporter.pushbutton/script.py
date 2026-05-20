@@ -68,7 +68,7 @@ from excel_reader import (
 
 USED_RANGE_DISPLAY = u"Full Worksheet Used Range"
 DEFAULT_IMPORT_TYPES = ["Excel Link"]
-DEFAULT_VIEW_TYPES = ["Drafting View", "Legend View (Not implemented)", "Schedule View"]
+DEFAULT_VIEW_TYPES = ["Drafting View", "Legend View", "Schedule View"]
 DEFAULT_SCALES = ["1", "2", "5", "10", "20", "25", "50", "75", "100"]
 DEFAULT_DPI = ["72", "96", "150", "200", "300", "600"]
 ROW_READY_STATUS = "Ready to Update"
@@ -1256,7 +1256,7 @@ def normalize_view_type_name(value):
 def get_view_type_display_name(value):
     view_type = normalize_view_type_name(value)
     if view_type == "Legend View":
-        return "Legend View (Not implemented)"
+        return "Legend View"
     if view_type == "Schedule View":
         return "Schedule View"
     return "Drafting View"
@@ -1551,8 +1551,143 @@ def update_existing_drafting_view(entry, view, cleanup_legacy=False):
     return row_count, column_count
 
 
+def _is_legend_view(view):
+    try:
+        return view is not None and view.ViewType == DB.ViewType.Legend
+    except Exception:
+        pass
+    try:
+        view_type = safe_unicode(view.ViewType)
+        return view is not None and view_type.replace(" ", "").lower() == "legend"
+    except Exception:
+        pass
+    return False
+
+
+def _collect_legend_views(doc):
+    legends = []
+    for candidate in FilteredElementCollector(doc).OfClass(DB.View):
+        try:
+            if candidate.IsTemplate:
+                continue
+            if _is_legend_view(candidate):
+                legends.append(candidate)
+        except Exception:
+            pass
+    return legends
+
+
+def _duplicate_legend_view(doc, entry):
+    legends = _collect_legend_views(doc)
+    if not legends:
+        raise Exception("At least one Legend view must exist in the model.")
+    base_legend = legends[0]
+    try:
+        new_view_id = base_legend.Duplicate(DB.ViewDuplicateOption.Duplicate)
+    except Exception as ex:
+        raise Exception("Could not duplicate base Legend view: %s" % safe_unicode(ex))
+    legend_view = doc.GetElement(new_view_id)
+    if legend_view is None or not _is_legend_view(legend_view):
+        raise Exception("Could not create a valid Legend View.")
+    desired_name = clean_display_text(entry.ViewName).strip()
+    if not desired_name:
+        desired_name = get_default_view_name(entry.FilePath, entry.Worksheet, entry.Region, [])
+    legend_view.Name = make_unique_name(desired_name, _existing_view_names_excluding(legend_view, doc))
+    try:
+        entry.ViewName = clean_display_text(legend_view.Name)
+    except Exception:
+        pass
+    return legend_view
+
+
+def _set_table_view_scale(view, entry):
+    try:
+        scale_value = int(str(getattr(entry, "ViewScale", "1")).strip())
+    except Exception:
+        scale_value = 1
+    if scale_value <= 0:
+        scale_value = 1
+    try:
+        view.Scale = scale_value
+    except Exception:
+        pass
+
+
 def import_to_legend_view(entry):
-    raise Exception("Legend View import is not implemented yet.")
+    doc = get_revit_document()
+    if doc is None:
+        raise Exception("No active Revit document.")
+    ensure_table_entry_uid(entry)
+    table_data, row_count, column_count = read_table_data_for_entry(entry)
+    transaction = Transaction(doc, "Import Table Importer Legend View")
+    transaction.Start()
+    temp_drafting_view = None
+    was_created = False
+    try:
+        target_legend = None
+        if entry.RevitViewId:
+            element_id = make_element_id(entry.RevitViewId)
+            if element_id is None:
+                raise Exception("Invalid RevitViewId '%s'." % safe_unicode(entry.RevitViewId))
+            candidate = doc.GetElement(element_id)
+            if candidate is None:
+                raise Exception("Missing Revit view for RevitViewId '%s'." % safe_unicode(entry.RevitViewId))
+            if not _is_legend_view(candidate):
+                try:
+                    revit_view_type = safe_unicode(candidate.ViewType)
+                except Exception:
+                    revit_view_type = "<unknown>"
+                raise Exception("Existing view is not a Legend View; Revit view type is '%s'." % revit_view_type)
+            target_legend = candidate
+            clear_table_importer_view(target_legend, entry)
+        else:
+            target_legend = _duplicate_legend_view(doc, entry)
+            was_created = True
+
+        direct_draw_success = False
+        try:
+            draw_table_in_view(target_legend, table_data, entry)
+            direct_draw_success = True
+        except Exception:
+            direct_draw_success = False
+
+        if not direct_draw_success:
+            drafting_view_type = get_default_drafting_view_type(doc)
+            if drafting_view_type is None:
+                raise Exception("No Drafting View type found in this project.")
+            temp_drafting_view = ViewDrafting.Create(doc, drafting_view_type.Id)
+            draw_table_in_view(temp_drafting_view, table_data, entry)
+            source_ids = List[ElementId]()
+            for created_id in _collect_stored_created_element_ids(doc, temp_drafting_view, entry):
+                source_ids.Add(created_id)
+            if source_ids.Count > 0:
+                copied_ids = list(ElementTransformUtils.CopyElements(temp_drafting_view, source_ids, target_legend, None, None))
+                for copied_id in copied_ids:
+                    copied_element = doc.GetElement(copied_id)
+                    if copied_element is not None:
+                        apply_table_importer_tag(copied_element, entry)
+                        remember_created_element(entry, copied_element)
+            clear_table_importer_view(temp_drafting_view, entry)
+            try:
+                doc.Delete(temp_drafting_view.Id)
+            except Exception:
+                pass
+            temp_drafting_view = None
+
+        _set_table_view_scale(target_legend, entry)
+        view_id_value = get_element_id_value(target_legend.Id)
+        entry.RevitViewId = safe_unicode(view_id_value) if view_id_value is not None else None
+        entry.Status = "Updated"
+        transaction.Commit()
+        transaction = None
+        return "Created" if was_created else "Updated"
+    except Exception:
+        try:
+            if transaction is not None:
+                transaction.RollBack()
+        except Exception:
+            pass
+        raise
 
 
 def is_schedule_view(view):
@@ -3850,6 +3985,7 @@ class TableImporterWindow(object):
         cleanup_legacy = False
         import_context = {
             "import_to_drafting_view": import_to_drafting_view,
+            "import_to_legend_view": import_to_legend_view,
             "read_table_data_for_entry": read_table_data_for_entry,
             "get_cell_value": _get_cell_value,
             "make_element_id": make_element_id,
