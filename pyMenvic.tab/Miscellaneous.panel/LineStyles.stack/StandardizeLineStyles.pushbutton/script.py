@@ -61,6 +61,18 @@ COLOR_MAP = {
 
 COLOR_TOL = 15.0
 GTYPE = DB.GraphicsStyleType.Projection
+CAD_IMPORT_NAME_TOKENS = (
+    ".DWG",
+    ".DXF",
+    "DWG",
+    "DXF",
+    "XREF",
+    "DEFPOINTS",
+    "$0$",
+    "|",
+    "IMPORT",
+    "IMPORTED",
+)
 
 NAME_TO_RGB = {}
 for _rgb, _name in COLOR_MAP.items():
@@ -210,6 +222,30 @@ def get_unique_subcat_name(line_cat, base_name):
         except Exception:
             return cand
         i += 1
+
+
+def is_imported_cad_name(name):
+    try:
+        n = (name or "").strip().upper()
+        if not n:
+            return False
+        for token in CAD_IMPORT_NAME_TOKENS:
+            if token in n:
+                return True
+    except Exception:
+        pass
+    return False
+
+
+def imported_cad_name_token(name):
+    try:
+        n = (name or "").strip().upper()
+        for token in CAD_IMPORT_NAME_TOKENS:
+            if token in n:
+                return token
+    except Exception:
+        pass
+    return ""
 
 
 def find_hidden_pattern_id():
@@ -730,44 +766,86 @@ def run_clean_and_standardize(mode="full"):
     deleted_ok = 0
     deleted_fail = 0
     usage_after = count_curve_usage()
+    requested_delete_ids = set()
+    delete_candidates = []
+    seen_candidate_ids = set()
 
-    with DB.Transaction(doc, "MENVIC: Purge Line Styles") as t2:
-        t2.Start()
+    for sid in subcats_to_try_delete:
+        try:
+            sid_value = element_id_value(sid)
+            if sid_value is not None:
+                requested_delete_ids.add(sid_value)
+        except Exception:
+            pass
 
-        seen_delete_ids = set()
-        for sid in subcats_to_try_delete:
-            try:
-                sid_value = element_id_value(sid)
-                if sid_value in seen_delete_ids:
-                    continue
-                seen_delete_ids.add(sid_value)
-                doc.Delete(sid)
-                deleted_ok += 1
-            except Exception:
-                deleted_fail += 1
+    for sub in list(line_cat.SubCategories):
+        try:
+            if not sub:
+                continue
+            if "<" in sub.Name:
+                continue
+            if sub.Name in seed_names:
+                continue
+            if sub.Name in protected_names:
+                continue
+            sid_value = element_id_value(sub.Id)
+            if sid_value is None or sid_value in seen_candidate_ids:
+                continue
 
-        for sub in list(line_cat.SubCategories):
-            try:
-                if not sub:
-                    continue
-                if "<" in sub.Name:
-                    continue
-                if sub.Name in seed_names:
-                    continue
-                if sub.Name in protected_names:
-                    continue
+            gsid = get_graphics_style_id(sub, gtype)
+            if gsid is None:
+                continue
 
-                gsid = get_graphics_style_id(sub, gtype)
-                if gsid is None:
-                    continue
+            uses = usage_after.get(gsid, 0)
+            if sid_value in requested_delete_ids:
+                reason = "Mapped duplicate / empty group"
+            elif uses == 0 and is_imported_cad_name(sub.Name):
+                reason = "Zero use CAD/import"
+            else:
+                continue
 
-                if usage_after.get(gsid, 0) == 0:
-                    doc.Delete(sub.Id)
+            seen_candidate_ids.add(sid_value)
+            delete_candidates.append((sub.Id, sub.Name, sid_value, uses, reason, imported_cad_name_token(sub.Name)))
+        except Exception:
+            pass
+
+    delete_confirmed = False
+    if delete_candidates:
+        output.print_md("\n## Line Styles Found Before Delete")
+        output.print_md("| Line Style | ElementId | Uses | Matched Pattern | Reason |")
+        output.print_md("|---|---:|---:|---|---|")
+        for _sid, name, sid_value, uses, reason, token in sorted(delete_candidates, key=lambda x: x[1].upper()):
+            output.print_md("| {0} | {1} | {2} | {3} | {4} |".format(
+                name.replace("|", "/"),
+                sid_value,
+                uses,
+                token.replace("|", "\\|"),
+                reason,
+            ))
+
+        delete_confirmed = forms.alert(
+            "Delete the {0} line styles listed in the pyRevit output?\n\nOnly listed styles will be deleted.".format(len(delete_candidates)),
+            yes=True,
+            no=True,
+        )
+    else:
+        output.print_md("\n## Line Styles Found Before Delete")
+        output.print_md("No line styles found for deletion.")
+
+    if delete_candidates and delete_confirmed:
+        with DB.Transaction(doc, "MENVIC: Purge Line Styles") as t2:
+            t2.Start()
+
+            for sid, _name, _sid_value, _uses, _reason, _token in delete_candidates:
+                try:
+                    doc.Delete(sid)
                     deleted_ok += 1
-            except Exception:
-                deleted_fail += 1
+                except Exception:
+                    deleted_fail += 1
 
-        t2.Commit()
+            t2.Commit()
+    elif delete_candidates:
+        output.print_md("\nDelete skipped by user confirmation.")
 
     output.print_md("## EXECUTION SUMMARY")
     output.print_md("---")
