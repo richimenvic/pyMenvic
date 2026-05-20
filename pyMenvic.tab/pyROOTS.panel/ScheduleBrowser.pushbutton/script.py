@@ -901,7 +901,7 @@ def try_resolve_workset_id(value):
         for workset in collector:
             try:
                 if normalize_text(workset.Name) == text:
-                    return workset.Id.IntegerValue
+                    return get_element_id_value(workset.Id)
             except Exception:
                 continue
     except Exception:
@@ -2446,11 +2446,15 @@ def get_type_element(element):
     except Exception:
         pass
 
+    type_id_value = get_element_id_value(type_id)
+    if type_id_value == "":
+        return None
+
     try:
-        if getattr(type_id, "IntegerValue", -1) < 0:
+        if int(type_id_value) < 0:
             return None
     except Exception:
-        pass
+        return None
 
     try:
         return doc.GetElement(type_id)
@@ -2695,7 +2699,7 @@ def get_visible_schedule_fields(schedule):
                 "Status": build_status(origin, editable),
                 "Origin": origin,
                 "Editable": editable,
-                "ScheduleId": getattr(schedule.Id, "IntegerValue", 0),
+                "ScheduleId": get_element_id_value(schedule.Id),
                 "UsedParams": [parameter_id_value] if parameter_id_value is not None else [],
                 "FieldIndex": i,
                 "VisibleColumnIndex": visible_index
@@ -3360,14 +3364,7 @@ def build_project_standards_plain_sheet(headers, data_rows):
 def get_integer_id_text(element_or_id):
     if element_or_id is None:
         return ""
-    try:
-        return safe_text(element_or_id.IntegerValue)
-    except Exception:
-        pass
-    try:
-        return safe_text(element_or_id.Id.IntegerValue)
-    except Exception:
-        return ""
+    return safe_text(get_element_id_value(element_or_id))
 
 
 def get_color_label_spaced(color_value):
