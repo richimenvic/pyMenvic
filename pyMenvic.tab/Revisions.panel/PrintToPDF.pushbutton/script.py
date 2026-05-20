@@ -2342,6 +2342,14 @@ class PrintSheetsWindow(forms.WPFWindow):
         if not self.sheet_list:
             return
 
+        if not forms.alert('Saving the print order can create the shared parameter '
+                           'PRINT_ORDER on Sheets if it does not exist.\n\n'
+                           'It will write the current order to the visible/listed '
+                           'sheets.\n\n'
+                           'Do you want to continue?',
+                           ok=False, yes=True, no=True):
+            return
+
         if not self._ensure_print_order_parameter():
             forms.alert('Could not create or find a writable PRINT_ORDER parameter on sheets.')
             return
