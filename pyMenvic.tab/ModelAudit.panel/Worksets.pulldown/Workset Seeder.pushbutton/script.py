@@ -326,14 +326,17 @@ class WorksetSeederWindow(forms.WPFWindow):
         self.ShowDialog()
 
     def setup_controls(self):
-        self.ProfileCombo.ItemsSource = ObservableCollection[object]()
-        self.DisciplineCombo.ItemsSource = ObservableCollection[object]()
-        self.PreviewList.ItemsSource = self._rows
+        profile_items = ObservableCollection[object]()
+        discipline_items = ObservableCollection[object]()
 
         for item in PROFILE_LEVELS:
-            self.ProfileCombo.Items.Add(item)
+            profile_items.Add(item)
         for item in DISCIPLINES:
-            self.DisciplineCombo.Items.Add(item)
+            discipline_items.Add(item)
+
+        self.ProfileCombo.ItemsSource = profile_items
+        self.DisciplineCombo.ItemsSource = discipline_items
+        self.PreviewList.ItemsSource = self._rows
 
         self.ProfileCombo.SelectedIndex = 0
         self.DisciplineCombo.SelectedIndex = 0
