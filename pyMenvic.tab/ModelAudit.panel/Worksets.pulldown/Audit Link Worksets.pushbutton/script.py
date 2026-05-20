@@ -75,6 +75,20 @@ PROTECTED_CONTAINS = ["<", ">"]
 # HELPERS
 # ==================================================
 
+def element_id_value(element_id, default=-1):
+    if element_id is None:
+        return default
+    try:
+        return element_id.Value
+    except Exception:
+        pass
+    try:
+        return element_id.IntegerValue
+    except Exception:
+        pass
+    return default
+
+
 output = script.get_output()
 doc = revit.doc
 
@@ -156,7 +170,7 @@ def get_host_workset_map(host_doc):
             if ws_norm not in data:
                 data[ws_norm] = {
                     "name": ws_name,
-                    "id": ws.Id.IntegerValue
+                    "id": element_id_value(ws.Id)
                 }
         except Exception:
             pass
@@ -194,7 +208,7 @@ def get_link_display_name(link_instance):
         pass
 
     try:
-        return "Link Id {}".format(link_instance.Id.IntegerValue)
+        return "Link Id {}".format(element_id_value(link_instance.Id))
     except Exception:
         return "Unknown Link"
 

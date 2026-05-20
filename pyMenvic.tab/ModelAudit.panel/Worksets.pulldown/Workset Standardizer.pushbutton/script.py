@@ -241,6 +241,20 @@ DISCIPLINE_KEYWORDS = {
 # HELPERS
 # ==================================================
 
+def element_id_value(element_id, default=-1):
+    if element_id is None:
+        return default
+    try:
+        return element_id.Value
+    except Exception:
+        pass
+    try:
+        return element_id.IntegerValue
+    except Exception:
+        pass
+    return default
+
+
 
 def safe_str(value):
     try:
@@ -330,7 +344,7 @@ def build_workset_element_count_map():
 
     for el in elems:
         try:
-            wid = el.WorksetId.IntegerValue
+            wid = element_id_value(el.WorksetId)
             counts[wid] = counts.get(wid, 0) + 1
         except Exception:
             pass
@@ -348,7 +362,7 @@ def get_true_workset_element_count(workset_id):
         for el in DB.FilteredElementCollector(doc).WhereElementIsNotElementType():
             try:
                 p = el.get_Parameter(DB.BuiltInParameter.ELEM_PARTITION_PARAM)
-                if p and p.HasValue and p.AsInteger() == workset_id.IntegerValue:
+                if p and p.HasValue and p.AsInteger() == element_id_value(workset_id):
                     count += 1
             except Exception:
                 pass
@@ -444,7 +458,7 @@ def move_elements_to_workset(source_wsid, target_wsid):
             p.Set(target_wsid)
             changed += 1
         except Exception as ex:
-            failed.append((el.Id.IntegerValue, safe_str(ex)))
+            failed.append((element_id_value(el.Id), safe_str(ex)))
 
     return changed, skipped, failed
 
@@ -530,7 +544,7 @@ def checkout_worksets_if_possible(workset_ids):
 
     for wsid in workset_ids:
         try:
-            key = wsid.IntegerValue
+            key = element_id_value(wsid)
         except Exception:
             key = str(wsid)
 
@@ -787,7 +801,7 @@ def build_rows(discipline, include_links):
 
     for ws in existing:
         src = safe_upper(ws.Name)
-        elem_count = count_map.get(ws.Id.IntegerValue, 0)
+        elem_count = count_map.get(element_id_value(ws.Id), 0)
 
         category, suggestion, action, reason = classify_and_suggest(src, discipline, include_links)
         final_target = suggestion if suggestion else PLACEHOLDER_TARGET
@@ -1368,7 +1382,7 @@ class WorksetStandardizerWindow(forms.WPFWindow):
                 t = DB.Transaction(doc, "pyMENVIC | Consolidate Workset - {}".format(src_name))
                 t.Start()
                 try:
-                    changed, skipped, failed = move_elements_to_workset(source_ws.Id.IntegerValue, target_ws.Id.IntegerValue)
+                    changed, skipped, failed = move_elements_to_workset(source_element_id_value(ws.Id), target_element_id_value(ws.Id))
                     elements_moved += changed
 
                     remaining = get_true_workset_element_count(source_ws.Id)

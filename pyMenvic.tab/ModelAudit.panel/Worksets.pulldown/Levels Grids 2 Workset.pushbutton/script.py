@@ -129,6 +129,20 @@ DATUM_CLASSES = (DB.Level, DB.Grid)
 # HELPERS
 # ==================================================
 
+def element_id_value(element_id, default=-1):
+    if element_id is None:
+        return default
+    try:
+        return element_id.Value
+    except Exception:
+        pass
+    try:
+        return element_id.IntegerValue
+    except Exception:
+        pass
+    return default
+
+
 def first_line(ex):
     try:
         return str(ex).splitlines()[0]
@@ -215,7 +229,7 @@ def get_element_display_name(elem):
             return p.AsString()
     except:
         pass
-    return 'Element {}'.format(elem.Id.IntegerValue)
+    return 'Element {}'.format(element_id_value(elem.Id))
 
 
 def get_all_non_type_elements(current_doc):
@@ -310,7 +324,7 @@ def get_workset_param(elem):
 
 def get_current_workset_name(elem, workset_name_by_id):
     try:
-        wsid = elem.WorksetId.IntegerValue
+        wsid = element_id_value(elem.WorksetId)
         if wsid in workset_name_by_id:
             return workset_name_by_id[wsid]
     except:
@@ -350,7 +364,7 @@ def build_workset_maps(worksets):
     by_name = {}
     names = []
     for ws in worksets:
-        by_id[ws.Id.IntegerValue] = ws.Name
+        by_id[element_id_value(ws.Id)] = ws.Name
         by_name[ws.Name] = ws
         names.append(ws.Name)
     return by_id, by_name, names
@@ -811,7 +825,7 @@ class InspectorWindow(Window):
                     fail_rows.append(['<group>', row.CategoryName, row.TypeName, 'Missing destination workset'])
                     continue
 
-                target_id = target_ws.Id.IntegerValue
+                target_id = target_element_id_value(ws.Id)
 
                 for elem_id in row.ElementIds:
                     try:
@@ -824,7 +838,7 @@ class InspectorWindow(Window):
                             failed += 1
                             fail_rows.append([get_element_display_name(elem), row.CategoryName, row.TypeName, 'Workset parameter unavailable'])
                             continue
-                        if elem.WorksetId.IntegerValue == target_id:
+                        if element_id_value(elem.WorksetId) == target_id:
                             skipped += 1
                             continue
                         param.Set(target_id)

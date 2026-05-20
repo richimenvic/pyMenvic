@@ -102,6 +102,20 @@ DEFAULT_LINK_WORKSETS = [
 # HELPERS
 # ==================================================
 
+def element_id_value(element_id, default=-1):
+    if element_id is None:
+        return default
+    try:
+        return element_id.Value
+    except Exception:
+        pass
+    try:
+        return element_id.IntegerValue
+    except Exception:
+        pass
+    return default
+
+
 def safe_str(value):
     try:
         if value is None:
@@ -200,7 +214,7 @@ def set_element_workset(elem, target_workset_id):
     if not p or p.IsReadOnly:
         return False, "Workset parameter missing or read-only."
     try:
-        p.Set(target_workset_id.IntegerValue)
+        p.Set(element_id_value(target_workset_id))
         return True, ""
     except Exception as ex:
         return False, safe_str(ex)
@@ -783,7 +797,7 @@ class LinkWorksetManagerWindow(forms.WPFWindow):
         type_map = {}
 
         for row in changed_rows:
-            type_id_int = row.TypeId.IntegerValue
+            type_id_int = element_id_value(row.TypeId)
             target_name = normalize_target_workset_name(row.SelectedTargetWorksetName)
 
             if type_id_int not in type_map:
@@ -859,7 +873,7 @@ class LinkWorksetManagerWindow(forms.WPFWindow):
                     errors.append("Instance '{}': {}".format(row.LinkName, safe_str(ex)))
 
                 try:
-                    type_id_int = row.TypeId.IntegerValue
+                    type_id_int = element_id_value(row.TypeId)
                     if type_id_int not in processed_type_ids:
                         typ = doc.GetElement(row.TypeId)
                         if typ:

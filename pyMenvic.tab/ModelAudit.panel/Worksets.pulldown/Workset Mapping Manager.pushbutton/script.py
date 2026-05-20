@@ -202,6 +202,20 @@ STANDARD_CHECKBOX_TO_WORKSET = {
 # HELPERS
 # ==================================================
 
+def element_id_value(element_id, default=-1):
+    if element_id is None:
+        return default
+    try:
+        return element_id.Value
+    except Exception:
+        pass
+    try:
+        return element_id.IntegerValue
+    except Exception:
+        pass
+    return default
+
+
 def safe_str(ex):
     try:
         return str(ex)
@@ -267,7 +281,7 @@ def get_true_workset_element_count(workset_id):
         for el in DB.FilteredElementCollector(doc).WhereElementIsNotElementType():
             try:
                 p = el.get_Parameter(DB.BuiltInParameter.ELEM_PARTITION_PARAM)
-                if p and p.HasValue and p.AsInteger() == workset_id.IntegerValue:
+                if p and p.HasValue and p.AsInteger() == element_id_value(workset_id):
                     count += 1
             except Exception:
                 pass
@@ -304,7 +318,7 @@ def checkout_worksets_if_possible(workset_ids):
 
     for wsid in workset_ids:
         try:
-            key = wsid.IntegerValue
+            key = element_id_value(wsid)
         except Exception:
             key = str(wsid)
 
@@ -378,7 +392,7 @@ def move_elements_to_workset(source_wsid, target_wsid):
             p.Set(target_wsid)
             changed += 1
         except Exception as ex:
-            failed.append((el.Id.IntegerValue, safe_str(ex)))
+            failed.append((element_id_value(el.Id), safe_str(ex)))
 
     return changed, skipped, failed
 
@@ -401,7 +415,7 @@ def consolidate_workset_into_existing(source_name, target_name):
     source_id = source_ws.Id
     target_id = target_ws.Id
 
-    changed, skipped, failed = move_elements_to_workset(source_id.IntegerValue, target_id.IntegerValue)
+    changed, skipped, failed = move_elements_to_workset(element_id_value(source_id), element_id_value(target_id))
 
     remaining = get_true_workset_element_count(source_id)
     if remaining <= 0:
@@ -1012,7 +1026,7 @@ class WorksetMappingManagerWindow(forms.WPFWindow):
 
             target_name = row.FinalTarget
             if (not is_target_empty(target_name)) and target_name in self._workset_map:
-                target_wsid = self._workset_map[target_name].Id.IntegerValue
+                target_wsid = element_id_value(self._workset_map[target_name].Id)
                 row.TargetElementCount = self._count_by_wsid.get(target_wsid, 0)
             else:
                 row.TargetElementCount = 0
@@ -1142,12 +1156,12 @@ class WorksetMappingManagerWindow(forms.WPFWindow):
             detected_type = detect_type(ws_name)
             suggested_target, action, reason = suggest_target_and_action(ws_name, discipline)
 
-            source_wsid = self._workset_map[ws_name].Id.IntegerValue
+            source_wsid = element_id_value(self._workset_map[ws_name].Id)
             element_count = self._count_by_wsid.get(source_wsid, 0)
 
             target_count = 0
             if (not is_target_empty(suggested_target)) and suggested_target in self._workset_map:
-                target_wsid = self._workset_map[suggested_target].Id.IntegerValue
+                target_wsid = element_id_value(self._workset_map[suggested_target].Id)
                 target_count = self._count_by_wsid.get(target_wsid, 0)
 
             row = MappingRow(
@@ -1249,7 +1263,7 @@ class WorksetMappingManagerWindow(forms.WPFWindow):
 
             try:
                 ws = self._workset_map[ws_name]
-                count = self._count_by_wsid.get(ws.Id.IntegerValue, 0)
+                count = self._count_by_wsid.get(element_id_value(ws.Id), 0)
             except Exception:
                 count = 0
 
@@ -1618,8 +1632,8 @@ class WorksetMappingManagerWindow(forms.WPFWindow):
                         error_rows.append((row.SourceName, row.FinalTarget, "Workset not found"))
                         continue
 
-                    source_wsid = source_ws.Id.IntegerValue
-                    target_wsid = target_ws.Id.IntegerValue
+                    source_wsid = source_element_id_value(ws.Id)
+                    target_wsid = target_element_id_value(ws.Id)
 
                     if source_wsid == target_wsid:
                         skipped_total += 1
@@ -1633,12 +1647,12 @@ class WorksetMappingManagerWindow(forms.WPFWindow):
                             p = el.get_Parameter(DB.BuiltInParameter.ELEM_PARTITION_PARAM)
 
                             if not p:
-                                failed_this_row.append("Element {} has no workset parameter".format(el.Id.IntegerValue))
+                                failed_this_row.append("Element {} has no workset parameter".format(element_id_value(el.Id)))
                                 continue
 
                             try:
                                 if p.IsReadOnly:
-                                    failed_this_row.append("Element {} workset parameter is read-only".format(el.Id.IntegerValue))
+                                    failed_this_row.append("Element {} workset parameter is read-only".format(element_id_value(el.Id)))
                                     continue
                             except Exception:
                                 pass
@@ -1647,7 +1661,7 @@ class WorksetMappingManagerWindow(forms.WPFWindow):
                             changed_this_row += 1
 
                         except Exception as ex:
-                            failed_this_row.append("Element {} failed: {}".format(el.Id.IntegerValue, safe_str(ex)))
+                            failed_this_row.append("Element {} failed: {}".format(element_id_value(el.Id), safe_str(ex)))
 
                     changed_total += changed_this_row
 
