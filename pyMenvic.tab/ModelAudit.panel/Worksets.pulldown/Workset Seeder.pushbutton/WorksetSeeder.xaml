@@ -10,19 +10,10 @@
         <SolidColorBrush x:Key="WindowBrush" Color="#1E252B" />
         <SolidColorBrush x:Key="HeaderBrush" Color="#26303A" />
         <SolidColorBrush x:Key="ContentBrush" Color="#F4F6F8" />
-        <SolidColorBrush x:Key="HeaderCardBrush" Color="#1F2B35" />
-        <SolidColorBrush x:Key="HeaderCardBorderBrush" Color="#344B5B" />
         <SolidColorBrush x:Key="PrimaryDarkTextBrush" Color="#1E252B" />
         <SolidColorBrush x:Key="PrimaryLightTextBrush" Color="#FFFFFF" />
         <SolidColorBrush x:Key="HeaderCardLabelBrush" Color="#8FA7BA" />
         <SolidColorBrush x:Key="FooterTextBrush" Color="#A9BAC8" />
-        <SolidColorBrush x:Key="StatusBlueBrush" Color="#0A70B8" />
-        <SolidColorBrush x:Key="InputBackgroundBrush" Color="#F7F9FB" />
-        <SolidColorBrush x:Key="InputBorderBrush" Color="#9FB3C1" />
-        <SolidColorBrush x:Key="GridBorderBrush" Color="#C8D1D8" />
-        <SolidColorBrush x:Key="GridHeaderBrush" Color="#E9EEF3" />
-        <SolidColorBrush x:Key="ExistsBrush" Color="#2D9D55" />
-        <SolidColorBrush x:Key="MissingBrush" Color="#B7791F" />
 
         <Style x:Key="ToolButtonStyle" TargetType="Button">
             <Setter Property="Foreground" Value="White" />
@@ -109,110 +100,112 @@
             </Grid>
         </Border>
 
-        <Grid Grid.Row="1" Background="{StaticResource ContentBrush}" Margin="0" Padding="18">
-            <Grid.RowDefinitions>
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="*" />
-            </Grid.RowDefinitions>
+        <Border Grid.Row="1" Background="{StaticResource ContentBrush}" Padding="18" BorderThickness="0">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
 
-            <Border Grid.Row="0" Background="#FFFFFF" CornerRadius="6" Padding="14" Margin="0,0,0,12" BorderBrush="#C8D1D8" BorderThickness="1">
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="Auto" />
-                    </Grid.ColumnDefinitions>
-
-                    <StackPanel Grid.Column="0" Margin="0,0,14,0">
-                        <TextBlock Text="Profile" Style="{StaticResource SectionLabelStyle}" />
-                        <ComboBox x:Name="ProfileCombo" />
-                        <CheckBox x:Name="IncludeCoordinationCheck" Content="Include coordination worksets" />
-                    </StackPanel>
-
-                    <StackPanel Grid.Column="1" Margin="0,0,14,0">
-                        <TextBlock Text="Discipline" Style="{StaticResource SectionLabelStyle}" />
-                        <ComboBox x:Name="DisciplineCombo" />
-                        <CheckBox x:Name="IncludeLinksCheck" Content="Include link worksets" />
-                    </StackPanel>
-
-                    <StackPanel Grid.Column="2" VerticalAlignment="Bottom">
-                        <Button x:Name="RefreshButton" Content="Refresh" Style="{StaticResource ToolButtonStyle}" />
-                    </StackPanel>
-                </Grid>
-            </Border>
-
-            <Border Grid.Row="1" Background="#FFFFFF" CornerRadius="6" Padding="14" BorderBrush="#C8D1D8" BorderThickness="1">
-                <Grid>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="*" />
-                    </Grid.RowDefinitions>
-                    <Grid Grid.Row="0" Margin="0,0,0,10">
+                <Border Grid.Row="0" Background="#FFFFFF" CornerRadius="6" Padding="14" Margin="0,0,0,12" BorderBrush="#C8D1D8" BorderThickness="1">
+                    <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
-                        <TextBlock Text="Preview" FontSize="15" FontWeight="SemiBold" Foreground="{StaticResource PrimaryDarkTextBrush}" VerticalAlignment="Center" />
-                        <StackPanel Grid.Column="1" Orientation="Horizontal" Margin="10,0,0,0">
-                            <TextBlock Text="Total " Foreground="#6B7C8D" />
-                            <TextBlock x:Name="TotalCountText" Text="0" FontWeight="SemiBold" Foreground="{StaticResource PrimaryDarkTextBrush}" />
+
+                        <StackPanel Grid.Column="0" Margin="0,0,14,0">
+                            <TextBlock Text="Profile" Style="{StaticResource SectionLabelStyle}" />
+                            <ComboBox x:Name="ProfileCombo" />
+                            <CheckBox x:Name="IncludeCoordinationCheck" Content="Include coordination worksets" />
                         </StackPanel>
-                        <StackPanel Grid.Column="2" Orientation="Horizontal" Margin="14,0,0,0">
-                            <TextBlock Text="Missing " Foreground="#6B7C8D" />
-                            <TextBlock x:Name="MissingCountText" Text="0" FontWeight="SemiBold" Foreground="{StaticResource PrimaryDarkTextBrush}" />
+
+                        <StackPanel Grid.Column="1" Margin="0,0,14,0">
+                            <TextBlock Text="Discipline" Style="{StaticResource SectionLabelStyle}" />
+                            <ComboBox x:Name="DisciplineCombo" />
+                            <CheckBox x:Name="IncludeLinksCheck" Content="Include link worksets" />
                         </StackPanel>
-                        <StackPanel Grid.Column="3" Orientation="Horizontal" Margin="14,0,0,0">
-                            <TextBlock Text="Existing " Foreground="#6B7C8D" />
-                            <TextBlock x:Name="ExistingCountText" Text="0" FontWeight="SemiBold" Foreground="{StaticResource PrimaryDarkTextBrush}" />
+
+                        <StackPanel Grid.Column="2" VerticalAlignment="Bottom">
+                            <Button x:Name="RefreshButton" Content="Refresh" Style="{StaticResource ToolButtonStyle}" />
                         </StackPanel>
                     </Grid>
+                </Border>
 
-                    <ListView x:Name="PreviewList" Grid.Row="1" BorderThickness="1" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
-                        <ListView.View>
-                            <GridView>
-                                <GridViewColumn Header="" Width="28">
-                                    <GridViewColumn.CellTemplate>
-                                        <DataTemplate>
-                                            <CheckBox IsChecked="{Binding Selected}" IsEnabled="{Binding IsSelectable}" HorizontalAlignment="Center" />
-                                        </DataTemplate>
-                                    </GridViewColumn.CellTemplate>
-                                </GridViewColumn>
-                                <GridViewColumn Header="Workset" Width="430">
-                                    <GridViewColumn.CellTemplate>
-                                        <DataTemplate>
-                                            <TextBlock Text="{Binding Name}" Foreground="#1E252B" />
-                                        </DataTemplate>
-                                    </GridViewColumn.CellTemplate>
-                                </GridViewColumn>
-                                <GridViewColumn Header="Status" Width="120">
-                                    <GridViewColumn.CellTemplate>
-                                        <DataTemplate>
-                                            <TextBlock Text="{Binding Status}">
-                                                <TextBlock.Style>
-                                                    <Style TargetType="TextBlock">
-                                                        <Setter Property="Foreground" Value="#1E252B" />
-                                                        <Style.Triggers>
-                                                            <DataTrigger Binding="{Binding Status}" Value="MISSING">
-                                                                <Setter Property="Foreground" Value="#B7791F" />
-                                                            </DataTrigger>
-                                                            <DataTrigger Binding="{Binding Status}" Value="EXISTS">
-                                                                <Setter Property="Foreground" Value="#2D9D55" />
-                                                            </DataTrigger>
-                                                        </Style.Triggers>
-                                                    </Style>
-                                                </TextBlock.Style>
-                                            </TextBlock>
-                                        </DataTemplate>
-                                    </GridViewColumn.CellTemplate>
-                                </GridViewColumn>
-                            </GridView>
-                        </ListView.View>
-                    </ListView>
-                </Grid>
-            </Border>
-        </Grid>
+                <Border Grid.Row="1" Background="#FFFFFF" CornerRadius="6" Padding="14" BorderBrush="#C8D1D8" BorderThickness="1">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
+                        <Grid Grid.Row="0" Margin="0,0,0,10">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="Preview" FontSize="15" FontWeight="SemiBold" Foreground="{StaticResource PrimaryDarkTextBrush}" VerticalAlignment="Center" />
+                            <StackPanel Grid.Column="1" Orientation="Horizontal" Margin="10,0,0,0">
+                                <TextBlock Text="Total " Foreground="#6B7C8D" />
+                                <TextBlock x:Name="TotalCountText" Text="0" FontWeight="SemiBold" Foreground="{StaticResource PrimaryDarkTextBrush}" />
+                            </StackPanel>
+                            <StackPanel Grid.Column="2" Orientation="Horizontal" Margin="14,0,0,0">
+                                <TextBlock Text="Missing " Foreground="#6B7C8D" />
+                                <TextBlock x:Name="MissingCountText" Text="0" FontWeight="SemiBold" Foreground="{StaticResource PrimaryDarkTextBrush}" />
+                            </StackPanel>
+                            <StackPanel Grid.Column="3" Orientation="Horizontal" Margin="14,0,0,0">
+                                <TextBlock Text="Existing " Foreground="#6B7C8D" />
+                                <TextBlock x:Name="ExistingCountText" Text="0" FontWeight="SemiBold" Foreground="{StaticResource PrimaryDarkTextBrush}" />
+                            </StackPanel>
+                        </Grid>
+
+                        <ListView x:Name="PreviewList" Grid.Row="1" BorderThickness="1" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                            <ListView.View>
+                                <GridView>
+                                    <GridViewColumn Header="" Width="28">
+                                        <GridViewColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <CheckBox IsChecked="{Binding Selected}" IsEnabled="{Binding IsSelectable}" HorizontalAlignment="Center" />
+                                            </DataTemplate>
+                                        </GridViewColumn.CellTemplate>
+                                    </GridViewColumn>
+                                    <GridViewColumn Header="Workset" Width="430">
+                                        <GridViewColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <TextBlock Text="{Binding Name}" Foreground="#1E252B" />
+                                            </DataTemplate>
+                                        </GridViewColumn.CellTemplate>
+                                    </GridViewColumn>
+                                    <GridViewColumn Header="Status" Width="120">
+                                        <GridViewColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <TextBlock Text="{Binding Status}">
+                                                    <TextBlock.Style>
+                                                        <Style TargetType="TextBlock">
+                                                            <Setter Property="Foreground" Value="#1E252B" />
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding Status}" Value="MISSING">
+                                                                    <Setter Property="Foreground" Value="#B7791F" />
+                                                                </DataTrigger>
+                                                                <DataTrigger Binding="{Binding Status}" Value="EXISTS">
+                                                                    <Setter Property="Foreground" Value="#2D9D55" />
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </TextBlock.Style>
+                                                </TextBlock>
+                                            </DataTemplate>
+                                        </GridViewColumn.CellTemplate>
+                                    </GridViewColumn>
+                                </GridView>
+                            </ListView.View>
+                        </ListView>
+                    </Grid>
+                </Border>
+            </Grid>
+        </Border>
 
         <Border Grid.Row="2" Background="{StaticResource WindowBrush}" Padding="18,10,18,12" BorderThickness="0">
             <Grid>
