@@ -888,6 +888,66 @@ failed_standard = []
 office_skip_log = []
 failed_rename = []
 log_size = []
+delete_cancelled = False
+
+def preview_delete_candidates(candidates, title):
+    if not candidates:
+        return False
+
+    output.print_md("## {}".format(title))
+    output.print_md("| Text Style Name | ElementId | Reason | Notes moved / Uses |")
+    output.print_md("|---|---:|---|---:|")
+    for item in candidates:
+        output.print_md("| {} | {} | {} | {} |".format(
+            item.get("name", ""),
+            item.get("id_int", ""),
+            item.get("reason", ""),
+            item.get("info", "")
+        ))
+
+    return forms.alert(
+        "Se encontraron {} TextNoteTypes candidatos para borrar.\n\n¿Deseas borrar solo los IDs listados en el preview?".format(len(candidates)),
+        title="pyMenvic | Confirm Delete Text Styles",
+        yes=True,
+        no=True
+    )
+
+def delete_listed_text_styles(candidates, counter_name):
+    global count_types_deleted, count_purged
+    deleted = 0
+
+    for item in candidates:
+        try:
+            doc.Delete(item.get("id"))
+            deleted += 1
+        except:
+            pass
+
+    if counter_name == "merge":
+        count_types_deleted += deleted
+    elif counter_name == "purge":
+        count_purged += deleted
+
+def move_notes_for_merge_candidates(candidates):
+    global count_notes_moved
+    moved_total = 0
+
+    for item in candidates:
+        tid = item.get("id")
+        canon_id = item.get("canon_id")
+        if not tid or not canon_id:
+            continue
+
+        for n in all_notes:
+            try:
+                if n.GetTypeId() == tid:
+                    n.ChangeTypeId(canon_id)
+                    count_notes_moved += 1
+                    moved_total += 1
+            except:
+                pass
+
+    return moved_total
 
 def ejecutar(rename_only=False):
     global count_font_fixed, count_size_snapped
@@ -895,6 +955,7 @@ def ejecutar(rename_only=False):
     global count_renamed, count_rename_failed, count_purged
     global created_standard, failed_standard
     global failed_rename, log_size
+    global delete_cancelled
 
     types_now = list(DB.FilteredElementCollector(doc).OfClass(DB.TextNoteType))
 
@@ -944,26 +1005,37 @@ def ejecutar(rename_only=False):
                 continue
 
             canon_id = canonical.Id
+            merge_delete_candidates = []
+
             for tt in tlist:
                 if tt.Id == canon_id:
                     continue
                 tid = tt.Id
+                moved_for_type = 0
 
                 for n in all_notes:
                     try:
                         if n.GetTypeId() == tid:
-                            n.ChangeTypeId(canon_id)
-                            count_notes_moved += 1
+                            moved_for_type += 1
                     except:
                         pass
 
-                try:
-                    doc.Delete(tid)
-                    count_types_deleted += 1
-                except:
-                    pass
+                merge_delete_candidates.append({
+                    "id": tid,
+                    "canon_id": canon_id,
+                    "id_int": element_id_int(tid),
+                    "name": get_type_name(tt),
+                    "reason": "Merge duplicate -> {}".format(get_type_name(canonical)),
+                    "info": moved_for_type
+                })
 
-            count_groups_merged += 1
+            if merge_delete_candidates and not delete_cancelled:
+                if preview_delete_candidates(merge_delete_candidates, "Preview delete | Merge duplicates"):
+                    move_notes_for_merge_candidates(merge_delete_candidates)
+                    delete_listed_text_styles(merge_delete_candidates, "merge")
+                    count_groups_merged += 1
+                else:
+                    delete_cancelled = True
 
     # D) Rename
     types_after = list(DB.FilteredElementCollector(doc).OfClass(DB.TextNoteType))
@@ -1010,6 +1082,8 @@ def ejecutar(rename_only=False):
     protected_office_names |= set(norm(sanitize_name("STANDARD {} {:.2f}mm".format(OFFICE_STANDARD_FONT, float(mm))))
                                   for mm in OFFICE_STANDARD_SIZES_MM)
 
+    purge_delete_candidates = []
+
     for tt in list(DB.FilteredElementCollector(doc).OfClass(DB.TextNoteType)):
         name_tt = get_type_name(tt)
         if is_excluded_name(name_tt):
@@ -1017,11 +1091,19 @@ def ejecutar(rename_only=False):
         if norm(name_tt) in protected_office_names:
             continue
         if tt.Id not in used_type_ids:
-            try:
-                doc.Delete(tt.Id)
-                count_purged += 1
-            except:
-                pass
+            purge_delete_candidates.append({
+                "id": tt.Id,
+                "id_int": element_id_int(tt.Id),
+                "name": name_tt,
+                "reason": "Purge unused",
+                "info": 0
+            })
+
+    if purge_delete_candidates and not delete_cancelled:
+        if preview_delete_candidates(purge_delete_candidates, "Preview delete | Purge unused"):
+            delete_listed_text_styles(purge_delete_candidates, "purge")
+        else:
+            delete_cancelled = True
 
     # F) Create office STANDARD
     if OFFICE_STANDARD_CREATE:
