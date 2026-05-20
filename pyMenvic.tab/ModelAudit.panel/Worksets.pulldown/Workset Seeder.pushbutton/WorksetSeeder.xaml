@@ -106,6 +106,13 @@
                 <ListView x:Name="PreviewList" Grid.Row="1" BorderBrush="#D9DEE5" BorderThickness="1">
                     <ListView.View>
                         <GridView>
+                            <GridViewColumn Header="" Width="40">
+                                <GridViewColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <CheckBox IsChecked="{Binding Selected}" IsEnabled="{Binding IsSelectable}" HorizontalAlignment="Center" />
+                                    </DataTemplate>
+                                </GridViewColumn.CellTemplate>
+                            </GridViewColumn>
                             <GridViewColumn Header="Workset" Width="450" DisplayMemberBinding="{Binding Name}" />
                             <GridViewColumn Header="Status" Width="140" DisplayMemberBinding="{Binding Status}" />
                         </GridView>
