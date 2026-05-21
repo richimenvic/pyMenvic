@@ -2053,7 +2053,7 @@ class PrintSheetsWindow(forms.WPFWindow):
         current_sheet_ids = set()
         for sheet in list(self.sheet_list or []):
             try:
-                current_sheet_ids.add(sheet.revit_sheet.Id.IntegerValue)
+                current_sheet_ids.add(get_elementid_value(sheet.revit_sheet.Id))
             except Exception:
                 pass
 
@@ -2067,7 +2067,7 @@ class PrintSheetsWindow(forms.WPFWindow):
         available_sheets = []
         for sheet in revit.query.get_sheets(doc=self.selected_doc):
             try:
-                if sheet.Id.IntegerValue not in current_sheet_ids:
+                if get_elementid_value(sheet.Id) not in current_sheet_ids:
                     available_sheets.append(sheet)
             except Exception:
                 continue
@@ -2126,14 +2126,14 @@ class PrintSheetsWindow(forms.WPFWindow):
         selected_ids = set()
         for sheet in selected:
             try:
-                selected_ids.add(sheet.revit_sheet.Id.IntegerValue)
+                selected_ids.add(get_elementid_value(sheet.revit_sheet.Id))
             except Exception:
                 pass
 
         sheet_items = []
         for sheet in list(self.sheet_list or []):
             try:
-                if sheet.revit_sheet.Id.IntegerValue not in selected_ids:
+                if get_elementid_value(sheet.revit_sheet.Id) not in selected_ids:
                     sheet_items.append(sheet)
             except Exception:
                 sheet_items.append(sheet)
