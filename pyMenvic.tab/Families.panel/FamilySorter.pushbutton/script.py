@@ -15,7 +15,7 @@ app = __revit__.Application
 # ------------------------
 # CONFIG
 # ------------------------
-DRY_RUN = False           # True = no mueve/renombra, solo reporta
+DRY_RUN = True            # True = preview/report only, no mueve ni renombra. False = ejecuta cambios reales.
 SOBREESCRIBIR = False     # True = pisa si existe destino (ojo)
 PAUSA_SEG = 0.02
 
